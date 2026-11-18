@@ -128,7 +128,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Target formats sorted by usefulness (e.g. PDF → Word first; DOC/XLS/PPT last); the first one is the default
 - [x] Remember settings between sessions (target format, output folder, quality, Word, metadata); stored locally only, removed on uninstall
 - [x] Inno Setup installer: per-user install without admin rights, Start menu entry, optional desktop icon, clean uninstall; tested automatically in CI (install → run → uninstall)
-- [x] App icon, About window with version, privacy promise, license and component licenses
+- [x] App icon ("F1": document with a golden seal holding the convert arrows, indigo tile), About window with version, privacy promise, license and component licenses
 - [ ] **Release 0.1**, then make the repository public
 
 ### Phase 2: PDF power tools and OCR (≈ 4–6 weeks)
