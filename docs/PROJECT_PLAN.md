@@ -156,6 +156,13 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %
 - Options: Qt's built-in Windows 11 style plus our own stylesheet, or the GPL-licensed *PySide6-Fluent-Widgets* library (compatible with our license)
 
+### Technical improvements (from the code review, Nov 2026; schedule as needed)
+- [ ] **Faster large batches:** keep one LibreOffice (and one Word) instance running for a whole batch instead of starting it for every file (~1 s overhead per file today); convert several files in parallel where the engine allows it (images, PDF → images)
+- [ ] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh
+- [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
+- [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
+- [ ] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
+
 ### Phase 3: Audio and video (≈ 4 weeks)
 - [ ] FFmpeg plugin with progress parsed from FFmpeg's output
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
