@@ -150,7 +150,7 @@ class Engine:
         result = ConversionResult(source=source, notes=self.quality_notes(route))
         resolved_options = quality.resolve_options(options)  # level → values, enforce limits
 
-        with tempfile.TemporaryDirectory(prefix="fileconv-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="azoth-") as tmp:
             tmp_path = Path(tmp)
             current = source
             if source.suffix.lower().lstrip(".") not in src_fmt.extensions:

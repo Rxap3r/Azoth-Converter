@@ -49,7 +49,7 @@ def _version(dist: str | None) -> str:
 class AboutDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("About File-Converter")
+        self.setWindowTitle("About Azoth Converter")
         self.resize(640, 560)
         layout = QVBoxLayout(self)
 
@@ -65,7 +65,7 @@ class AboutDialog(QDialog):
         )
         header.addWidget(icon)
         title = QLabel(
-            f"<h2 style='margin:0'>File-Converter</h2>Version {__version__}<br>"
+            f"<h2 style='margin:0'>Azoth Converter</h2>Version {__version__}<br>"
             "Converts documents, PDFs and images on your own computer."
         )
         header.addWidget(title, 1)
@@ -80,7 +80,7 @@ class AboutDialog(QDialog):
         layout.addWidget(privacy)
 
         license_text = QLabel(
-            "File-Converter is free, open-source software under the "
+            "Azoth Converter is free, open-source software under the "
             "<b>GNU General Public License v3.0 or later</b>. You may use, study, share and "
             "change it. It comes with no warranty."
         )

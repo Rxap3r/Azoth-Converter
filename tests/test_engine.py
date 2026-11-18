@@ -2,8 +2,8 @@ import threading
 
 import pytest
 
-from fileconv.converters import ConversionCancelled, ConversionError
-from fileconv.engine import Engine, unique_path
+from azoth.converters import ConversionCancelled, ConversionError
+from azoth.engine import Engine, unique_path
 
 
 def test_never_overwrites_existing_output(sample_png, tmp_path):
@@ -70,7 +70,7 @@ def test_routes():
 
 
 def test_missing_engine_explains_itself(sample_docx, tmp_path, monkeypatch):
-    from fileconv.converters import office
+    from azoth.converters import office
 
     monkeypatch.setattr(office, "find_soffice", lambda: None)
     with pytest.raises(ConversionError, match="LibreOffice"):

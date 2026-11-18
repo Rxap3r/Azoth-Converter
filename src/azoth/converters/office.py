@@ -97,7 +97,7 @@ def hardened_profile_xml() -> str:
 
 def _candidate_paths() -> list[Path]:
     candidates: list[Path] = []
-    env = os.environ.get("FILECONV_SOFFICE")
+    env = os.environ.get("AZOTH_SOFFICE")
     if env:
         candidates.append(Path(env))
     # A LibreOffice copy shipped next to the app (planned "Office pack").
@@ -146,7 +146,7 @@ class OfficeConverter(Converter):
     def unavailable_reason(self) -> str:
         return (
             "Office conversions need LibreOffice (free). Install it from "
-            "libreoffice.org, then restart File-Converter."
+            "libreoffice.org, then restart Azoth Converter."
         )
 
     def capabilities(self) -> Iterable[tuple[str, str]]:

@@ -1,8 +1,8 @@
 import pytest
 from PIL import Image
 
-from fileconv.converters.images import AVIF_SUPPORTED, HEIF_SUPPORTED
-from fileconv.engine import Engine
+from azoth.converters.images import AVIF_SUPPORTED, HEIF_SUPPORTED
+from azoth.engine import Engine
 
 TARGETS = ["jpg", "png", "webp", "bmp", "tiff", "gif", "ico", "pdf"]
 if HEIF_SUPPORTED:

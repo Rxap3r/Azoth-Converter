@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         self._cancel = threading.Event()
         self._done_count = 0
 
-        self.setWindowTitle(f"File-Converter {__version__}")
+        self.setWindowTitle(f"Azoth Converter {__version__}")
         self.resize(820, 600)
         self.setAcceptDrops(True)
         self._build_ui()
@@ -119,7 +119,7 @@ class MainWindow(QMainWindow):
         header.addWidget(logo)
         titles = QVBoxLayout()
         titles.setSpacing(0)
-        title = QLabel("<h2 style='margin:0'>File-Converter</h2>")
+        title = QLabel("<h2 style='margin:0'>Azoth Converter</h2>")
         subtitle = QLabel("🔒 Works offline. Your files never leave this computer.")
         subtitle.setStyleSheet("color: palette(placeholder-text);")
         titles.addWidget(title)

@@ -3,9 +3,9 @@ import pytest
 from conftest import make_pdf, make_scanned_pdf
 from PIL import Image
 
-from fileconv.converters import ConversionError
-from fileconv.converters.pdf import merge_pdfs, split_pdf
-from fileconv.engine import Engine
+from azoth.converters import ConversionError
+from azoth.converters.pdf import merge_pdfs, split_pdf
+from azoth.engine import Engine
 
 
 def test_pdf_to_png_one_file_per_page(sample_pdf, tmp_path):

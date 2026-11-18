@@ -1,7 +1,7 @@
 """Draw the app icon. Run from the repository root:  python packaging/make_icon.py
 
 Writes packaging/icon.ico (Windows executable and installer) and
-src/fileconv/resources/icon.png (window and taskbar icon).
+src/azoth/resources/icon.png (window and taskbar icon).
 """
 
 from pathlib import Path
@@ -82,7 +82,7 @@ def main() -> None:
     sheet(d, 190, 250, 400, 530, SHEET_FRONT, lines=True)
     arrow_badge(img)
 
-    png = ROOT / "src" / "fileconv" / "resources" / "icon.png"
+    png = ROOT / "src" / "azoth" / "resources" / "icon.png"
     img.resize((256, 256), Image.Resampling.LANCZOS).save(png, optimize=True)
     ico = ROOT / "packaging" / "icon.ico"
     img.save(ico, sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])

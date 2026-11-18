@@ -1,4 +1,4 @@
-# File-Converter: Project Plan
+# Azoth Converter: Project Plan
 
 A desktop file converter that runs **entirely offline** on the user's device.
 No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
@@ -9,6 +9,7 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 
 | Topic | Decision |
 |-------|----------|
+| Name | **Azoth Converter** (from *azoth*, the alchemists' universal solvent that transforms any substance). Checked Nov 2026: no software trademark "AZOTH" found in the US/EU registers; final check in Swissreg/TMview by the owner. CLI command: `azoth`. |
 | License | **Open source, GPL-3.0-or-later.** The repository stays private until basic use is solid, then goes public. Because the project is GPL, we can use GPL and AGPL engines (PyMuPDF, Ghostscript, a full FFmpeg build). PyMuPDF is AGPL-3.0; section 13 of the GPL-3.0 and the AGPL-3.0 explicitly allows combining the two. |
 | Priorities | **PDF conversions first**, especially **Word → PDF** and **PDF → Word**, then the other office formats. |
 | Stack | Python 3.12 and PySide6 (Qt 6), packaged with PyInstaller (see §2). |
@@ -49,13 +50,13 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│  GUI (PySide6)            CLI (fileconv …)                │
+│  GUI (PySide6)            CLI (azoth …)                │
 │  drag & drop, queue,      same features, scriptable       │
 │  options                                                  │
 └──────────────┬───────────────────────┬────────────────────┘
                │                       │
 ┌──────────────▼───────────────────────▼────────────────────┐
-│  Engine (src/fileconv/engine.py)                          │
+│  Engine (src/azoth/engine.py)                          │
 │  • Format detection by content (formats.py)               │
 │  • Route finding: A → B, possibly via an intermediate     │
 │    (e.g. DOCX → PDF → PNG), up to 3 steps                 │
@@ -108,7 +109,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 ### Phase 0: Foundations ✅ done
 - [x] Repository structure, `pyproject.toml`, ruff, pytest
 - [x] Engine: content-based format detection, plugin interface, route finding, temp-file handling
-- [x] CLI: `fileconv convert`, `fileconv formats`, `fileconv pdf merge/split`
+- [x] CLI: `azoth convert`, `azoth formats`, `azoth pdf merge/split`
 - [x] GitHub Actions: tests on Windows and Linux, plus a Windows build artifact
 - [x] `PRIVACY.md`, and a test fixture that fails any test that touches the network
 
@@ -136,7 +137,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Add or remove a password (only with the user's own password)
 - [ ] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs)
 - [ ] PDF → Excel for tables
-- [ ] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `fileconv clean`. Also show what metadata a file contains before removing it.
+- [ ] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it.
 - [ ] **Release 0.2**
 
 ### Design refresh (timing flexible, ideally before going public)
@@ -158,7 +159,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **Release 0.3**
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
-- [ ] Windows Explorer right-click menu: "Convert with File-Converter → …"
+- [ ] Windows Explorer right-click menu: "Convert with Azoth Converter → …"
 - [ ] Watch folders (files dropped in a folder are converted automatically)
 - [ ] Data formats (CSV/JSON/XML/YAML/XLSX), Markdown/HTML/EPUB, archives, Camera RAW, SVG
 - [ ] Saved presets, optional local conversion history (can be cleared or turned off)

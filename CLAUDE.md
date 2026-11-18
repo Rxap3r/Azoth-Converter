@@ -22,7 +22,7 @@ Rules:
 
 ## Project
 
-File-Converter is an **offline** desktop file converter (Windows first, later macOS and Linux).
+Azoth Converter is an **offline** desktop file converter (Windows first, later macOS and Linux).
 The whole point of the project is **data safety**: files never leave the user's device.
 The roadmap is in `docs/PROJECT_PLAN.md`, and the user-facing promises are in `PRIVACY.md`.
 
@@ -47,16 +47,16 @@ LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL
 ## Layout
 
 ```
-src/fileconv/
+src/azoth/
   formats.py          format list and detection by file content
   engine.py           route finding (multi-step), running jobs, temp folders
   converters/base.py  Converter plugin interface
   converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
-  cli.py              `fileconv` command line
+  cli.py              `azoth` command line
   gui/                PySide6 window, About dialog, saved preferences (QSettings)
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
-packaging/            PyInstaller spec (FileConverter.exe + fileconv.exe), installer.iss (Inno Setup),
+packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),
                       make_icon.py; CI builds and tests the installer
 samples/              test files (Word, PDF, Excel, PowerPoint, images, problem files);
                       recreate with `python samples/generate.py`, see samples/README.md
@@ -97,14 +97,14 @@ ruff check src tests && ruff format --check src tests
 ```
 
 ```bash
-python -m fileconv
+python -m azoth
 ```
 
 ```bash
-cd packaging && pyinstaller fileconv.spec --noconfirm
+cd packaging && pyinstaller azoth.spec --noconfirm
 ```
 
-`python -m fileconv` without arguments opens the GUI; with arguments it runs the CLI.
+`python -m azoth` without arguments opens the GUI; with arguments it runs the CLI.
 GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftest.py`).
 Office tests are skipped when LibreOffice isn't installed. Install it to run them.
 
@@ -120,4 +120,4 @@ same change, and never add an installer language the app doesn't have.
 - New features come with tests.
 - Update `docs/PROJECT_PLAN.md` checkboxes and the README's format table when features change.
 - When conversions change, regenerate the format list (also shown in the app):
-  `fileconv formats --markdown docs/FORMATS.md`. A test fails if it's out of date.
+  `azoth formats --markdown docs/FORMATS.md`. A test fails if it's out of date.

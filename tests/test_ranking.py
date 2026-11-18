@@ -2,7 +2,7 @@
 
 import pytest
 
-from fileconv.engine import Engine
+from azoth.engine import Engine
 
 ENGINE = Engine()
 
@@ -34,7 +34,7 @@ def test_old_formats_come_last(source, old):
 
 
 def test_window_defaults_to_most_useful(qtbot, sample_pdf):
-    from fileconv.gui.main_window import MainWindow
+    from azoth.gui.main_window import MainWindow
 
     window = MainWindow()
     qtbot.addWidget(window)

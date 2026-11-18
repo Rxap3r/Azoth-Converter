@@ -3,8 +3,8 @@
 import pymupdf
 import pytest
 
-from fileconv.converters.office import find_soffice
-from fileconv.engine import Engine
+from azoth.converters.office import find_soffice
+from azoth.engine import Engine
 
 pytestmark = pytest.mark.skipif(find_soffice() is None, reason="LibreOffice not installed")
 

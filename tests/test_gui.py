@@ -2,7 +2,7 @@ import pytest
 
 pytest.importorskip("pytestqt")
 
-from fileconv.gui.main_window import MainWindow  # noqa: E402
+from azoth.gui.main_window import MainWindow  # noqa: E402
 
 
 @pytest.fixture
@@ -143,7 +143,7 @@ def test_missing_output_folder_is_not_restored(qtbot, tmp_path):
 
 
 def test_about_dialog(window):
-    from fileconv.gui.about import AboutDialog
+    from azoth.gui.about import AboutDialog
 
     dialog = AboutDialog(window)
     names = [

@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from fileconv import formats
-from fileconv.converters import ConversionError
-from fileconv.engine import Engine
+from azoth import formats
+from azoth.converters import ConversionError
+from azoth.engine import Engine
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 

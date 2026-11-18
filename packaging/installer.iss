@@ -1,7 +1,7 @@
 ; Inno Setup script for the Windows installer.
 ; Build after PyInstaller (from the packaging folder):
 ;   iscc /DAppVersion=0.1.0 installer.iss
-; Result: packaging\Output\FileConverter-Setup-<version>.exe
+; Result: packaging\Output\AzothConverter-Setup-<version>.exe
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -9,25 +9,25 @@
 
 [Setup]
 ; Never change AppId: Windows uses it to recognise updates of the same app.
-AppId={{6D2C2AFB-18AC-401F-A91E-168805E44888}
-AppName=File-Converter
+AppId={{93ED8031-42A0-4035-882F-06305DF2F0A3}
+AppName=Azoth Converter
 AppVersion={#AppVersion}
-AppVerName=File-Converter {#AppVersion}
-AppPublisher=File-Converter contributors
+AppVerName=Azoth Converter {#AppVersion}
+AppPublisher=Azoth Converter contributors
 AppComments=Offline file converter. Your files never leave this computer.
 ; Installs for the current user without admin rights by default;
 ; the user can choose "install for all users" (needs admin) in the dialog.
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-DefaultDirName={autopf}\File-Converter
-DefaultGroupName=File-Converter
+DefaultDirName={autopf}\Azoth Converter
+DefaultGroupName=Azoth Converter
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
 SetupIconFile=icon.ico
-UninstallDisplayIcon={app}\FileConverter.exe
-UninstallDisplayName=File-Converter
+UninstallDisplayIcon={app}\AzothConverter.exe
+UninstallDisplayName=Azoth Converter
 OutputDir=Output
-OutputBaseFilename=FileConverter-Setup-{#AppVersion}
+OutputBaseFilename=AzothConverter-Setup-{#AppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -45,15 +45,15 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "dist\FileConverter\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\AzothConverter\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\File-Converter"; Filename: "{app}\FileConverter.exe"
-Name: "{autodesktop}\File-Converter"; Filename: "{app}\FileConverter.exe"; Tasks: desktopicon
+Name: "{autoprograms}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"
+Name: "{autodesktop}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"; Tasks: desktopicon
 
 [Registry]
 ; The app's saved preferences: removed again on uninstall, so nothing is left behind.
-Root: HKCU; Subkey: "Software\File-Converter"; Flags: uninsdeletekey dontcreatekey
+Root: HKCU; Subkey: "Software\Azoth Converter"; Flags: uninsdeletekey dontcreatekey
 
 [Run]
-Filename: "{app}\FileConverter.exe"; Description: "{cm:LaunchProgram,File-Converter}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\AzothConverter.exe"; Description: "{cm:LaunchProgram,Azoth Converter}"; Flags: nowait postinstall skipifsilent

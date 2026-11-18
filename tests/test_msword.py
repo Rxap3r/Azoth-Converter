@@ -7,9 +7,9 @@ import sys
 
 import pytest
 
-from fileconv.converters import ConversionError, all_converters, msword
-from fileconv.converters.office import find_soffice
-from fileconv.engine import Engine
+from azoth.converters import ConversionError, all_converters, msword
+from azoth.converters.office import find_soffice
+from azoth.engine import Engine
 
 
 class FakePowerShell:
@@ -22,7 +22,7 @@ class FakePowerShell:
         FakePowerShell.calls.append((cmd, env))
         self.returncode = None
         if FakePowerShell.succeed:
-            with open(env["FILECONV_DST"], "wb") as fh:
+            with open(env["AZOTH_DST"], "wb") as fh:
                 fh.write(b"%PDF-1.7 made by fake Word")
             self._code, self._err = 0, b""
         else:
@@ -80,8 +80,8 @@ def test_word_conversion_passes_paths_safely(fake_word, sample_docx, tmp_path):
     # Paths only travel in environment variables, never inside the script.
     script = base64.b64decode(cmd[cmd.index("-EncodedCommand") + 1]).decode("utf-16-le")
     assert str(sample_docx) not in script
-    assert env["FILECONV_SRC"].endswith("input.docx")
-    assert "report.docx" not in env["FILECONV_SRC"]  # Word only sees a private copy
+    assert env["AZOTH_SRC"].endswith("input.docx")
+    assert "report.docx" not in env["AZOTH_SRC"]  # Word only sees a private copy
     assert "AutomationSecurity = 3" in script  # macros force-disabled
     assert "DisplayAlerts = 0" in script
 

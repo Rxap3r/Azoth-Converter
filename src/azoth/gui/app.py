@@ -17,7 +17,7 @@ def main() -> int:
         # Show our icon in the taskbar instead of Python's when run from source.
         import ctypes
 
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("FileConverter.App")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("AzothConverter.App")
 
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName(APPLICATION)

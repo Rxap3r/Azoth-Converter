@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fileconv"
+name = "azoth-converter"
 version = "0.1.0"
 description = "Offline desktop file converter: your files never leave your computer."
 readme = "README.md"
@@ -30,13 +30,13 @@ dev = [
 ]
 
 [project.scripts]
-fileconv = "fileconv.cli:main"
+azoth = "azoth.cli:main"
 
 [project.gui-scripts]
-fileconv-gui = "fileconv.gui.app:main"
+azoth-gui = "azoth.gui.app:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/fileconv"]
+packages = ["src/azoth"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

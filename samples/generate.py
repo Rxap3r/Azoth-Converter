@@ -31,8 +31,8 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT.parent / "src"))
 
-from fileconv.converters.office import find_soffice  # noqa: E402
-from fileconv.engine import Engine  # noqa: E402
+from azoth.converters.office import find_soffice  # noqa: E402
+from azoth.engine import Engine  # noqa: E402
 
 random.seed(42)
 
@@ -99,7 +99,7 @@ def landscape_photo(width=1600, height=1067) -> Image.Image:
         r, g, b = img.getpixel((x, y))
         n = random.randint(-25, 25)
         img.putpixel((x, y), (max(0, r + n), max(0, g + n), max(0, b + n)))
-    d.text((30, height - 60), "Sample photo - File-Converter", fill="white", font=font(36))
+    d.text((30, height - 60), "Sample photo - Azoth Converter", fill="white", font=font(36))
     return img
 
 
@@ -440,7 +440,7 @@ def powerpoint_presentation(path: Path, image: Path) -> None:
     prs.slide_width, prs.slide_height = PInches(13.333), PInches(7.5)  # 16:9
 
     s = prs.slides.add_slide(prs.slide_layouts[0])
-    s.shapes.title.text = "File-Converter Test Presentation"
+    s.shapes.title.text = "Azoth Converter Test Presentation"
     s.placeholders[1].text = "Five slides with text, bullets, an image, a table and shapes"
 
     s = prs.slides.add_slide(prs.slide_layouts[1])

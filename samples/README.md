@@ -1,6 +1,6 @@
 # Sample files for testing
 
-Made-up files for trying out File-Converter by hand, and for the automated tests.
+Made-up files for trying out Azoth Converter by hand, and for the automated tests.
 Every name, address and number in them is fictional.
 
 To recreate them (needs `pip install -e ".[dev]"`, plus LibreOffice for the
@@ -26,7 +26,7 @@ python samples/generate.py
 | `report_made_from_word.pdf` | The formatted report as PDF | → Word: text, tables and chart image should be editable |
 | `letter_made_from_word.pdf` | The letter as PDF | → Word |
 | `invoice.pdf` | Invoice with a table (not made from Word) | → Word, → JPG |
-| `twelve_pages.pdf` | 12 numbered pages | → PNG gives 12 files; split/merge (`fileconv pdf split`) |
+| `twelve_pages.pdf` | 12 numbered pages | → PNG gives 12 files; split/merge (`azoth pdf split`) |
 | `scanned_letter_no_text.pdf` | A "scan": pictures of pages, no selectable text | → Word should show a clear "this looks like a scan" message |
 | `password_protected_test123.pdf` | Password `test123` | Should show a clear "password-protected" message |
 

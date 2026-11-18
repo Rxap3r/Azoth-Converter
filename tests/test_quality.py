@@ -6,8 +6,8 @@ import pymupdf
 import pytest
 from PIL import Image, ImageChops
 
-from fileconv.converters.jpeg_tools import strip_jpeg_metadata
-from fileconv.engine import Engine
+from azoth.converters.jpeg_tools import strip_jpeg_metadata
+from azoth.engine import Engine
 
 
 def _two_colour_photo(path, orientation=None):
@@ -98,7 +98,7 @@ def test_pdf_to_image_default_is_print_quality(sample_pdf, tmp_path):
 
 
 def test_quality_levels_and_limits():
-    from fileconv import quality
+    from azoth import quality
 
     assert quality.resolve_options({}) == {"level": "maximum", "quality": 95, "dpi": 300}
     compact = quality.resolve_options({"level": "compact"})
@@ -110,7 +110,7 @@ def test_quality_levels_and_limits():
 
 
 def test_cli_rejects_too_low_quality(sample_png, tmp_path, capsys):
-    from fileconv.cli import main
+    from azoth.cli import main
 
     with pytest.raises(SystemExit):
         main(["convert", str(sample_png), "--to", "jpg", "--quality", "20"])

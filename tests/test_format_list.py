@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from fileconv.format_list import build_markdown, conversion_table
+from azoth.format_list import build_markdown, conversion_table
 
 DOC = Path(__file__).resolve().parent.parent / "docs" / "FORMATS.md"
 
 
 def test_formats_doc_is_up_to_date():
     assert DOC.read_text(encoding="utf-8") == build_markdown(), (
-        "docs/FORMATS.md is out of date. Run: fileconv formats --markdown docs/FORMATS.md"
+        "docs/FORMATS.md is out of date. Run: azoth formats --markdown docs/FORMATS.md"
     )
 
 

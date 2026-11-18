@@ -74,11 +74,11 @@ jobs:
           pip install --no-deps .
       - name: Build
         working-directory: packaging
-        run: pyinstaller fileconv.spec --noconfirm
+        run: pyinstaller azoth.spec --noconfirm
       - name: Smoke test the built program
         shell: pwsh
         run: |
-          $exe = "packaging/dist/FileConverter/fileconv.exe"
+          $exe = "packaging/dist/AzothConverter/azoth.exe"
           & $exe --version
           & $exe formats
           if ($LASTEXITCODE -ne 0) { exit 1 }
@@ -86,7 +86,7 @@ jobs:
         shell: pwsh
         working-directory: packaging
         run: |
-          $version = python -c "import fileconv; print(fileconv.__version__)"
+          $version = python -c "import azoth; print(azoth.__version__)"
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) {
             choco install innosetup --no-progress -y
@@ -97,25 +97,25 @@ jobs:
       - name: Test installer (install, run, uninstall)
         shell: pwsh
         run: |
-          $setup = "packaging/Output/FileConverter-Setup-$env:VERSION.exe"
+          $setup = "packaging/Output/AzothConverter-Setup-$env:VERSION.exe"
           $dir = "$env:RUNNER_TEMP\fc-install"
           Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
-          & "$dir\fileconv.exe" --version
+          & "$dir\azoth.exe" --version
           if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
           Start-Process "$dir\unins000.exe" -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
           Start-Sleep -Seconds 3
-          if (Test-Path "$dir\fileconv.exe") { throw "uninstall left files behind" }
+          if (Test-Path "$dir\azoth.exe") { throw "uninstall left files behind" }
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: FileConverter-Setup
-          path: packaging/Output/FileConverter-Setup-*.exe
+          name: AzothConverter-Setup
+          path: packaging/Output/AzothConverter-Setup-*.exe
           compression-level: 0  # already compressed
           retention-days: ${{ github.ref == 'refs/heads/main' && 30 || 7 }}
       - name: Upload portable version (main only)
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: FileConverter-portable
-          path: packaging/dist/FileConverter
+          name: AzothConverter-portable
+          path: packaging/dist/AzothConverter
           retention-days: 30

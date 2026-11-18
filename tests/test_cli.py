@@ -1,6 +1,6 @@
 from conftest import make_pdf
 
-from fileconv.cli import main
+from azoth.cli import main
 
 
 def test_convert_and_formats(sample_png, tmp_path, capsys):

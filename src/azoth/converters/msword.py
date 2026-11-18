@@ -55,10 +55,10 @@ try {
     #      PasswordTemplate, Revert, WritePasswordDocument, WritePasswordTemplate, Format,
     #      Encoding, Visible, OpenAndRepair, DocumentDirection, NoEncodingDialog)
     # A dummy password makes protected documents fail instead of prompting.
-    $doc = $word.Documents.Open($env:FILECONV_SRC, $false, $true, $false,
-        'fileconv-no-password', $missing, $false, $missing, $missing, $missing,
+    $doc = $word.Documents.Open($env:AZOTH_SRC, $false, $true, $false,
+        'azoth-no-password', $missing, $false, $missing, $missing, $missing,
         $missing, $false, $false, $missing, $true)
-    $doc.ExportAsFixedFormat($env:FILECONV_DST, 17)   # wdExportFormatPDF
+    $doc.ExportAsFixedFormat($env:AZOTH_DST, 17)   # wdExportFormatPDF
 }
 catch {
     [Console]::Error.WriteLine($_.Exception.Message)
@@ -170,8 +170,8 @@ class WordConverter(Converter):
         local_dst = ctx.work_dir / "word-out.pdf"
 
         env = dict(os.environ)
-        env["FILECONV_SRC"] = str(local_src.resolve())
-        env["FILECONV_DST"] = str(local_dst.resolve())
+        env["AZOTH_SRC"] = str(local_src.resolve())
+        env["AZOTH_DST"] = str(local_dst.resolve())
         cmd = [
             powershell,
             "-NoProfile",

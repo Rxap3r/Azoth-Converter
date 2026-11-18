@@ -373,7 +373,7 @@ packaging==26.3 \
 pdf2docx==0.5.13 \
     --hash=sha256:75eff485d4fdcd28237783a65c1bc5e9eaf9fbc747fcacee6c5c16c8ffa7a6a9 \
     --hash=sha256:a293e9e78d89b12a4a43fcefba1346de220681c3daf20b8a7d3e1fce77f0fe97
-    # via fileconv (pyproject.toml)
+    # via azoth-converter (pyproject.toml)
 pillow==13.0.0 \
     --hash=sha256:02464da86f561f410e13b061ec37c3068a9cb557a095494157742d07b3c24a27 \
     --hash=sha256:04a63720f79e22fd54d897c233a68314c50ca0603360f54ce2bd5db8f0f43782 \
@@ -459,7 +459,7 @@ pillow==13.0.0 \
     --hash=sha256:ff3fe9eb621fbb9db4c4be33ab946f6bac5f98ab50ca8d3260503653656c961b \
     --hash=sha256:ffea6b2986a797c84b6d1d27d4f43e0b83c73fc16281a930891cd237cf0d08fe
     # via
-    #   fileconv (pyproject.toml)
+    #   azoth-converter (pyproject.toml)
     #   pillow-heif
 pillow-heif==1.8.1 \
     --hash=sha256:02e54c72c96c82b5e5a9035ccec63d53883b942c921a76e2d92516a1c0453f85 \
@@ -532,7 +532,7 @@ pillow-heif==1.8.1 \
     --hash=sha256:fc13fede809f1ec28348b2803dd23808e5e518cc6ef44de8093c461f27e98396 \
     --hash=sha256:fc8f3b859611cb0397d79c91d4b0c27c4288026c381d6302b53c2b4da61aaee1 \
     --hash=sha256:fd17029b8d7583011b1c16d932407145f26639b015878d5c4ee1093444530452
-    # via fileconv (pyproject.toml)
+    # via azoth-converter (pyproject.toml)
 protobuf==7.36.2 \
     --hash=sha256:497d0463ff3316681da6c0b9e8d06cb465d61abce00b613ab42226175644d1bb \
     --hash=sha256:89f23aa53c24553a2416fd4fd1ec06f74fa42b14b546d8883128813f775bbfd2 \
@@ -573,7 +573,7 @@ pymupdf==2.1 \
     --hash=sha256:a9efa2e9e5f469d3b5749199329739cfef1ff1d1846538ced4885c544eecbcd9 \
     --hash=sha256:e1122bbc3a1212396f0d70d19f78e084991b59ebdfc9d846c28ca8b509de01ad
     # via
-    #   fileconv (pyproject.toml)
+    #   azoth-converter (pyproject.toml)
     #   pdf2docx
     #   pymupdf-layout
     #   pymupdf4llm
@@ -593,7 +593,7 @@ pyside6-essentials==6.12.0 \
     --hash=sha256:16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9 \
     --hash=sha256:c76aa689989bf9bb9b45535e0a81c6733294df720b0eed1308fa30d2606b98cc \
     --hash=sha256:c9a95102aa23c1f86516a30d5a9be37552d324eee7e567eb7508973f1218cb42
-    # via fileconv (pyproject.toml)
+    # via azoth-converter (pyproject.toml)
 python-docx==1.2.0 \
     --hash=sha256:3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7 \
     --hash=sha256:7bc9d7b7d8a69c9c02ca09216118c86552704edc23bac179283f2e38f86220ce

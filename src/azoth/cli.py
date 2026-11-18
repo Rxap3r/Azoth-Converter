@@ -2,12 +2,12 @@
 
 Examples::
 
-    fileconv convert report.docx --to pdf
-    fileconv convert *.heic --to jpg -o converted
-    fileconv convert scan.pdf --to png --dpi 300
-    fileconv formats report.pdf
-    fileconv pdf merge a.pdf b.pdf -o combined.pdf
-    fileconv pdf split big.pdf -o pages
+    azoth convert report.docx --to pdf
+    azoth convert *.heic --to jpg -o converted
+    azoth convert scan.pdf --to png --dpi 300
+    azoth formats report.pdf
+    azoth pdf merge a.pdf b.pdf -o combined.pdf
+    azoth pdf split big.pdf -o pages
 """
 
 from __future__ import annotations
@@ -145,7 +145,7 @@ def _bounded(low: int, high: int):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="fileconv",
+        prog="azoth",
         description="Offline file converter. Your files never leave this computer.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -207,7 +207,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_pdf_split)
 
     p = sub.add_parser("gui", help="open the graphical app")
-    p.set_defaults(func=lambda a: __import__("fileconv.gui.app", fromlist=["main"]).main())
+    p.set_defaults(func=lambda a: __import__("azoth.gui.app", fromlist=["main"]).main())
     return parser
 
 

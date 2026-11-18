@@ -1,7 +1,7 @@
 import pytest
 from PIL import Image
 
-from fileconv import formats
+from azoth import formats
 
 
 @pytest.mark.parametrize(

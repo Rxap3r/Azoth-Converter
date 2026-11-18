@@ -2,6 +2,6 @@
 
 import sys
 
-from fileconv.__main__ import main
+from azoth.__main__ import main
 
 sys.exit(main())

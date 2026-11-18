@@ -1,9 +1,9 @@
 # Privacy
 
-File-Converter is built for people who don't want their files on someone
+Azoth Converter is built for people who don't want their files on someone
 else's server.
 
-- **Your files never leave your computer.** All conversions run locally. File-Converter doesn't upload, sync or share anything.
+- **Your files never leave your computer.** All conversions run locally. Azoth Converter doesn't upload, sync or share anything.
 - **No telemetry.** No analytics, usage statistics, crash reports or tracking of any kind.
 - **No account.** Nothing to sign up for.
 - **No automatic network access.** The app doesn't connect to the internet on its own. A future "Check for updates" feature will only run when you click it.
@@ -12,4 +12,4 @@ else's server.
 - **Your originals are safe.** Source files are never changed, and existing files are never overwritten unless you ask for it.
 - **Documents can't run code.** Office documents are opened with macros disabled and external links blocked.
 
-Because File-Converter is open source (GPL-3.0), anyone can check these promises in the code.
+Because Azoth Converter is open source (GPL-3.0), anyone can check these promises in the code.

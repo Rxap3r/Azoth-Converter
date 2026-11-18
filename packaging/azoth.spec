@@ -1,13 +1,13 @@
 # PyInstaller spec: builds a folder with two programs that share one runtime:
-#   FileConverter.exe  - the window (no console)
-#   fileconv.exe       - the command-line tool
-# Build with:  pyinstaller packaging/fileconv.spec --noconfirm
+#   AzothConverter.exe  - the window (no console)
+#   azoth.exe       - the command-line tool
+# Build with:  pyinstaller packaging/azoth.spec --noconfirm
 from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
-hiddenimports = collect_submodules("pdf2docx") + collect_submodules("fileconv")
+hiddenimports = collect_submodules("pdf2docx") + collect_submodules("azoth")
 
 # App resources (icon) plus package metadata, so the About window can show versions.
-datas = [("../src/fileconv/resources", "fileconv/resources")]
+datas = [("../src/azoth/resources", "azoth/resources")]
 for dist in ("PySide6-Essentials", "pillow", "pillow-heif", "PyMuPDF", "pdf2docx",
              "python-docx", "opencv-python-headless", "numpy"):
     datas += copy_metadata(dist)
@@ -33,7 +33,7 @@ gui = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name="FileConverter",
+    name="AzothConverter",
     console=False,
     icon="icon.ico",
     upx=False,
@@ -42,9 +42,9 @@ cli = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name="fileconv",
+    name="azoth",
     console=True,
     icon="icon.ico",
     upx=False,
 )
-coll = COLLECT(gui, cli, a.binaries, a.datas, name="FileConverter", upx=False)
+coll = COLLECT(gui, cli, a.binaries, a.datas, name="AzothConverter", upx=False)

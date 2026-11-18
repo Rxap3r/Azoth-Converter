@@ -1,7 +1,7 @@
 """Remembers a few choices between launches.
 
 Stored only on this computer (on Windows in the registry under
-HKEY_CURRENT_USER\\Software\\File-Converter). Only preferences are kept: no file
+HKEY_CURRENT_USER\\Software\\Azoth Converter). Only preferences are kept: no file
 names, no history. The uninstaller removes them.
 """
 
@@ -11,8 +11,8 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings
 
-ORGANIZATION = "File-Converter"
-APPLICATION = "File-Converter"
+ORGANIZATION = "Azoth Converter"
+APPLICATION = "Azoth Converter"
 
 
 def open_settings() -> QSettings:
