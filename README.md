@@ -3,7 +3,7 @@
 An offline desktop file converter for Windows (macOS and Linux later).
 **Your files never leave your computer:** no uploads, no cloud, no telemetry. See [PRIVACY.md](PRIVACY.md).
 
-Status: early development (0.1). See the [project plan](docs/PROJECT_PLAN.md) for the roadmap.
+Status: early development (0.1). What changed in each version: [CHANGELOG.md](CHANGELOG.md). See the [project plan](docs/PROJECT_PLAN.md) for the roadmap.
 
 ## What it converts today
 

@@ -29,8 +29,10 @@ Rules:
 
 ## Releasing (only when the owner asks)
 
-1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py` and write the
-   release notes in `docs/releases/v<version>.md`. All tests must pass.
+1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py`; in
+   `CHANGELOG.md` rename **Unreleased** to `[<version>] - <date>`, add a new empty Unreleased
+   section and update the links at the bottom; write the user-facing release notes in
+   `docs/releases/v<version>.md` based on that changelog section. All tests must pass.
 2. Ask the owner whether to open the pull request `dev` → `main`; open it only when they say
    so ("pull it"). CI runs the full check (Linux, Windows, installer). The owner merges it.
 3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and
@@ -139,6 +141,9 @@ same change, and never add an installer language the app doesn't have.
 
 ## Before every commit
 
+- Add every user-visible or workflow change to `CHANGELOG.md` under **Unreleased** (short,
+  plain sentences; sections Added / Changed / Fixed / Removed / Quality / Privacy and safety /
+  Development).
 - `pytest` passes and `ruff` is clean.
 - New features come with tests.
 - Update `docs/PROJECT_PLAN.md` checkboxes and the README's format table when features change.
