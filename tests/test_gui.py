@@ -168,7 +168,10 @@ def test_everything_is_stored_in_one_folder(window, tmp_path):
     qt.setValue("FileDialog/lastVisited", "file:///C:/Users/someone/Secret")
     qt.setValue("FileDialog/history", ["file:///C:/Users/someone/Secret"])
     qt.sync()
-    assert str(storage_dir()) in qt.fileName()
+    from pathlib import Path
+
+    # Compare as paths: Qt writes "/" on Windows, Python "\\".
+    assert Path(qt.fileName()).resolve().parent == storage_dir().resolve()
     forget_file_dialog_history()
     qt = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, "QtProject")
     assert qt.value("FileDialog/lastVisited") is None
