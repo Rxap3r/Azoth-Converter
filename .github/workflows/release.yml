@@ -1,0 +1,62 @@
+name: Release
+
+# Publish a new version: Actions -> Release -> Run workflow (on main).
+# Runs every test on Linux and Windows, builds and tests the installer, then
+# creates the tag v<version> and a GitHub Release with the installer and a
+# portable ZIP. The version comes from src/azoth/__init__.py; the release notes
+# from docs/releases/v<version>.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Check version and release notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Releases are only made from main (selected: $GITHUB_REF_NAME)."; exit 1
+          fi
+          version=$(python3 -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('src/azoth/__init__.py').read()).group(1))")
+          project=$(python3 -c "import re;print(re.search(r'^version = \"(.+?)\"', open('pyproject.toml').read(), re.M).group(1))")
+          if [ "$version" != "$project" ]; then
+            echo "::error::Version mismatch: __init__.py has $version, pyproject.toml has $project."; exit 1
+          fi
+          if [ ! -f "docs/releases/v$version.md" ]; then
+            echo "::error::Release notes docs/releases/v$version.md are missing."; exit 1
+          fi
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::Version $version is already released. Raise the version first."; exit 1
+          fi
+          echo "Releasing version $version"
+
+  tests-linux:
+    needs: preflight
+    uses: ./.github/workflows/tests.yml
+    with:
+      os: ubuntu-latest
+
+  tests-windows:
+    needs: preflight
+    uses: ./.github/workflows/tests.yml
+    with:
+      os: windows-latest
+
+  publish:
+    needs: [tests-linux, tests-windows]
+    uses: ./.github/workflows/build-windows.yml
+    permissions:
+      contents: write
+    with:
+      release: true

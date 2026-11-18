@@ -16,19 +16,24 @@ Rules:
   git fetch origin dev && git checkout dev && git pull --ff-only origin dev
   ```
   If the session started on another branch that already has commits not on `dev`, bring them over (`git checkout dev && git merge --no-edit <that-branch>`) instead of losing them.
-- **Never commit or push to `main` directly.** `main` is only updated by merging `dev` into it, and only when the owner explicitly asks for a release or merge. Before merging, all tests must pass on `dev`.
+- **Never commit or push to `main` directly.** `main` only changes through a **pull request from
+  `dev` into `main` that the owner reviews and merges**. When the owner asks for a merge or a
+  release, open that pull request (title e.g. "Release 0.2.0"), but don't merge it yourself.
 - Never force-push `main` or `dev`.
-- CI builds the ~190 MB Windows app only for `main`, for version tags, or when started by hand (`workflow_dispatch`), to save artifact storage. Don't change that without asking.
+- CI (`.github/workflows/ci.yml`): every push to `dev` runs only the fast Linux tests; pull
+  requests into `main`, pushes to `main` and manual runs also run the Windows tests and build
+  and test the ~190 MB installer. Doc-only changes (`docs/**`, `*.md`) start no run. This keeps
+  Actions minutes and artifact storage low; don't change it without asking.
 
 ## Releasing (only when the owner asks)
 
-1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py`, and write
-   the release notes in `docs/releases/v<version>.md`. All tests must pass.
-2. Merge `dev` into `main` (`git checkout main && git merge --ff-only dev`, or a normal merge)
-   and push `main`.
-3. Tag the release on `main` and push the tag: `git tag v<version> && git push origin v<version>`.
-   CI then builds and tests the installer and publishes a GitHub Release with the installer
-   and a portable ZIP. The tag must match the version, or the release step fails.
+1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py` and write the
+   release notes in `docs/releases/v<version>.md`. All tests must pass.
+2. Open a pull request `dev` → `main`. CI runs the full check (Linux, Windows, installer).
+   The owner merges it.
+3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and
+   notes, runs all tests again, builds and tests the installer, creates the tag `v<version>`
+   and publishes the GitHub Release (installer + portable ZIP). No tag needs to be pushed.
 
 ## Project
 

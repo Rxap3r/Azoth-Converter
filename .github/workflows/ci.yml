@@ -1,13 +1,18 @@
 name: CI
 
-# Tests run on every push to main/dev. The Windows app (~190 MB) is only built
-# for main, or when started by hand: Actions tab → CI → "Run workflow" → pick a
-# branch. That keeps artifact storage small (private repos have a storage quota).
+# - Every push to dev or main: fast Linux tests (~2 min).
+# - Pull requests into main and pushes to main: also Windows tests and the
+#   Windows installer build with the install/uninstall test.
+# - Started by hand (Actions -> CI -> Run workflow): the full check for any branch.
+# - Changes that only touch documentation start no run at all.
+# Releases are published by the separate "Release" workflow.
 on:
   push:
     branches: [main, dev]
-    tags: ["v*"]  # a version tag builds the app and publishes a GitHub release
+    paths-ignore: ["docs/**", "**.md", "LICENSE"]
   pull_request:
+    branches: [main]
+    paths-ignore: ["docs/**", "**.md", "LICENSE"]
   workflow_dispatch:
 
 permissions:
@@ -19,149 +24,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-latest]
-    env:
-      QT_QPA_PLATFORM: offscreen
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
+  tests-linux:
+    uses: ./.github/workflows/tests.yml
+    with:
+      os: ubuntu-latest
 
-      - name: Install LibreOffice (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libreoffice-writer libreoffice-calc libreoffice-impress \
-            libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
-      - name: Install LibreOffice (Windows)
-        if: runner.os == 'Windows'
-        run: choco install libreoffice-fresh --no-progress -y
-
-      - name: Install Python packages
-        # Exact versions with checked hashes (see requirements-dev.lock)
-        run: |
-          pip install --require-hashes -r requirements-dev.lock
-          pip install --no-deps -e .
-      - name: Lint
-        run: |
-          ruff check src tests
-          ruff format --check src tests
-      - name: Tests
-        run: pytest -v
-
-  build-windows:
-    name: Windows app
-    needs: test
+  tests-windows:
     if: >-
-      github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' ||
-      startsWith(github.ref, 'refs/tags/v')
-    runs-on: windows-latest
+      github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/tests.yml
+    with:
+      os: windows-latest
+
+  windows-app:
+    needs: [tests-linux, tests-windows]
+    uses: ./.github/workflows/build-windows.yml
     permissions:
-      contents: write  # only needed to publish a release for version tags
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: Install
-        run: |
-          pip install --require-hashes -r requirements-dev.lock
-          pip install --no-deps .
-      - name: Build
-        working-directory: packaging
-        run: pyinstaller azoth.spec --noconfirm
-      - name: Smoke test the built program
-        shell: pwsh
-        run: |
-          $exe = "packaging/dist/AzothConverter/azoth.exe"
-          & $exe --version
-          & $exe formats
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-      - name: Build installer
-        shell: pwsh
-        working-directory: packaging
-        run: |
-          $version = python -c "import azoth; print(azoth.__version__)"
-          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            choco install innosetup --no-progress -y
-          }
-          & $iscc "/DAppVersion=$version" installer.iss
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
-      - name: Test installer (install, run, uninstall)
-        shell: pwsh
-        run: |
-          $setup = "packaging/Output/AzothConverter-Setup-$env:VERSION.exe"
-          $dir = "$env:RUNNER_TEMP\fc-install"
-          Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
-          & "$dir\azoth.exe" --version
-          if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
-          # Simulate everything the app can leave behind while being used:
-          $data = "$env:APPDATA\Azoth Converter"
-          New-Item -ItemType Directory -Force "$data" | Out-Null
-          "x" | Out-File "$data\settings.ini"
-          "x" | Out-File "$data\QtProject.ini"
-          New-Item -ItemType Directory -Force "$env:TEMP\azoth-crashed-job" | Out-Null
-          "x" | Out-File "$env:TEMP\azoth-crashed-job\leftover.tmp"
-          "x" | Out-File "$dir\created-later.log"
-          Start-Process "$dir\unins000.exe" -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
-          Start-Sleep -Seconds 5
-          $left = @()
-          if (Test-Path "$dir") { $left += "program folder" }
-          if (Test-Path "$data") { $left += "settings folder" }
-          if (Test-Path "$env:TEMP\azoth-crashed-job") { $left += "temp folder" }
-          if (Test-Path "HKCU:\Software\Azoth Converter") { $left += "registry key" }
-          $entries = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
-            Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -eq "Azoth Converter" }
-          if ($entries) { $left += "Apps & features entry" }
-          if ($left.Count -gt 0) { throw "uninstall left behind: $($left -join ', ')" }
-          "Clean uninstall: nothing left behind"
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: AzothConverter-Setup
-          path: packaging/Output/AzothConverter-Setup-*.exe
-          compression-level: 0  # already compressed
-          retention-days: ${{ github.ref == 'refs/heads/main' && 30 || 7 }}
-      - name: Upload portable version (main only)
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: AzothConverter-portable
-          path: packaging/dist/AzothConverter
-          retention-days: 30
-      # --- Release: only when a version tag like v0.1.0 is pushed -------------
-      - name: Check tag matches app version
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: pwsh
-        run: |
-          if ("v$env:VERSION" -ne "$env:GITHUB_REF_NAME") {
-            throw "Tag $env:GITHUB_REF_NAME does not match app version $env:VERSION"
-          }
-          if (-not (Test-Path "docs/releases/$env:GITHUB_REF_NAME.md")) {
-            throw "Release notes docs/releases/$env:GITHUB_REF_NAME.md are missing"
-          }
-      - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $zip = "packaging/Output/AzothConverter-portable-$env:VERSION.zip"
-          Compress-Archive -Path "packaging/dist/AzothConverter/*" -DestinationPath $zip
-          gh release create "$env:GITHUB_REF_NAME" `
-            "packaging/Output/AzothConverter-Setup-$env:VERSION.exe" `
-            "$zip" `
-            --title "Azoth Converter $env:VERSION" `
-            --notes-file "docs/releases/$env:GITHUB_REF_NAME.md"
+      contents: write
+    with:
+      release: false
