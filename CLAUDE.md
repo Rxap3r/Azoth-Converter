@@ -18,7 +18,17 @@ Rules:
   If the session started on another branch that already has commits not on `dev`, bring them over (`git checkout dev && git merge --no-edit <that-branch>`) instead of losing them.
 - **Never commit or push to `main` directly.** `main` is only updated by merging `dev` into it, and only when the owner explicitly asks for a release or merge. Before merging, all tests must pass on `dev`.
 - Never force-push `main` or `dev`.
-- CI builds the ~190 MB Windows app only for `main` or when started by hand (`workflow_dispatch`), to save artifact storage. Don't change that without asking.
+- CI builds the ~190 MB Windows app only for `main`, for version tags, or when started by hand (`workflow_dispatch`), to save artifact storage. Don't change that without asking.
+
+## Releasing (only when the owner asks)
+
+1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py`, and write
+   the release notes in `docs/releases/v<version>.md`. All tests must pass.
+2. Merge `dev` into `main` (`git checkout main && git merge --ff-only dev`, or a normal merge)
+   and push `main`.
+3. Tag the release on `main` and push the tag: `git tag v<version> && git push origin v<version>`.
+   CI then builds and tests the installer and publishes a GitHub Release with the installer
+   and a portable ZIP. The tag must match the version, or the release step fails.
 
 ## Project
 

@@ -6,6 +6,7 @@ name: CI
 on:
   push:
     branches: [main, dev]
+    tags: ["v*"]  # a version tag builds the app and publishes a GitHub release
   pull_request:
   workflow_dispatch:
 
@@ -60,8 +61,12 @@ jobs:
   build-windows:
     name: Windows app
     needs: test
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: >-
+      github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' ||
+      startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-latest
+    permissions:
+      contents: write  # only needed to publish a release for version tags
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -136,3 +141,27 @@ jobs:
           name: AzothConverter-portable
           path: packaging/dist/AzothConverter
           retention-days: 30
+      # --- Release: only when a version tag like v0.1.0 is pushed -------------
+      - name: Check tag matches app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          if ("v$env:VERSION" -ne "$env:GITHUB_REF_NAME") {
+            throw "Tag $env:GITHUB_REF_NAME does not match app version $env:VERSION"
+          }
+          if (-not (Test-Path "docs/releases/$env:GITHUB_REF_NAME.md")) {
+            throw "Release notes docs/releases/$env:GITHUB_REF_NAME.md are missing"
+          }
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = "packaging/Output/AzothConverter-portable-$env:VERSION.zip"
+          Compress-Archive -Path "packaging/dist/AzothConverter/*" -DestinationPath $zip
+          gh release create "$env:GITHUB_REF_NAME" `
+            "packaging/Output/AzothConverter-Setup-$env:VERSION.exe" `
+            "$zip" `
+            --title "Azoth Converter $env:VERSION" `
+            --notes-file "docs/releases/$env:GITHUB_REF_NAME.md"
