@@ -17,8 +17,10 @@ Rules:
   ```
   If the session started on another branch that already has commits not on `dev`, bring them over (`git checkout dev && git merge --no-edit <that-branch>`) instead of losing them.
 - **Never commit or push to `main` directly.** `main` only changes through a **pull request from
-  `dev` into `main` that the owner reviews and merges**. When the owner asks for a merge or a
-  release, open that pull request (title e.g. "Release 0.2.0"), but don't merge it yourself.
+  `dev` into `main` that the owner reviews and merges**. Never merge it yourself.
+- **Only open that pull request when the owner explicitly tells you to** (e.g. "pull it"). When
+  work seems ready, you may ask whether they want a pull request, but wait for the go-ahead;
+  a request for a release or a build is not a go-ahead for a pull request on its own.
 - Never force-push `main` or `dev`.
 - CI (`.github/workflows/ci.yml`): every push to `dev` runs only the fast Linux tests; pull
   requests into `main`, pushes to `main` and manual runs also run the Windows tests and build
@@ -29,8 +31,8 @@ Rules:
 
 1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py` and write the
    release notes in `docs/releases/v<version>.md`. All tests must pass.
-2. Open a pull request `dev` → `main`. CI runs the full check (Linux, Windows, installer).
-   The owner merges it.
+2. Ask the owner whether to open the pull request `dev` → `main`; open it only when they say
+   so ("pull it"). CI runs the full check (Linux, Windows, installer). The owner merges it.
 3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and
    notes, runs all tests again, builds and tests the installer, creates the tag `v<version>`
    and publishes the GitHub Release (installer + portable ZIP). No tag needs to be pushed.
