@@ -13,6 +13,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - New **Release** workflow: started by hand on `main`, it tests everything, builds the installer
   and publishes the GitHub Release with the tag `v<version>`.
 - Pull requests into `main` are only opened when the owner asks for one.
+- Faster checks without weaker tests: LibreOffice and the Python packages install at the same
+  time, and the installer is built and tested while the test suites run. A release is published
+  only after every test and the installer test passed, using exactly the files that were tested.
 - The automatic test workflow is now called **Build and test** (was "CI").
 - The Actions tab lists only **Build and test** and **Release**; their shared steps are now reusable actions
   in `.github/actions/` instead of extra workflows.

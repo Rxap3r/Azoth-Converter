@@ -42,9 +42,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/run-tests
 
+  # Runs at the same time as the tests (it doesn't depend on them), which saves
+  # several minutes. A pull request still needs all three checks to be green.
   windows-app:
     name: Windows app
-    needs: [tests-linux, tests-windows]
+    if: >-
+      github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

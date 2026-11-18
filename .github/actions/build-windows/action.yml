@@ -1,17 +1,14 @@
 name: Build Windows app
 description: >-
   Builds the app and the installer, tests install -> run -> uninstall (including leftover
-  checks), uploads the installer and, when `release` is "true", publishes a GitHub Release
-  v<version> (GitHub creates the tag). Runs on windows-latest; check out the code first.
+  checks) and uploads the installer. With `portable: "true"` it also uploads the portable
+  ZIP (used by the Release workflow, which publishes exactly these tested files).
+  Runs on windows-latest; check out the code first.
 inputs:
-  release:
-    description: '"true" to publish a GitHub Release for the current version'
+  portable:
+    description: '"true" to also upload the portable ZIP (and keep artifacts 30 days)'
     required: false
     default: "false"
-  github-token:
-    description: Token for publishing the release (needs contents write)
-    required: false
-    default: ""
 runs:
   using: composite
   steps:
@@ -81,22 +78,18 @@ runs:
         name: AzothConverter-Setup
         path: packaging/Output/AzothConverter-Setup-*.exe
         compression-level: 0  # already compressed
-        retention-days: ${{ inputs.release == 'true' && 30 || 7 }}
-    - name: Publish GitHub release
-      if: inputs.release == 'true'
+        retention-days: ${{ inputs.portable == 'true' && 30 || 7 }}
+    - name: Make portable ZIP
+      if: inputs.portable == 'true'
       shell: pwsh
-      env:
-        GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        $tag = "v$env:VERSION"
-        $notes = "docs/releases/$tag.md"
-        if (-not (Test-Path $notes)) { throw "Release notes $notes are missing" }
-        $zip = "packaging/Output/AzothConverter-portable-$env:VERSION.zip"
-        Compress-Archive -Path "packaging/dist/AzothConverter/*" -DestinationPath $zip
-        gh release create $tag `
-          "packaging/Output/AzothConverter-Setup-$env:VERSION.exe" `
-          $zip `
-          --target $env:GITHUB_SHA `
-          --title "Azoth Converter $env:VERSION" `
-          --notes-file $notes
-        if ($LASTEXITCODE -ne 0) { throw "Publishing the release failed" }
+        Compress-Archive -Path "packaging/dist/AzothConverter/*" `
+          -DestinationPath "packaging/Output/AzothConverter-portable-$env:VERSION.zip"
+    - name: Upload portable ZIP
+      if: inputs.portable == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: AzothConverter-portable
+        path: packaging/Output/AzothConverter-portable-*.zip
+        compression-level: 0  # already compressed
+        retention-days: 30

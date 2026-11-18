@@ -36,8 +36,9 @@ Rules:
 2. Ask the owner whether to open the pull request `dev` → `main`; open it only when they say
    so ("pull it"). "Build and test" runs the full check (Linux, Windows, installer). The owner merges it.
 3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and
-   notes, runs all tests again, builds and tests the installer, creates the tag `v<version>`
-   and publishes the GitHub Release (installer + portable ZIP). No tag needs to be pushed.
+   notes; runs all tests on Linux and Windows while building and testing the installer in
+   parallel; and only when all of that passed, creates the tag `v<version>` and publishes the
+   GitHub Release with exactly the tested installer and portable ZIP. No tag needs to be pushed.
 
 ## Project
 

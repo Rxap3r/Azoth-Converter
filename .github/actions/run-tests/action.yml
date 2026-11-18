@@ -1,7 +1,8 @@
 name: Run tests
 description: >-
-  Installs LibreOffice and the locked Python packages, then runs lint and the full
-  test suite on the current runner (Linux or Windows). Check out the code first.
+  Installs LibreOffice and the locked Python packages (at the same time, to save
+  time), then runs lint and the full test suite on the current runner (Linux or
+  Windows). Check out the code first.
 runs:
   using: composite
   steps:
@@ -10,25 +11,47 @@ runs:
         python-version: "3.12"
         cache: pip
 
-    - name: Install LibreOffice (Linux)
+    # LibreOffice installs in the background while pip installs the Python packages.
+    # Both must succeed; the step fails (with LibreOffice's log) if either fails.
+    - name: Install LibreOffice and Python packages (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          libreoffice-writer libreoffice-calc libreoffice-impress \
-          libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
-    - name: Install LibreOffice (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: choco install libreoffice-fresh --no-progress -y
-
-    - name: Install Python packages
-      # Exact versions with checked hashes (see requirements-dev.lock)
-      shell: bash
-      run: |
+        (
+          sudo apt-get update -qq &&
+          sudo apt-get install -y --no-install-recommends \
+            libreoffice-writer libreoffice-calc libreoffice-impress \
+            libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+        ) > "$RUNNER_TEMP/libreoffice-install.log" 2>&1 &
+        lo_pid=$!
+        # Exact versions with checked hashes (see requirements-dev.lock)
         pip install --require-hashes -r requirements-dev.lock
         pip install --no-deps -e .
+        if ! wait "$lo_pid"; then
+          cat "$RUNNER_TEMP/libreoffice-install.log"
+          echo "::error::Installing LibreOffice failed"
+          exit 1
+        fi
+    - name: Install LibreOffice and Python packages (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $log = "$env:RUNNER_TEMP\libreoffice-install.log"
+        $lo = Start-Process (Get-Command choco).Source -PassThru -NoNewWindow `
+          -ArgumentList "install", "libreoffice-fresh", "--no-progress", "-y" `
+          -RedirectStandardOutput $log
+        $null = $lo.Handle  # needed so PowerShell keeps the exit code
+        # Exact versions with checked hashes (see requirements-dev.lock)
+        pip install --require-hashes -r requirements-dev.lock
+        if ($LASTEXITCODE -ne 0) { exit 1 }
+        pip install --no-deps -e .
+        if ($LASTEXITCODE -ne 0) { exit 1 }
+        $lo.WaitForExit()
+        if ($lo.ExitCode -notin 0, 3010) {  # 3010 = success, restart suggested
+          Get-Content $log
+          Write-Error "Installing LibreOffice failed (exit code $($lo.ExitCode))"
+          exit 1
+        }
     - name: Lint
       shell: bash
       run: |
