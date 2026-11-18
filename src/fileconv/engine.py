@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import formats, quality
+from . import formats, quality, ranking
 from .converters import (
     ConversionContext,
     ConversionError,
@@ -92,12 +92,13 @@ class Engine:
         return None
 
     def targets_for(self, src: str) -> list[formats.Format]:
-        """All formats ``src`` can be converted to, sorted by category and name."""
+        """All formats ``src`` can be converted to, most useful first (see ranking.py)."""
         result = []
         for fmt in formats.FORMATS.values():
             if fmt.id != src and self.find_route(src, fmt.id) is not None:
                 result.append(fmt)
-        return sorted(result, key=lambda f: (f.category, f.id))
+        source = formats.FORMATS.get(src)
+        return ranking.rank(result, [source.category] if source else [])
 
     def quality_notes(self, route: list[Step]) -> list[str]:
         notes = []

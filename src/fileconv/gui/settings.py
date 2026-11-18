@@ -34,9 +34,13 @@ class Preferences:
         except (TypeError, ValueError):
             return default
 
-    @property
-    def target(self) -> str | None:
-        return self._get("target", "") or None
+    def target_for(self, category: str) -> str | None:
+        """Last target chosen for this kind of file (PDF, image, document, …)."""
+        return self._get(f"targets/{category}", "") or None
+
+    def save_target(self, category: str, target: str) -> None:
+        self.store.setValue(f"targets/{category}", target)
+        self.store.sync()
 
     @property
     def output_dir(self) -> Path | None:
@@ -59,13 +63,11 @@ class Preferences:
     def save(
         self,
         *,
-        target: str | None,
         output_dir: Path | None,
         level: str,
         use_word: bool,
         keep_metadata: bool,
     ) -> None:
-        self.store.setValue("target", target or "")
         self.store.setValue("output_dir", str(output_dir) if output_dir else "")
         self.store.setValue("quality_level", level)
         self.store.setValue("use_word", use_word)

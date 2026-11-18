@@ -100,16 +100,33 @@ def test_preferences_are_remembered(qtbot, tmp_path, sample_png):
     first.target_combo.setCurrentIndex(first.target_combo.findData("webp"))
     first.set_quality_level("high")
     first.metadata_check.setChecked(True)
-    first.output_dir = tmp_path
-    first.save_preferences()
+    first.output_dir = tmp_path / "out"
+    first.start_conversion()  # remembers WebP as the choice for images
+    qtbot.waitUntil(lambda: first._thread is None, timeout=30000)
 
     second = MainWindow()
     qtbot.addWidget(second)
     assert second.level_combo.currentData() == "high"
     assert second.metadata_check.isChecked()
-    assert second.output_dir == tmp_path
+    assert second.output_dir == tmp_path / "out"
     second.add_files([sample_png])
     assert second.target_combo.currentData() == "webp"
+
+
+def test_remembered_target_is_per_kind_of_file(qtbot, tmp_path, sample_png, sample_pdf):
+    first = MainWindow()
+    qtbot.addWidget(first)
+    first.add_files([sample_png])
+    first.target_combo.setCurrentIndex(first.target_combo.findData("pdf"))
+    first.output_dir = tmp_path / "out"
+    first.start_conversion()
+    qtbot.waitUntil(lambda: first._thread is None, timeout=30000)
+
+    second = MainWindow()
+    qtbot.addWidget(second)
+    second.add_files([sample_pdf])
+    # The image choice (PDF) doesn't apply to PDFs; they start with Word.
+    assert second.target_combo.currentData() == "docx"
 
 
 def test_missing_output_folder_is_not_restored(qtbot, tmp_path):

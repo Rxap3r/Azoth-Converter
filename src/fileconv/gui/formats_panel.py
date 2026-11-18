@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .. import ranking
 from ..format_list import CATEGORY_TITLES, conversion_table
 
 COL_FORMAT, COL_EXTENSIONS, COL_TARGETS, COL_LIBREOFFICE = range(4)
@@ -82,9 +83,7 @@ class FormatsPanel(QWidget):
         for row in conversion_table():
             fmt = row.format
             if libreoffice_installed:
-                everything = sorted(
-                    row.right_away + row.needs_libreoffice, key=lambda f: (f.category, f.id)
-                )
+                everything = ranking.rank(row.right_away + row.needs_libreoffice, [fmt.category])
                 columns = [_names(everything)]
             else:
                 columns = [_names(row.right_away), _names(row.needs_libreoffice)]

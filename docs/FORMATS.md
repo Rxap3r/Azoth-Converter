@@ -37,11 +37,11 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 
 | From | Works right away | Also with LibreOffice installed |
 |------|------------------|--------------------------------|
-| **DOCX** | – | DOC, ODT, RTF, TXT, BMP, JPG, PNG, TIFF, WEBP, PDF |
-| **DOC** | – | DOCX, ODT, RTF, TXT, BMP, JPG, PNG, TIFF, WEBP, PDF |
-| **ODT** | – | DOC, DOCX, RTF, TXT, BMP, JPG, PNG, TIFF, WEBP, PDF |
-| **RTF** | – | DOC, DOCX, ODT, TXT, BMP, JPG, PNG, TIFF, WEBP, PDF |
-| **TXT** | – | DOC, DOCX, ODT, RTF, BMP, JPG, PNG, TIFF, WEBP, PDF |
+| **DOCX** | – | PDF, ODT, TXT, JPG, PNG, RTF, WEBP, TIFF, BMP, DOC |
+| **DOC** | – | PDF, DOCX, ODT, TXT, JPG, PNG, RTF, WEBP, TIFF, BMP |
+| **ODT** | – | PDF, DOCX, TXT, JPG, PNG, RTF, WEBP, TIFF, BMP, DOC |
+| **RTF** | – | PDF, DOCX, ODT, TXT, JPG, PNG, WEBP, TIFF, BMP, DOC |
+| **TXT** | – | PDF, DOCX, ODT, JPG, PNG, RTF, WEBP, TIFF, BMP, DOC |
 
 - Word → image goes through PDF and creates one image per page.
 
@@ -49,7 +49,7 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 
 | From | Works right away | Also with LibreOffice installed |
 |------|------------------|--------------------------------|
-| **PDF** | DOCX, TXT, BMP, JPG, PNG, TIFF, WEBP | DOC, ODT, RTF |
+| **PDF** | DOCX, JPG, PNG, TXT, WEBP, TIFF, BMP | ODT, RTF, DOC |
 
 - PDF → image creates one image per page (`name_page001.png`, …). TIFF puts all pages into one multi-page file.
 - PDF → Word rebuilds an editable layout. Scanned PDFs (pictures of pages) need text recognition (OCR), which is planned.
@@ -59,10 +59,10 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 
 | From | Works right away | Also with LibreOffice installed |
 |------|------------------|--------------------------------|
-| **XLSX** | – | BMP, JPG, PNG, TIFF, WEBP, PDF, CSV, ODS, XLS |
-| **XLS** | – | BMP, JPG, PNG, TIFF, WEBP, PDF, CSV, ODS, XLSX |
-| **ODS** | – | BMP, JPG, PNG, TIFF, WEBP, PDF, CSV, XLS, XLSX |
-| **CSV** | – | BMP, JPG, PNG, TIFF, WEBP, PDF, ODS, XLS, XLSX |
+| **XLSX** | – | PDF, CSV, ODS, PNG, JPG, WEBP, TIFF, BMP, XLS |
+| **XLS** | – | PDF, XLSX, CSV, ODS, PNG, JPG, WEBP, TIFF, BMP |
+| **ODS** | – | PDF, XLSX, CSV, PNG, JPG, WEBP, TIFF, BMP, XLS |
+| **CSV** | – | PDF, XLSX, ODS, PNG, JPG, WEBP, TIFF, BMP, XLS |
 
 - CSV keeps only the first sheet, without formatting.
 
@@ -70,9 +70,9 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 
 | From | Works right away | Also with LibreOffice installed |
 |------|------------------|--------------------------------|
-| **PPTX** | – | BMP, JPG, PNG, TIFF, WEBP, PDF, ODP, PPT |
-| **PPT** | – | BMP, JPG, PNG, TIFF, WEBP, PDF, ODP, PPTX |
-| **ODP** | – | BMP, JPG, PNG, TIFF, WEBP, PDF, PPT, PPTX |
+| **PPTX** | – | PDF, PNG, JPG, ODP, WEBP, TIFF, BMP, PPT |
+| **PPT** | – | PDF, PPTX, PNG, JPG, ODP, WEBP, TIFF, BMP |
+| **ODP** | – | PDF, PPTX, PNG, JPG, WEBP, TIFF, BMP, PPT |
 
 - Presentation → image creates one image per slide.
 
@@ -80,15 +80,15 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 
 | From | Works right away | Also with LibreOffice installed |
 |------|------------------|--------------------------------|
-| **JPG** | AVIF, BMP, GIF, HEIC, ICO, PNG, TIFF, WEBP, PDF | – |
-| **PNG** | AVIF, BMP, GIF, HEIC, ICO, JPG, TIFF, WEBP, PDF | – |
-| **WEBP** | AVIF, BMP, GIF, HEIC, ICO, JPG, PNG, TIFF, PDF | – |
-| **BMP** | AVIF, GIF, HEIC, ICO, JPG, PNG, TIFF, WEBP, PDF | – |
-| **TIFF** | AVIF, BMP, GIF, HEIC, ICO, JPG, PNG, WEBP, PDF | – |
-| **GIF** | AVIF, BMP, HEIC, ICO, JPG, PNG, TIFF, WEBP, PDF | – |
-| **ICO** | AVIF, BMP, GIF, HEIC, JPG, PNG, TIFF, WEBP, PDF | – |
-| **HEIC** | AVIF, BMP, GIF, ICO, JPG, PNG, TIFF, WEBP, PDF | – |
-| **AVIF** | BMP, GIF, HEIC, ICO, JPG, PNG, TIFF, WEBP, PDF | – |
+| **JPG** | PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO | – |
+| **PNG** | JPG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO | – |
+| **WEBP** | JPG, PNG, PDF, HEIC, AVIF, TIFF, GIF, BMP, ICO | – |
+| **BMP** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, ICO | – |
+| **TIFF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, GIF, BMP, ICO | – |
+| **GIF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, BMP, ICO | – |
+| **ICO** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP | – |
+| **HEIC** | JPG, PNG, PDF, WEBP, AVIF, TIFF, GIF, BMP, ICO | – |
+| **AVIF** | JPG, PNG, PDF, WEBP, HEIC, TIFF, GIF, BMP, ICO | – |
 
 - Photo metadata (camera, date, GPS location) is removed by default.
 - Formats without transparency (JPG, BMP) get a white background.

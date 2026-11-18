@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import __version__, formats, quality
+from .. import __version__, formats, quality, ranking
 from ..converters import ConversionCancelled, ConversionError, all_converters
 from ..converters.msword import word_installed
 from ..engine import Engine
@@ -103,7 +103,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"File-Converter {__version__}")
         self.resize(820, 600)
         self.setAcceptDrops(True)
-        self._preferred_target = self.prefs.target
         self._build_ui()
         self._load_preferences()
         self._refresh()
@@ -324,11 +323,14 @@ class MainWindow(QMainWindow):
             for fmt in formats.FORMATS.values():
                 if all(fmt.id in a for a in allowed) and sources != [fmt.id]:
                     common.append(fmt)
-            common.sort(key=lambda f: (f.category, f.id))
+            categories = [f.category for f in self.file_formats if f is not None]
+            common = ranking.rank(common, categories)  # most useful first
         for fmt in common:
             self.target_combo.addItem(f"{fmt.name} (.{fmt.extension})", fmt.id)
-        # Keep the user's choice; otherwise start with PDF, the most common target.
-        for wanted in (previous, self._preferred_target, "pdf"):
+        # Keep the current choice or the remembered one; otherwise the list is ordered
+        # by usefulness, so its first entry (e.g. Word for a PDF) is the default.
+        self.target_combo.setCurrentIndex(0)
+        for wanted in (previous, self._remembered_target()):
             index = self.target_combo.findData(wanted) if wanted else -1
             if index >= 0:
                 self.target_combo.setCurrentIndex(index)
@@ -419,7 +421,9 @@ class MainWindow(QMainWindow):
                 jobs.append((row, path))
         if not jobs:
             return
-        self._preferred_target = target
+        category = self._single_category()
+        if category is not None:
+            self.prefs.save_target(category, target)
         self.save_preferences()
 
         options = {
@@ -518,10 +522,17 @@ class MainWindow(QMainWindow):
             self.output_dir = self.prefs.output_dir
             self.output_label.setText(str(self.output_dir))
 
+    def _single_category(self) -> str | None:
+        """The kind of files in the list, if they're all the same kind."""
+        categories = {f.category for f in self.file_formats if f is not None}
+        return categories.pop() if len(categories) == 1 else None
+
+    def _remembered_target(self) -> str | None:
+        category = self._single_category()
+        return self.prefs.target_for(category) if category else None
+
     def save_preferences(self) -> None:
-        target = self.target_combo.currentData() or self._preferred_target
         self.prefs.save(
-            target=target,
             output_dir=self.output_dir,
             level=self.level_combo.currentData(),
             use_word=self.word_check.isChecked() if self._word_installed else self.prefs.use_word,

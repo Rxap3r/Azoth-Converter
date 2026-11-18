@@ -124,6 +124,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **1:1 quality pass:** photos go into PDFs unchanged (Word/Excel/PowerPoint → PDF and image → PDF), lossless sources stay lossless, JPG at quality 95 with full colour detail, PDF pages as images at 300 DPI
 - [x] **Quality levels** (Maximum / High / Smaller files) with minimums that can't be undercut
 - [x] Locked dependency versions with hashes
+- [x] Target formats sorted by usefulness (e.g. PDF → Word first; DOC/XLS/PPT last); the first one is the default
 - [x] Remember settings between sessions (target format, output folder, quality, Word, metadata); stored locally only, removed on uninstall
 - [x] Inno Setup installer: per-user install without admin rights, Start menu entry, optional desktop icon, clean uninstall; tested automatically in CI (install → run → uninstall)
 - [x] App icon, About window with version, privacy promise, license and component licenses
