@@ -134,6 +134,17 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `fileconv clean`. Also show what metadata a file contains before removing it.
 - [ ] **Release 0.2**
 
+### Design refresh (timing flexible, ideally before going public)
+- [ ] Mockups first: agree on the look before changing code
+- [ ] Modern Windows 11 look (Fluent style): rounded corners, accent colour, Mica-style background; follows Windows light/dark mode
+- [ ] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**
+- [ ] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
+- [ ] Target format picker as a grid of format tiles grouped by type, with the most used ones first
+- [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations
+- [ ] App icon and consistent icon set (bundled, no web fonts or online assets)
+- [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %
+- Options: Qt's built-in Windows 11 style plus our own stylesheet, or the GPL-licensed *PySide6-Fluent-Widgets* library (compatible with our license)
+
 ### Phase 3: Audio and video (≈ 4 weeks)
 - [ ] FFmpeg plugin with progress parsed from FFmpeg's output
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
