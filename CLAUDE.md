@@ -108,6 +108,12 @@ cd packaging && pyinstaller fileconv.spec --noconfirm
 GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftest.py`).
 Office tests are skipped when LibreOffice isn't installed. Install it to run them.
 
+## Languages
+
+The app and the installer always offer the same languages (currently English only). When adding
+a translation to the app, add the matching Inno Setup language to `packaging/installer.iss` in the
+same change, and never add an installer language the app doesn't have.
+
 ## Before every commit
 
 - `pytest` passes and `ruff` is clean.

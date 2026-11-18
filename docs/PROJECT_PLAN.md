@@ -167,7 +167,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Smaller download: trim unused Qt and OpenCV parts, or try Nuitka
 - [ ] Code-signing certificate so Windows SmartScreen doesn't warn users
 - [ ] SBOM (CycloneDX) and third-party license notices bundled in the app
-- [ ] Accessibility (keyboard navigation, screen readers, high contrast), translations
+- [ ] Accessibility (keyboard navigation, screen readers, high contrast)
+- [ ] Translations of the app (e.g. German, French, Italian). **Each language added to the app must also be added to the installer** (`packaging/installer.iss`, `[Languages]`), and no installer language without the app: the two always match. Until then both are English only.
 - [ ] Publish on winget and optionally the Microsoft Store (MSIX)
 
 ### Phase 6: Other platforms

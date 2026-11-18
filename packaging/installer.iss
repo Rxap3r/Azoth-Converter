@@ -36,10 +36,10 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 
 [Languages]
+; Keep in sync with the app: only languages the app itself is translated into.
+; When the app gets a new language, add it here too (Inno Setup ships official
+; translations, e.g. "compiler:Languages\German.isl").
 Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "german"; MessagesFile: "compiler:Languages\German.isl"
-Name: "french"; MessagesFile: "compiler:Languages\French.isl"
-Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
