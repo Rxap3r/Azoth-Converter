@@ -117,6 +117,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] PDF → images (one file per page, or multi-page TIFF), PDF → text, images → PDF
 - [x] Image conversions with metadata removal by default (GPS/EXIF)
 - [x] GUI v1: drag and drop, batch list, target picker, output folder, options, progress, cancel
+- [x] "Supported formats" section in the app (open/close, searchable), generated from the converters
 - [ ] Test with real-world files: complex Word layouts, large PDFs, Excel with several sheets
 - [ ] **Optional Microsoft Word engine:** if Word is installed, use it for Word → PDF, which gives exact layout fidelity
 - [ ] Remember settings between sessions (last format, output folder), stored locally only

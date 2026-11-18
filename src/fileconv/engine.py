@@ -44,11 +44,18 @@ class ConversionResult:
 
 
 class Engine:
-    def __init__(self, converters: Iterable[Converter] | None = None) -> None:
+    def __init__(
+        self,
+        converters: Iterable[Converter] | None = None,
+        *,
+        assume_available: bool = False,
+    ) -> None:
+        """``assume_available=True`` plans routes as if every engine (e.g. LibreOffice)
+        were installed. Used to list what's possible, never to run conversions."""
         self.converters = list(converters) if converters is not None else all_converters()
         self._edges: dict[str, dict[str, Converter]] = {}
         for conv in sorted(self.converters, key=lambda c: c.priority):
-            if not conv.is_available():
+            if not assume_available and not conv.is_available():
                 continue
             for src, dst in conv.capabilities():
                 self._edges.setdefault(src, {})[dst] = conv  # higher priority overwrites

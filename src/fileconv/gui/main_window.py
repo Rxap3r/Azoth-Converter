@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -31,6 +30,8 @@ from PySide6.QtWidgets import (
 from .. import __version__, formats
 from ..converters import ConversionCancelled, ConversionError
 from ..engine import Engine
+from .formats_panel import FormatsPanel
+from .widgets import CollapsibleSection
 
 COL_FILE, COL_TYPE, COL_STATUS = range(3)
 SAME_FOLDER = "Same folder as the original"
@@ -167,10 +168,9 @@ class MainWindow(QMainWindow):
         form.addRow("Save to:", out_row)
         layout.addLayout(form)
 
-        self.options_toggle = QCheckBox("Show options")
-        layout.addWidget(self.options_toggle)
-        options = QGroupBox("Options")
+        options = QWidget()
         opt_form = QFormLayout(options)
+        opt_form.setContentsMargins(16, 0, 0, 0)
         self.quality_spin = QSpinBox()
         self.quality_spin.setRange(1, 100)
         self.quality_spin.setValue(90)
@@ -181,9 +181,13 @@ class MainWindow(QMainWindow):
         opt_form.addRow("Image quality (JPEG/WebP):", self.quality_spin)
         opt_form.addRow("Resolution for PDF ↔ images (DPI):", self.dpi_spin)
         opt_form.addRow(self.metadata_check)
-        options.setVisible(False)
-        self.options_toggle.toggled.connect(options.setVisible)
-        layout.addWidget(options)
+        self.options_section = CollapsibleSection("Options", options)
+        layout.addWidget(self.options_section)
+
+        libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
+        self.formats_panel = FormatsPanel(libreoffice_installed)
+        self.formats_section = CollapsibleSection("Supported formats", self.formats_panel)
+        layout.addWidget(self.formats_section)
 
         self.notes_label = QLabel()
         self.notes_label.setWordWrap(True)

@@ -72,11 +72,7 @@ def cmd_formats(args: argparse.Namespace) -> int:
     if args.markdown:
         from .format_list import build_markdown
 
-        try:
-            text = build_markdown(engine)
-        except RuntimeError as exc:
-            print(f"✗ {exc}", file=sys.stderr)
-            return 1
+        text = build_markdown()
         Path(args.markdown).write_text(text, encoding="utf-8", newline="\n")
         print(f"✓ Wrote {args.markdown}")
         return 0

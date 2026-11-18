@@ -1,7 +1,8 @@
-"""Builds docs/FORMATS.md, the list of supported formats and conversions.
+"""The list of supported formats and conversions.
 
-The list is generated from the converters themselves, so it can't drift from
-what the app really does. Regenerate it with:
+Used by the "Supported formats" section in the app and to build docs/FORMATS.md.
+The list comes from the converters themselves, so it can't drift from what
+the app really does. Regenerate the Markdown file with:
 
     fileconv formats --markdown docs/FORMATS.md
 
@@ -10,7 +11,10 @@ A test fails if the committed file is out of date.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from . import formats
+from .converters import all_converters
 from .engine import Engine
 
 CATEGORY_TITLES = {
@@ -46,15 +50,43 @@ CATEGORY_NOTES = {
 LIBREOFFICE_ID = "libreoffice"
 
 
+@dataclass(frozen=True)
+class FormatRow:
+    format: formats.Format
+    right_away: list[formats.Format]
+    """Targets that work without LibreOffice."""
+    needs_libreoffice: list[formats.Format]
+    """Targets that only work with LibreOffice installed."""
+
+
+def conversion_table() -> list[FormatRow]:
+    """Every known format with its targets, as if all engines were installed."""
+    converters = all_converters()
+    full = Engine(converters, assume_available=True)
+    basic = Engine([c for c in converters if c.id != LIBREOFFICE_ID], assume_available=True)
+    rows = []
+    for category in CATEGORY_TITLES:
+        for fmt in formats.FORMATS.values():
+            if fmt.category != category:
+                continue
+            right_away_ids = {t.id for t in basic.targets_for(fmt.id)}
+            everything = full.targets_for(fmt.id)
+            rows.append(
+                FormatRow(
+                    format=fmt,
+                    right_away=[t for t in everything if t.id in right_away_ids],
+                    needs_libreoffice=[t for t in everything if t.id not in right_away_ids],
+                )
+            )
+    return rows
+
+
 def _names(fmts: list[formats.Format]) -> str:
     return ", ".join(f.id.upper() for f in fmts) if fmts else "–"
 
 
-def build_markdown(engine: Engine | None = None) -> str:
-    full = engine or Engine()
-    if any(c.id == LIBREOFFICE_ID for c in full.unavailable()):
-        raise RuntimeError("Install LibreOffice to generate the complete format list.")
-    basic = Engine([c for c in full.converters if c.id != LIBREOFFICE_ID])
+def build_markdown() -> str:
+    table = conversion_table()
 
     lines = [
         "# Supported formats",
@@ -84,14 +116,13 @@ def build_markdown(engine: Engine | None = None) -> str:
             "| From | Works right away | Also with LibreOffice installed |",
             "|------|------------------|--------------------------------|",
         ]
-        for fmt in formats.FORMATS.values():
-            if fmt.category != category:
+        for row in table:
+            if row.format.category != category:
                 continue
-            everything = full.targets_for(fmt.id)
-            right_away = {t.id for t in basic.targets_for(fmt.id)}
-            with_lo = [t for t in everything if t.id not in right_away]
-            without_lo = [t for t in everything if t.id in right_away]
-            lines.append(f"| **{fmt.id.upper()}** | {_names(without_lo)} | {_names(with_lo)} |")
+            lines.append(
+                f"| **{row.format.id.upper()}** | {_names(row.right_away)} "
+                f"| {_names(row.needs_libreoffice)} |"
+            )
         notes = CATEGORY_NOTES.get(category, [])
         if notes:
             lines.append("")

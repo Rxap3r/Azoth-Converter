@@ -15,7 +15,7 @@ Status: early development (0.1). See the [project plan](docs/PROJECT_PLAN.md) fo
 | PowerPoint (PPTX, PPT), ODP | PDF, other presentation formats, images |
 | JPG, PNG, WebP, HEIC, AVIF, BMP, TIFF, GIF, ICO | each other, and PDF |
 
-**Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).**
+**Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).** The app shows the same list under **Supported formats**.
 
 Plus PDF merge and split from the command line.
 

@@ -54,3 +54,35 @@ def test_files_already_in_target_format_are_skipped(
 def test_duplicates_ignored(window, sample_png):
     window.add_files([sample_png, sample_png])
     assert window.tree.topLevelItemCount() == 1
+
+
+def test_supported_formats_section(window):
+    section = window.formats_section
+    assert not section.is_expanded()
+    assert section.content.isHidden()
+
+    section.toggle.click()  # open
+    assert section.is_expanded()
+    assert not section.content.isHidden()
+
+    panel = window.formats_panel
+    shown = panel.visible_formats()
+    assert {"pdf", "docx", "jpg", "heic", "xlsx", "pptx"} <= set(shown)
+
+    panel.search.setText("heic")  # formats that are HEIC or convert to HEIC
+    shown = panel.visible_formats()
+    assert "heic" in shown and "jpg" in shown
+    assert "docx" not in shown
+
+    panel.search.setText(".docx")
+    assert "pdf" in panel.visible_formats()  # PDF converts to DOCX
+
+    panel.search.setText("")
+    section.toggle.click()  # close again
+    assert section.content.isHidden()
+
+
+def test_options_section_collapsible(window):
+    assert window.options_section.content.isHidden()
+    window.options_section.set_expanded(True)
+    assert not window.options_section.content.isHidden()
