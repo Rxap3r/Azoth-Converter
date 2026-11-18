@@ -59,7 +59,24 @@ register it, and add tests. The engine, CLI and GUI pick it up automatically.
 ## Commands
 
 ```bash
-pip install -e ".[dev]"
+pip install --require-hashes -r requirements-dev.lock
+```
+
+```bash
+pip install --no-deps -e .
+```
+
+Library versions are locked (with hashes) in `requirements.lock` (app) and
+`requirements-dev.lock` (app + test/build tools). CI and builds install from them, so every
+build of a commit uses the same versions. After changing dependencies in `pyproject.toml`,
+regenerate both files and commit them:
+
+```bash
+uv pip compile pyproject.toml --universal --python-version 3.12 --generate-hashes -o requirements.lock
+```
+
+```bash
+uv pip compile pyproject.toml --extra dev --universal --python-version 3.12 --generate-hashes -o requirements-dev.lock
 ```
 
 ```bash

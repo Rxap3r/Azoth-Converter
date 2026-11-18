@@ -61,8 +61,14 @@ python -m venv .venv
 ```
 
 ```bash
-pip install -e ".[dev]"
+pip install --require-hashes -r requirements-dev.lock
 ```
+
+```bash
+pip install --no-deps -e .
+```
+
+This installs the exact, hash-checked library versions from the lock file.
 
 ```bash
 pytest

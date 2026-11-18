@@ -183,7 +183,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 | LibreOffice hardened | Fresh profile per job: macros disabled, link updates never, update check off | ✅ |
 | Originals untouched, no silent overwrite | Tests | ✅ |
 | Untrusted input | Fuzz tests on detection and parsers; malicious sample files | 🔜 |
-| Supply chain | Locked dependency versions with hashes, signed releases, SBOM | 🔜 |
+| Supply chain: locked versions | `requirements.lock` / `requirements-dev.lock` with hashes; CI installs with `--require-hashes` | ✅ |
+| Supply chain: releases | Signed releases, SBOM | 🔜 |
 
 ---
 
