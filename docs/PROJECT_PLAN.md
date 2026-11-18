@@ -171,6 +171,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **Release 0.3**
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
+- [ ] **Fully portable version** (runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add a CI test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
 - [ ] Windows Explorer right-click menu: "Convert with Azoth Converter → …"
 - [ ] Watch folders (files dropped in a folder are converted automatically)
 - [ ] Data formats (CSV/JSON/XML/YAML/XLSX), Markdown/HTML/EPUB, archives, Camera RAW, SVG
