@@ -22,7 +22,7 @@ Rules:
   work seems ready, you may ask whether they want a pull request, but wait for the go-ahead;
   a request for a release or a build is not a go-ahead for a pull request on its own.
 - Never force-push `main` or `dev`.
-- CI (`.github/workflows/ci.yml`): every push to `dev` runs only the fast Linux tests; pull
+- The **Build and test** workflow (`.github/workflows/ci.yml`): every push to `dev` runs only the fast Linux tests; pull
   requests into `main`, pushes to `main` and manual runs also run the Windows tests and build
   and test the ~190 MB installer. Doc-only changes (`docs/**`, `*.md`) start no run. This keeps
   Actions minutes and artifact storage low; don't change it without asking.
@@ -34,7 +34,7 @@ Rules:
    section and update the links at the bottom; write the user-facing release notes in
    `docs/releases/v<version>.md` based on that changelog section. All tests must pass.
 2. Ask the owner whether to open the pull request `dev` → `main`; open it only when they say
-   so ("pull it"). CI runs the full check (Linux, Windows, installer). The owner merges it.
+   so ("pull it"). "Build and test" runs the full check (Linux, Windows, installer). The owner merges it.
 3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and
    notes, runs all tests again, builds and tests the installer, creates the tag `v<version>`
    and publishes the GitHub Release (installer + portable ZIP). No tag needs to be pushed.
@@ -66,7 +66,7 @@ LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL
 - **Clean uninstall.** The app may store data only in `gui/settings.storage_dir()`
   (`%APPDATA%\Azoth Converter`), never in the registry; job temp folders start with
   `engine.TEMP_PREFIX`. Anything new the app writes must be removed by `[UninstallDelete]` in
-  `packaging/installer.iss` and checked by the CI step "Test installer".
+  `packaging/installer.iss` and checked by the "Test installer" step of the automatic build.
 - Untrusted input: catch engine errors and raise `ConversionError` with a message a non-technical user understands.
 
 ## Layout
@@ -82,7 +82,7 @@ src/azoth/
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),
-                      make_icon.py; CI builds and tests the installer
+                      make_icon.py; the automatic build creates and tests the installer
 .github/workflows/    only two workflows: ci.yml and release.yml (shown in the Actions tab)
 .github/actions/      their shared steps: run-tests, build-windows (composite actions, not listed)
 samples/              test files (Word, PDF, Excel, PowerPoint, images, problem files);
@@ -103,7 +103,7 @@ pip install --no-deps -e .
 ```
 
 Library versions are locked (with hashes) in `requirements.lock` (app) and
-`requirements-dev.lock` (app + test/build tools). CI and builds install from them, so every
+`requirements-dev.lock` (app + test/build tools). The automatic tests and builds install from them, so every
 build of a commit uses the same versions. After changing dependencies in `pyproject.toml`,
 regenerate both files and commit them:
 

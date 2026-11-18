@@ -8,12 +8,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ## [Unreleased]
 
 ### Development
-- Faster CI: every commit to `dev` runs only the Linux tests; pull requests into `main` also run
+- Faster automatic tests: every commit to `dev` runs only the Linux tests; pull requests into `main` also run
   the Windows tests and build and test the installer; documentation-only changes start no run.
 - New **Release** workflow: started by hand on `main`, it tests everything, builds the installer
   and publishes the GitHub Release with the tag `v<version>`.
 - Pull requests into `main` are only opened when the owner asks for one.
-- The Actions tab lists only **CI** and **Release**; their shared steps are now reusable actions
+- The automatic test workflow is now called **Build and test** (was "CI").
+- The Actions tab lists only **Build and test** and **Release**; their shared steps are now reusable actions
   in `.github/actions/` instead of extra workflows.
 
 ## [0.1.0] - 2026-11-18
