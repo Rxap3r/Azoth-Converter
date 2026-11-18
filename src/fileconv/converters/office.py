@@ -147,6 +147,10 @@ class OfficeConverter(Converter):
                 if dst != src:
                     yield src, dst
 
+    def final_only(self, src: str, dst: str) -> bool:
+        # Text-only results lose the formatting, so never use them as a stepping stone.
+        return dst in ("txt", "csv")
+
     def quality_note(self, src: str, dst: str) -> str | None:
         if dst == "txt":
             return "Only the text is kept; formatting and images are dropped."

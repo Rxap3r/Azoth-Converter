@@ -86,3 +86,5 @@ Office tests are skipped when LibreOffice isn't installed. Install it to run the
 - `pytest` passes and `ruff` is clean.
 - New features come with tests.
 - Update `docs/PROJECT_PLAN.md` checkboxes and the README's format table when features change.
+- When conversions change, regenerate the format list (LibreOffice must be installed):
+  `fileconv formats --markdown docs/FORMATS.md`. A test fails if it's out of date.

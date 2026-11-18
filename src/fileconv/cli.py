@@ -69,6 +69,17 @@ def cmd_convert(args: argparse.Namespace) -> int:
 
 def cmd_formats(args: argparse.Namespace) -> int:
     engine = Engine()
+    if args.markdown:
+        from .format_list import build_markdown
+
+        try:
+            text = build_markdown(engine)
+        except RuntimeError as exc:
+            print(f"✗ {exc}", file=sys.stderr)
+            return 1
+        Path(args.markdown).write_text(text, encoding="utf-8", newline="\n")
+        print(f"✓ Wrote {args.markdown}")
+        return 0
     if args.file:
         fmt = formats.detect(Path(args.file))
         if fmt is None:
@@ -145,6 +156,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("formats", help="list supported conversions")
     p.add_argument("file", nargs="?", help="show targets for this file")
+    p.add_argument("--markdown", metavar="PATH", help="write the full list as Markdown")
     p.set_defaults(func=cmd_formats)
 
     pdf = sub.add_parser("pdf", help="PDF tools").add_subparsers(dest="pdf_cmd", required=True)

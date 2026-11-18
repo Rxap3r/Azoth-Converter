@@ -70,6 +70,8 @@ class Engine:
             if len(path) >= MAX_STEPS:
                 continue
             for nxt, conv in self._edges.get(current, {}).items():
+                if path and conv.first_only(current, nxt):
+                    continue  # only allowed on the original file
                 step = Step(current, nxt, conv)
                 if nxt == dst:
                     return [*path, step]

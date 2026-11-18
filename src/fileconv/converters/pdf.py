@@ -104,6 +104,12 @@ class PdfToTextConverter(Converter):
     label = "PyMuPDF"
     priority = 10
 
+    def final_only(self, src: str, dst: str) -> bool:
+        return True  # plain text loses all formatting; never convert it further
+
+    def first_only(self, src: str, dst: str) -> bool:
+        return True  # no Excel → PDF → Word chains
+
     def capabilities(self) -> Iterable[tuple[str, str]]:
         yield "pdf", "txt"
 
@@ -126,6 +132,9 @@ class PdfToWordConverter(Converter):
     id = "pdf-docx"
     label = "pdf2docx"
     priority = 20
+
+    def first_only(self, src: str, dst: str) -> bool:
+        return True  # no Excel → PDF → Word chains
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
         yield "pdf", "docx"

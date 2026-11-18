@@ -76,7 +76,7 @@ implement `convert()`. The engine and GUI pick it up automatically.
 
 ## 4. Format coverage and engines
 
-✅ = working now, 🔜 = planned
+✅ = working now, 🔜 = planned. The exact list of what converts into what is in [FORMATS.md](FORMATS.md).
 
 | Category | Formats | Engine | Status |
 |----------|---------|--------|--------|
@@ -90,6 +90,7 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | Spreadsheets | XLSX, XLS, ODS, CSV ↔ each other, → PDF | LibreOffice | ✅ |
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
 | Images | JPG, PNG, WebP, BMP, TIFF, GIF, ICO, HEIC, AVIF | Pillow, pillow-heif | ✅ |
+| Privacy | Remove photo metadata, same format in and out | Pillow | 🔜 |
 | Camera RAW, SVG | CR2, NEF, ARW, DNG, SVG | rawpy, resvg | 🔜 |
 | Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | 🔜 |
 | Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | 🔜 |
@@ -129,6 +130,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Add or remove a password (only with the user's own password)
 - [ ] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs)
 - [ ] PDF → Excel for tables
+- [ ] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `fileconv clean`. Also show what metadata a file contains before removing it.
 - [ ] **Release 0.2**
 
 ### Phase 3: Audio and video (≈ 4 weeks)

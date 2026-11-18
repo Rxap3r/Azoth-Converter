@@ -9,11 +9,13 @@ Status: early development (0.1). See the [project plan](docs/PROJECT_PLAN.md) fo
 
 | From | To |
 |------|----|
-| Word (DOCX, DOC), ODT, RTF, TXT | PDF, DOCX, DOC, ODT, RTF, TXT, images |
+| Word (DOCX, DOC), ODT, RTF, TXT | PDF, other text formats, images |
 | **PDF** | **Word (DOCX)**, ODT, RTF, TXT, PNG, JPG, WebP, BMP, TIFF |
-| Excel (XLSX, XLS), ODS, CSV | PDF, XLSX, XLS, ODS, CSV |
-| PowerPoint (PPTX, PPT), ODP | PDF, PPTX, PPT, ODP, images |
+| Excel (XLSX, XLS), ODS, CSV | PDF, other spreadsheet formats, images |
+| PowerPoint (PPTX, PPT), ODP | PDF, other presentation formats, images |
 | JPG, PNG, WebP, HEIC, AVIF, BMP, TIFF, GIF, ICO | each other, and PDF |
+
+**Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).**
 
 Plus PDF merge and split from the command line.
 

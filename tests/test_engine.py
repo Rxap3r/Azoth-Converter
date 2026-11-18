@@ -83,3 +83,16 @@ def test_unique_path(tmp_path):
     p.write_text("x")
     (tmp_path / "a (1).txt").write_text("x")
     assert unique_path(p).name == "a (2).txt"
+
+
+def test_pdf_to_word_only_for_real_pdfs():
+    engine = Engine()
+    # PDF → DOCX → DOC is fine: the PDF step works on the original file.
+    if engine.find_route("docx", "doc") is not None:
+        assert [(s.src, s.dst) for s in engine.find_route("pdf", "doc")] == [
+            ("pdf", "docx"),
+            ("docx", "doc"),
+        ]
+    # Excel → PDF → Word would give a poor Word file, so it isn't offered.
+    assert engine.find_route("xlsx", "docx") is None
+    assert engine.find_route("pptx", "txt") is None

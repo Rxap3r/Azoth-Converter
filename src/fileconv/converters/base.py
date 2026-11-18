@@ -66,6 +66,13 @@ class Converter(ABC):
         """
         return False
 
+    def first_only(self, src: str, dst: str) -> bool:
+        """True if this step only accepts the user's original file, never an
+        intermediate result. Example: PDF → Word works well on real PDFs, but
+        Excel → PDF → Word would produce a poor Word file.
+        """
+        return False
+
     def quality_note(self, src: str, dst: str) -> str | None:
         """A short warning shown to the user when a conversion may lose information."""
         return None
