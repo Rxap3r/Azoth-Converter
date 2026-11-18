@@ -117,7 +117,7 @@ iscc /DAppVersion=0.1.0 installer.iss
 ```
 
 The app icon is drawn by `python packaging/make_icon.py`.
-GitHub Actions builds it automatically for pull requests into `main` and for `main` itself. For any other branch (e.g. `dev`), start a build by hand: **Actions** tab → **CI** → **Run workflow** → choose the branch. When the run finishes, download `AzothConverter-Setup` (the installer) from its **Artifacts** section. Builds from `dev` are kept for 7 days, builds from `main` for 30.
+GitHub Actions builds it automatically for pull requests into `main` and for `main` itself. For any other branch (e.g. `dev`), start a build by hand: **Actions** tab → **CI** → **Run workflow** → choose the branch. When the run finishes, download `AzothConverter-Setup` (the installer) from its **Artifacts** section. These test builds are kept for 7 days; released versions stay permanently on the [Releases page](https://github.com/Rxap3r/Azoth-Converter/releases).
 
 ### Project layout
 
