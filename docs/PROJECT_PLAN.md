@@ -143,12 +143,16 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 
 ### Design refresh (timing flexible, ideally before going public)
 - [ ] Mockups first: agree on the look before changing code
+- [ ] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain
 - [ ] Modern Windows 11 look (Fluent style): rounded corners, accent colour, Mica-style background; follows Windows light/dark mode
 - [ ] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**
 - [ ] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
+- [ ] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
 - [ ] Target format picker as a grid of format tiles grouped by type, with the most used ones first
 - [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations
-- [ ] App icon and consistent icon set (bundled, no web fonts or online assets)
+- [ ] **Rework the app icon:** the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
+- [ ] Consistent icon set inside the app (bundled, no web fonts or online assets)
+- [ ] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)
 - [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %
 - Options: Qt's built-in Windows 11 style plus our own stylesheet, or the GPL-licensed *PySide6-Fluent-Widgets* library (compatible with our license)
 

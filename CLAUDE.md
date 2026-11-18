@@ -25,6 +25,8 @@ Rules:
 Azoth Converter is an **offline** desktop file converter (Windows first, later macOS and Linux).
 The whole point of the project is **data safety**: files never leave the user's device.
 The roadmap is in `docs/PROJECT_PLAN.md`, and the user-facing promises are in `PRIVACY.md`.
+Future ideas and change requests from the owner go into `docs/PROJECT_PLAN.md` as unchecked items
+in the matching phase (design wishes under "Design refresh"); there is no separate wish list.
 
 Stack: Python 3.11+, PySide6 (GUI), Pillow and pillow-heif (images), PyMuPDF and pdf2docx (PDF),
 LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL-3.0-or-later.
