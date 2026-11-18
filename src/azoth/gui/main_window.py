@@ -37,6 +37,7 @@ from .settings import Preferences, forget_file_dialog_history
 from .widgets import CollapsibleSection
 
 COL_FILE, COL_TYPE, COL_STATUS = range(3)
+TAGLINE = "– File conversion"
 SAME_FOLDER = "Same folder as the original"
 
 
@@ -119,7 +120,11 @@ class MainWindow(QMainWindow):
         header.addWidget(logo)
         titles = QVBoxLayout()
         titles.setSpacing(0)
-        title = QLabel("<h2 style='margin:0'>Azoth Converter</h2>")
+        # Name plus a short description, so it's clear at a glance what the app does.
+        title = QLabel(
+            "<h2 style='margin:0'>Azoth Converter "
+            f"<span style='font-weight:normal; color:#8a8aa0'>{TAGLINE}</span></h2>"
+        )
         subtitle = QLabel("🔒 Works offline. Your files never leave this computer.")
         subtitle.setStyleSheet("color: palette(placeholder-text);")
         titles.addWidget(title)
