@@ -31,6 +31,20 @@ def no_network(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", guard)
 
 
+@pytest.fixture(autouse=True)
+def isolated_settings(tmp_path_factory):
+    """Keep the app's saved preferences in a temporary folder during tests."""
+    try:
+        from PySide6.QtCore import QSettings
+    except ImportError:  # pragma: no cover
+        yield
+        return
+    folder = tmp_path_factory.mktemp("settings")
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(folder))
+    yield
+
+
 @pytest.fixture
 def private_tmp(tmp_path, monkeypatch):
     """Point Python's temp folder somewhere we can inspect after a conversion."""

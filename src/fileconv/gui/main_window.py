@@ -6,7 +6,7 @@ import threading
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QThread, QUrl, Signal, Slot
-from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -28,8 +28,12 @@ from PySide6.QtWidgets import (
 
 from .. import __version__, formats, quality
 from ..converters import ConversionCancelled, ConversionError, all_converters
+from ..converters.msword import word_installed
 from ..engine import Engine
+from .about import AboutDialog
 from .formats_panel import FormatsPanel
+from .resources import icon_path
+from .settings import Preferences
 from .widgets import CollapsibleSection
 
 COL_FILE, COL_TYPE, COL_STATUS = range(3)
@@ -82,9 +86,11 @@ class ConversionWorker(QObject):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, engine: Engine | None = None) -> None:
+    def __init__(self, engine: Engine | None = None, prefs: Preferences | None = None) -> None:
         super().__init__()
-        self.engine = engine or Engine()
+        self.prefs = prefs or Preferences()
+        self.engine = engine or Engine(all_converters(use_word=self.prefs.use_word))
+        self._word_installed = word_installed()
         self.files: list[Path] = []
         self.file_formats: list[formats.Format | None] = []
         self.output_dir: Path | None = None
@@ -97,7 +103,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"File-Converter {__version__}")
         self.resize(820, 600)
         self.setAcceptDrops(True)
+        self._preferred_target = self.prefs.target
         self._build_ui()
+        self._load_preferences()
         self._refresh()
 
     # --- layout -------------------------------------------------------------
@@ -106,11 +114,22 @@ class MainWindow(QMainWindow):
         root = QWidget()
         layout = QVBoxLayout(root)
 
+        header = QHBoxLayout()
+        logo = QLabel()
+        logo.setPixmap(QIcon(str(icon_path())).pixmap(40, 40))
+        header.addWidget(logo)
+        titles = QVBoxLayout()
+        titles.setSpacing(0)
         title = QLabel("<h2 style='margin:0'>File-Converter</h2>")
         subtitle = QLabel("🔒 Works offline. Your files never leave this computer.")
         subtitle.setStyleSheet("color: palette(placeholder-text);")
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        titles.addWidget(title)
+        titles.addWidget(subtitle)
+        header.addLayout(titles, 1)
+        self.about_btn = QPushButton("About")
+        self.about_btn.clicked.connect(self.show_about)
+        header.addWidget(self.about_btn, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(header)
 
         for conv in self.engine.unavailable():
             banner = QLabel(f"⚠ {conv.unavailable_reason()}")
@@ -134,7 +153,7 @@ class MainWindow(QMainWindow):
         self.drop_hint.setStyleSheet(
             "border: 2px dashed palette(mid); border-radius: 8px; padding: 40px; font-size: 14px;"
         )
-        layout.addWidget(self.drop_hint)
+        layout.addWidget(self.drop_hint, 1)  # takes the free space while the list is empty
         layout.addWidget(self.tree, 1)
 
         buttons = QHBoxLayout()
@@ -188,7 +207,7 @@ class MainWindow(QMainWindow):
             "Macros stay off. If Word fails, LibreOffice is used instead."
         )
         self.word_check.setChecked(self.engine.uses_word())
-        self.word_check.setVisible(self.engine.uses_word())  # only when Word is installed
+        self.word_check.setVisible(self._word_installed)  # only when Word is installed
         self.word_check.toggled.connect(self._set_use_word)
         opt_form.addRow(self.word_check)
         self.options_section = CollapsibleSection("Options", options)
@@ -309,7 +328,7 @@ class MainWindow(QMainWindow):
         for fmt in common:
             self.target_combo.addItem(f"{fmt.name} (.{fmt.extension})", fmt.id)
         # Keep the user's choice; otherwise start with PDF, the most common target.
-        for wanted in (previous, "pdf"):
+        for wanted in (previous, self._preferred_target, "pdf"):
             index = self.target_combo.findData(wanted) if wanted else -1
             if index >= 0:
                 self.target_combo.setCurrentIndex(index)
@@ -400,6 +419,8 @@ class MainWindow(QMainWindow):
                 jobs.append((row, path))
         if not jobs:
             return
+        self._preferred_target = target
+        self.save_preferences()
 
         options = {
             "level": self.level_combo.currentData(),
@@ -486,6 +507,30 @@ class MainWindow(QMainWindow):
             self.progress.setValue(1000)
         self._refresh()
 
+    # --- preferences and about ------------------------------------------------
+
+    def _load_preferences(self) -> None:
+        level_index = self.level_combo.findData(self.prefs.level)
+        if level_index >= 0:
+            self.level_combo.setCurrentIndex(level_index)
+        self.metadata_check.setChecked(self.prefs.keep_metadata)
+        if self.prefs.output_dir is not None:
+            self.output_dir = self.prefs.output_dir
+            self.output_label.setText(str(self.output_dir))
+
+    def save_preferences(self) -> None:
+        target = self.target_combo.currentData() or self._preferred_target
+        self.prefs.save(
+            target=target,
+            output_dir=self.output_dir,
+            level=self.level_combo.currentData(),
+            use_word=self.word_check.isChecked() if self._word_installed else self.prefs.use_word,
+            keep_metadata=self.metadata_check.isChecked(),
+        )
+
+    def show_about(self) -> None:
+        AboutDialog(self).exec()
+
     def closeEvent(self, event) -> None:
         if self._thread is not None:
             answer = QMessageBox.question(
@@ -497,4 +542,5 @@ class MainWindow(QMainWindow):
             self._cancel.set()
             self._thread.quit()
             self._thread.wait(5000)
+        self.save_preferences()
         event.accept()

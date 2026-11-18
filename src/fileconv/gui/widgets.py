@@ -37,3 +37,6 @@ class CollapsibleSection(QWidget):
             return
         self.toggle.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
         self.content.setVisible(expanded)
+        # Closed sections take only the height of their heading.
+        vertical = QSizePolicy.Policy.Preferred if expanded else QSizePolicy.Policy.Maximum
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, vertical)

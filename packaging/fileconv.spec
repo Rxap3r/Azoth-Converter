@@ -2,14 +2,21 @@
 #   FileConverter.exe  - the window (no console)
 #   fileconv.exe       - the command-line tool
 # Build with:  pyinstaller packaging/fileconv.spec --noconfirm
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
 hiddenimports = collect_submodules("pdf2docx") + collect_submodules("fileconv")
+
+# App resources (icon) plus package metadata, so the About window can show versions.
+datas = [("../src/fileconv/resources", "fileconv/resources")]
+for dist in ("PySide6-Essentials", "pillow", "pillow-heif", "PyMuPDF", "pdf2docx",
+             "python-docx", "opencv-python-headless", "numpy"):
+    datas += copy_metadata(dist)
 
 a = Analysis(
     ["launcher.py"],
     pathex=["../src"],
     hiddenimports=hiddenimports,
+    datas=datas,
     excludes=[
         "tkinter", "matplotlib", "IPython", "pytest", "onnxruntime",
         # Qt parts the app doesn't use (keeps the download smaller)
@@ -28,6 +35,7 @@ gui = EXE(
     exclude_binaries=True,
     name="FileConverter",
     console=False,
+    icon="icon.ico",
     upx=False,
 )
 cli = EXE(
@@ -36,6 +44,7 @@ cli = EXE(
     exclude_binaries=True,
     name="fileconv",
     console=True,
+    icon="icon.ico",
     upx=False,
 )
 coll = COLLECT(gui, cli, a.binaries, a.datas, name="FileConverter", upx=False)

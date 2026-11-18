@@ -29,7 +29,11 @@ PDF → Word, PDF ↔ images and the image conversions work without it.
 
 ## Using it
 
-**The app:** start `FileConverter.exe`, drag files into the window, choose a format, click **Convert**.
+**Install:** run `FileConverter-Setup-<version>.exe`. No admin rights needed; it installs just for you
+unless you choose "all users". Uninstall it from *Settings → Apps* like any other program.
+
+**The app:** start **File-Converter** from the Start menu, drag files into the window, choose a format,
+click **Convert**. It remembers your format, output folder and quality setting.
 
 **The command line:**
 
@@ -103,7 +107,14 @@ pyinstaller fileconv.spec --noconfirm
 ```
 
 The result is in `packaging/dist/FileConverter/`: `FileConverter.exe` (the app) and `fileconv.exe` (command line).
-GitHub Actions builds it automatically for `main`. For any other branch (e.g. `dev`), start a build by hand: **Actions** tab → **CI** → **Run workflow** → choose the branch. When the run finishes, download `FileConverter-windows` from its **Artifacts** section. Builds from `dev` are kept for 7 days, builds from `main` for 30.
+The installer is made from that folder with [Inno Setup](https://jrsoftware.org/isinfo.php):
+
+```bash
+iscc /DAppVersion=0.1.0 installer.iss
+```
+
+The app icon is drawn by `python packaging/make_icon.py`.
+GitHub Actions builds it automatically for `main`. For any other branch (e.g. `dev`), start a build by hand: **Actions** tab → **CI** → **Run workflow** → choose the branch. When the run finishes, download `FileConverter-Setup` (the installer) from its **Artifacts** section. Builds from `dev` are kept for 7 days, builds from `main` for 30.
 
 ### Project layout
 

@@ -9,3 +9,5 @@ dist/
 .ruff_cache/
 .coverage
 htmlcov/
+packaging/Output/
+packaging/icon_preview.png

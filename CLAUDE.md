@@ -53,9 +53,11 @@ src/fileconv/
   converters/base.py  Converter plugin interface
   converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
   cli.py              `fileconv` command line
-  gui/                PySide6 window
+  gui/                PySide6 window, About dialog, saved preferences (QSettings)
+  resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
-packaging/            PyInstaller spec (FileConverter.exe + fileconv.exe)
+packaging/            PyInstaller spec (FileConverter.exe + fileconv.exe), installer.iss (Inno Setup),
+                      make_icon.py; CI builds and tests the installer
 samples/              test files (Word, PDF, Excel, PowerPoint, images, problem files);
                       recreate with `python samples/generate.py`, see samples/README.md
 ```

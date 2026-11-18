@@ -91,3 +91,48 @@ def test_options_section_collapsible(window):
 def test_word_option_hidden_without_word(window):
     assert not window.engine.uses_word()
     assert window.word_check.isHidden()
+
+
+def test_preferences_are_remembered(qtbot, tmp_path, sample_png):
+    first = MainWindow()
+    qtbot.addWidget(first)
+    first.add_files([sample_png])
+    first.target_combo.setCurrentIndex(first.target_combo.findData("webp"))
+    first.set_quality_level("high")
+    first.metadata_check.setChecked(True)
+    first.output_dir = tmp_path
+    first.save_preferences()
+
+    second = MainWindow()
+    qtbot.addWidget(second)
+    assert second.level_combo.currentData() == "high"
+    assert second.metadata_check.isChecked()
+    assert second.output_dir == tmp_path
+    second.add_files([sample_png])
+    assert second.target_combo.currentData() == "webp"
+
+
+def test_missing_output_folder_is_not_restored(qtbot, tmp_path):
+    gone = tmp_path / "deleted-folder"
+    gone.mkdir()
+    first = MainWindow()
+    qtbot.addWidget(first)
+    first.output_dir = gone
+    first.save_preferences()
+    gone.rmdir()
+    second = MainWindow()
+    qtbot.addWidget(second)
+    assert second.output_dir is None
+
+
+def test_about_dialog(window):
+    from fileconv.gui.about import AboutDialog
+
+    dialog = AboutDialog(window)
+    names = [
+        dialog.components.topLevelItem(i).text(0)
+        for i in range(dialog.components.topLevelItemCount())
+    ]
+    assert "PyMuPDF / MuPDF" in names and "LibreOffice" in names
+    assert "LibreOffice" in dialog.engines_label.text()
+    dialog.close()
