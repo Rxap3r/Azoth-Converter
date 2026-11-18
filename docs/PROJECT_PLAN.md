@@ -40,7 +40,7 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 | GUI | **PySide6 (Qt 6)** | Native-looking, mature, handles drag-and-drop, dark mode and high-DPI screens. |
 | Packaging | **PyInstaller**, then an **Inno Setup** installer and a portable ZIP, with winget/MSIX later | A normal Windows install experience. |
 | Engines | Proven tools wrapped behind one plugin interface (see §4) | FFmpeg, LibreOffice and PyMuPDF are industry standard. No need to reinvent codecs. |
-| CI | GitHub Actions on Windows and Linux | Tests, lint and the Windows build on every push. |
+| CI | GitHub Actions on Windows and Linux | Tests and lint on every push; the Windows build for `main` and on demand (saves artifact storage). Official releases go to GitHub Releases. |
 
 ---
 

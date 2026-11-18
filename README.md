@@ -92,7 +92,7 @@ pyinstaller fileconv.spec --noconfirm
 ```
 
 The result is in `packaging/dist/FileConverter/`: `FileConverter.exe` (the app) and `fileconv.exe` (command line).
-GitHub Actions builds this on every push. Download it from the run's **Artifacts** section (`FileConverter-windows`).
+GitHub Actions builds it automatically for `main`. For any other branch (e.g. `dev`), start a build by hand: **Actions** tab → **CI** → **Run workflow** → choose the branch. When the run finishes, download `FileConverter-windows` from its **Artifacts** section. Builds from `dev` are kept for 7 days, builds from `main` for 30.
 
 ### Project layout
 

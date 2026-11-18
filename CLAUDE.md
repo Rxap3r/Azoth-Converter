@@ -18,6 +18,7 @@ Rules:
   If the session started on another branch that already has commits not on `dev`, bring them over (`git checkout dev && git merge --no-edit <that-branch>`) instead of losing them.
 - **Never commit or push to `main` directly.** `main` is only updated by merging `dev` into it, and only when the owner explicitly asks for a release or merge. Before merging, all tests must pass on `dev`.
 - Never force-push `main` or `dev`.
+- CI builds the ~190 MB Windows app only for `main` or when started by hand (`workflow_dispatch`), to save artifact storage. Don't change that without asking.
 
 ## Project
 
