@@ -32,7 +32,9 @@ Rules:
 1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py`; in
    `CHANGELOG.md` rename **Unreleased** to `[<version>] - <date>`, add a new empty Unreleased
    section and update the links at the bottom; write the user-facing release notes in
-   `docs/releases/v<version>.md` based on that changelog section. All tests must pass.
+   `docs/releases/v<version>.md` from `docs/releases/TEMPLATE.md`, based on that changelog
+   section. Always keep the template's **Downloads** section, which explains the installer,
+   the portable ZIP and GitHub's source-code archives. All tests must pass.
 2. Ask the owner whether to open the pull request `dev` → `main`; open it only when they say
    so ("pull it"). "Build and test" runs the full check (Linux, Windows, installer). The owner merges it.
 3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and

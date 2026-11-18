@@ -31,6 +31,12 @@ PDF → Word, PDF ↔ images and the image conversions work without it.
 
 **Download:** the latest installer is on the [Releases page](https://github.com/Rxap3r/Azoth-Converter/releases/latest).
 
+Each release offers two versions of the same app:
+- **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry and clean uninstall.
+- **AzothConverter-portable-<version>.zip**: no installation; unzip and run `AzothConverter.exe`, delete the folder to remove it.
+
+The "Source code" archives that GitHub adds to every release are only needed by developers.
+
 **Install:** run `AzothConverter-Setup-<version>.exe`. No admin rights needed; it installs just for you
 unless you choose "all users". Uninstall it from *Settings → Apps* like any other program; the uninstall is clean
 and leaves no files, settings or registry entries behind.

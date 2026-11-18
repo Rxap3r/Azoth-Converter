@@ -1,0 +1,25 @@
+<!--
+Template for release notes. Copy to docs/releases/v<version>.md, fill in the parts
+in <angle brackets>, and keep the "Downloads" section as it is (update the version).
+Base "What's new" on the version's section in CHANGELOG.md, in plain language.
+-->
+<One or two sentences: what this version is about.>
+
+## What's new
+
+- <Change, in plain language>
+
+## Downloads
+
+| File | What it is |
+|---|---|
+| **AzothConverter-Setup-<version>.exe** | **Installer (recommended).** Installs the app with a Start menu entry and a clean uninstall under *Settings → Apps*. No admin rights needed. |
+| **AzothConverter-portable-<version>.zip** | **Portable version, no installation.** Unzip the folder anywhere and run `AzothConverter.exe`; to remove it, delete the folder. Same app as the installer. Note: it still keeps its few settings in `%APPDATA%\Azoth Converter`, which stays behind when you delete the folder (a fully portable version is planned). |
+| Source code (zip / tar.gz) | Added by GitHub to every release: the project's code at this version. Only needed by developers. |
+
+Windows may show "Windows protected your PC" because the files aren't signed yet: click **More info → Run anyway**.
+For Word, Excel and PowerPoint formats, install the free [LibreOffice](https://www.libreoffice.org/download/) (not needed for PDFs and images, or for Word → PDF when Microsoft Word is installed).
+
+## Known limitations
+
+- <Anything users should know>
