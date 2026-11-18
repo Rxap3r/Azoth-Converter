@@ -16,7 +16,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, formats
+from . import __version__, formats, quality
 from .converters import ConversionError
 from .engine import Engine, unique_path
 
@@ -34,8 +34,11 @@ def _progress_printer(name: str):
 
 
 def cmd_convert(args: argparse.Namespace) -> int:
-    engine = Engine()
+    from .converters import all_converters
+
+    engine = Engine(all_converters(use_word=not args.no_word))
     options = {
+        "level": args.level,
         "quality": args.quality,
         "dpi": args.dpi,
         "keep_metadata": args.keep_metadata,
@@ -127,6 +130,19 @@ def cmd_pdf_split(args: argparse.Namespace) -> int:
     return 0
 
 
+def _bounded(low: int, high: int):
+    def parse(text: str) -> int:
+        try:
+            value = int(text)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"{text!r} is not a whole number") from None
+        if not low <= value <= high:
+            raise argparse.ArgumentTypeError(f"must be between {low} and {high}")
+        return value
+
+    return parse
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="fileconv",
@@ -140,12 +156,35 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--to", "-t", required=True, help="target format, e.g. pdf, docx, jpg")
     p.add_argument("--output", "-o", help="output folder (default: next to each file)")
     p.add_argument("--overwrite", action="store_true", help="replace existing output files")
-    p.add_argument("--quality", type=int, default=None, help="JPEG/WebP quality 1-100")
-    p.add_argument("--dpi", type=int, default=None, help="resolution for PDF ↔ image")
+    p.add_argument(
+        "--level",
+        choices=[lv.id for lv in quality.LEVELS],
+        default=quality.DEFAULT.id,
+        help="quality level (default: maximum)",
+    )
+    p.add_argument(
+        "--quality",
+        type=_bounded(quality.MIN_IMAGE_QUALITY, quality.MAX_IMAGE_QUALITY),
+        default=None,
+        help=f"photo quality {quality.MIN_IMAGE_QUALITY}-{quality.MAX_IMAGE_QUALITY} "
+        "(overrides --level)",
+    )
+    p.add_argument(
+        "--dpi",
+        type=_bounded(quality.MIN_DPI, quality.MAX_DPI),
+        default=None,
+        help=f"resolution for PDF → images, {quality.MIN_DPI}-{quality.MAX_DPI} "
+        "(overrides --level)",
+    )
     p.add_argument(
         "--keep-metadata",
         action="store_true",
         help="keep photo EXIF data (removed by default for privacy)",
+    )
+    p.add_argument(
+        "--no-word",
+        action="store_true",
+        help="use LibreOffice even if Microsoft Word is installed (Word → PDF)",
     )
     p.add_argument("--quiet", "-q", action="store_true")
     p.set_defaults(func=cmd_convert)

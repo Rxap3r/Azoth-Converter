@@ -27,10 +27,18 @@ TEXT_DOCS = ["docx", "doc", "odt", "rtf", "txt"]
 SHEETS = ["xlsx", "xls", "ods", "csv"]
 SLIDES = ["pptx", "ppt", "odp"]
 
+# Maximum quality for PDF export: no downscaling or re-compression of images, so
+# photos in a document end up in the PDF byte-for-byte unchanged.
+PDF_QUALITY = (
+    '{"ReduceImageResolution":{"type":"boolean","value":"false"},'
+    '"UseLosslessCompression":{"type":"boolean","value":"true"},'
+    '"Quality":{"type":"long","value":"100"}}'
+)
+
 # Targets per family, with the LibreOffice export filter to use.
 FILTERS = {
     "text": {
-        "pdf": "pdf:writer_pdf_Export",
+        "pdf": f"pdf:writer_pdf_Export:{PDF_QUALITY}",
         "docx": "docx:MS Word 2007 XML",
         "odt": "odt:writer8",
         "rtf": "rtf:Rich Text Format",
@@ -38,7 +46,7 @@ FILTERS = {
         "doc": "doc:MS Word 97",
     },
     "sheet": {
-        "pdf": "pdf:calc_pdf_Export",
+        "pdf": f"pdf:calc_pdf_Export:{PDF_QUALITY}",
         "xlsx": "xlsx:Calc MS Excel 2007 XML",
         "ods": "ods:calc8",
         # 44 = comma separator, 34 = double quote, 76 = UTF-8
@@ -46,7 +54,7 @@ FILTERS = {
         "xls": "xls:MS Excel 97",
     },
     "slides": {
-        "pdf": "pdf:impress_pdf_Export",
+        "pdf": f"pdf:impress_pdf_Export:{PDF_QUALITY}",
         "pptx": "pptx:Impress MS PowerPoint 2007 XML",
         "odp": "odp:impress8",
         "ppt": "ppt:MS PowerPoint 97",

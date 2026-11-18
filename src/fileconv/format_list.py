@@ -43,7 +43,9 @@ CATEGORY_NOTES = {
     ],
     formats.IMAGE: [
         "Photo metadata (camera, date, GPS location) is removed by default.",
-        "Formats without transparency (JPG, BMP, PDF) get a white background.",
+        "Formats without transparency (JPG, BMP) get a white background.",
+        "Image → PDF keeps full quality: JPG photos are embedded unchanged, other formats "
+        "losslessly.",
         "Animated GIF/WebP and multi-page TIFF keep all frames when the target supports it.",
     ],
 }
@@ -61,7 +63,8 @@ class FormatRow:
 
 def conversion_table() -> list[FormatRow]:
     """Every known format with its targets, as if all engines were installed."""
-    converters = all_converters()
+    # Word only improves quality for conversions LibreOffice also does; it adds no formats.
+    converters = [c for c in all_converters() if c.id != "msword"]
     full = Engine(converters, assume_available=True)
     basic = Engine([c for c in converters if c.id != LIBREOFFICE_ID], assume_available=True)
     rows = []

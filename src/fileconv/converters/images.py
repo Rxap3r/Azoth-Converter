@@ -32,7 +32,6 @@ PIL_SAVE_FORMATS = {
     "tiff": "TIFF",
     "gif": "GIF",
     "ico": "ICO",
-    "pdf": "PDF",
 }
 if HEIF_SUPPORTED:
     PIL_SAVE_FORMATS["heic"] = "HEIF"
@@ -46,9 +45,12 @@ if AVIF_SUPPORTED:
     READABLE.append("avif")
 
 # Formats that can hold several frames/pages in one file.
-MULTI_FRAME = {"gif", "webp", "tiff", "pdf"}
+MULTI_FRAME = {"gif", "webp", "tiff"}
+# Sources without compression loss: converting them to WebP stays lossless too.
+LOSSLESS_SOURCES = {"png", "bmp", "gif", "tiff", "ico"}
+DEFAULT_QUALITY = 95  # high by default: the goal is conversions as close to 1:1 as possible
 # Formats that cannot store transparency.
-NO_ALPHA = {"jpg", "bmp", "pdf"}
+NO_ALPHA = {"jpg", "bmp"}
 # Metadata keys Pillow may carry over from the source image.
 PRIVATE_INFO_KEYS = ("exif", "xmp", "XML:com.adobe.xmp", "comment", "photoshop", "iptc")
 
@@ -89,9 +91,6 @@ class ImageConverter(Converter):
                 if src != dst:
                     yield src, dst
 
-    def final_only(self, src: str, dst: str) -> bool:
-        return dst == "pdf"  # an image-only PDF is a "scan"; don't chain it into Word etc.
-
     def quality_note(self, src: str, dst: str) -> str | None:
         if dst == "gif":
             return "GIF supports only 256 colours, so photos may look grainy."
@@ -108,7 +107,10 @@ class ImageConverter(Converter):
         if pil_format is None:
             raise ConversionError(f"Cannot write {dst_id.upper()} images")
 
-        quality = int(ctx.option("quality", 90))
+        quality = int(ctx.option("quality", DEFAULT_QUALITY))
+        src_id = {"jpeg": "jpg", "tif": "tiff", "heif": "heic"}.get(
+            src.suffix.lower().lstrip("."), src.suffix.lower().lstrip(".")
+        )
         keep_metadata = bool(ctx.option("keep_metadata", False))
 
         try:
@@ -138,21 +140,22 @@ class ImageConverter(Converter):
                 frame.info.pop(key, None)
 
         save_args: dict = {}
-        if icc_profile and dst_id in ("jpg", "png", "webp", "tiff", "heic", "avif", "pdf"):
+        if icc_profile and dst_id in ("jpg", "png", "webp", "tiff", "heic", "avif"):
             save_args["icc_profile"] = icc_profile  # colour profile, not personal data
         if exif is not None and dst_id in ("jpg", "png", "webp", "tiff", "heic", "avif"):
             exif[0x0112] = 1  # orientation is already applied to the pixels
             save_args["exif"] = exif.tobytes()
-        if dst_id in ("jpg", "webp", "heic", "avif"):
+        if dst_id == "webp" and src_id in LOSSLESS_SOURCES:
+            save_args["lossless"] = True  # pixel-perfect copy of a lossless original
+        elif dst_id in ("jpg", "webp", "heic", "avif"):
             save_args["quality"] = quality
         if dst_id == "jpg":
             save_args["optimize"] = True
+            save_args["subsampling"] = 0  # full colour resolution (4:4:4), sharper edges
         if dst_id == "png":
             save_args["optimize"] = True
         if dst_id == "tiff":
             save_args["compression"] = "tiff_lzw"
-        if dst_id == "pdf":
-            save_args["resolution"] = float(ctx.option("dpi", 150))
         if dst_id == "ico":
             largest = min(256, max(first.size))
             save_args["sizes"] = [(s, s) for s in (16, 24, 32, 48, 64, 128, 256) if s <= largest]

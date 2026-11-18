@@ -10,11 +10,11 @@ from fileconv.engine import Engine
 
 def test_pdf_to_png_one_file_per_page(sample_pdf, tmp_path):
     out = tmp_path / "out"
-    result = Engine().convert(sample_pdf, "png", out, options={"dpi": 72})
+    result = Engine().convert(sample_pdf, "png", out, options={"dpi": 150})
     names = sorted(p.name for p in result.outputs)
     assert names == ["letter_page001.png", "letter_page002.png", "letter_page003.png"]
     with Image.open(result.outputs[0]) as im:
-        assert im.size == (595, 842)  # A4 at 72 DPI
+        assert abs(im.width - 1240) <= 1 and abs(im.height - 1754) <= 1  # A4 at 150 DPI
 
 
 def test_single_page_pdf_keeps_plain_name(tmp_path):

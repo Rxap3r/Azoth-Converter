@@ -44,6 +44,8 @@ class Converter(ABC):
     id: str = ""
     label: str = ""
     priority: int = 0
+    optional: bool = False
+    """Optional engines (e.g. Microsoft Word) don't trigger "missing engine" warnings."""
     """When two converters offer the same conversion, the higher priority wins."""
 
     def is_available(self) -> bool:

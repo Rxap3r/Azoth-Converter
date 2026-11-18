@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import formats
+from . import formats, quality
 from .converters import (
     ConversionContext,
     ConversionError,
@@ -61,8 +61,11 @@ class Engine:
                 self._edges.setdefault(src, {})[dst] = conv  # higher priority overwrites
 
     def unavailable(self) -> list[Converter]:
-        """Converters that are installed but miss their engine."""
-        return [c for c in self.converters if not c.is_available()]
+        """Required converters whose engine is missing (optional ones like Word are left out)."""
+        return [c for c in self.converters if not c.optional and not c.is_available()]
+
+    def uses_word(self) -> bool:
+        return any(c.id == "msword" and c.is_available() for c in self.converters)
 
     # --- route finding ------------------------------------------------------
 
@@ -144,6 +147,7 @@ class Engine:
         report = progress or (lambda f, m: None)
         cancel = cancel_event or threading.Event()
         result = ConversionResult(source=source, notes=self.quality_notes(route))
+        resolved_options = quality.resolve_options(options)  # level → values, enforce limits
 
         with tempfile.TemporaryDirectory(prefix="fileconv-") as tmp:
             tmp_path = Path(tmp)
@@ -166,7 +170,7 @@ class Engine:
 
                 ctx = ConversionContext(
                     work_dir=step_dir,
-                    options=dict(options or {}),
+                    options=resolved_options,
                     progress=step_progress,
                     cancel_event=cancel,
                 )

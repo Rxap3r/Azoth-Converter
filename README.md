@@ -19,6 +19,11 @@ Status: early development (0.1). See the [project plan](docs/PROJECT_PLAN.md) fo
 
 Plus PDF merge and split from the command line.
 
+**Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
+unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
+Word → PDF for an exact layout. Under **Options → Quality** you can choose smaller files
+instead, but never below a sensible minimum.
+
 Office formats need [LibreOffice](https://www.libreoffice.org/download/) (free) to be installed.
 PDF → Word, PDF ↔ images and the image conversions work without it.
 

@@ -91,7 +91,8 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 | **AVIF** | BMP, GIF, HEIC, ICO, JPG, PNG, TIFF, WEBP, PDF | – |
 
 - Photo metadata (camera, date, GPS location) is removed by default.
-- Formats without transparency (JPG, BMP, PDF) get a white background.
+- Formats without transparency (JPG, BMP) get a white background.
+- Image → PDF keeps full quality: JPG photos are embedded unchanged, other formats losslessly.
 - Animated GIF/WebP and multi-page TIFF keep all frames when the target supports it.
 
 ## Also available

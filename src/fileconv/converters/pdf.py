@@ -16,6 +16,7 @@ from PIL import Image
 
 from .base import ConversionContext, ConversionError, Converter
 
+DEFAULT_DPI = 300  # print quality: text and lines stay sharp when zooming in
 RASTER_TARGETS = {"png": "PNG", "jpg": "JPEG", "webp": "WEBP", "bmp": "BMP", "tiff": "TIFF"}
 
 
@@ -66,8 +67,8 @@ class PdfToImageConverter(Converter):
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
         dst_id = dst.suffix.lower().lstrip(".")
         dst_id = {"jpeg": "jpg", "tif": "tiff"}.get(dst_id, dst_id)
-        dpi = int(ctx.option("dpi", 150))
-        quality = int(ctx.option("quality", 90))
+        dpi = int(ctx.option("dpi", DEFAULT_DPI))
+        quality = int(ctx.option("quality", 95))
         outputs: list[Path] = []
         with _open(src) as doc:
             total = doc.page_count
@@ -83,7 +84,11 @@ class PdfToImageConverter(Converter):
                     images.append(img)
                     continue
                 out = page_file_name(dst, i, total)
-                kwargs = {"quality": quality} if dst_id in ("jpg", "webp") else {}
+                kwargs = {}
+                if dst_id == "jpg":
+                    kwargs = {"quality": quality, "subsampling": 0}
+                elif dst_id == "webp":
+                    kwargs = {"lossless": True}  # rendered pages: crisp text, no artefacts
                 img.save(out, format=RASTER_TARGETS[dst_id], dpi=(dpi, dpi), **kwargs)
                 outputs.append(out)
             if dst_id == "tiff":

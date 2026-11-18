@@ -24,9 +24,10 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 | 2 | **No telemetry** | No analytics, crash reporting or "phone home". Update checks are off by default and only run when the user clicks "Check for updates". |
 | 3 | **Leave no traces** | Temporary files go to a private per-job folder that is deleted when the job finishes, including when it fails or is cancelled. |
 | 4 | **Safe with untrusted files** | Engines run as separate processes with hardened settings: macros off, external links off, network protocols off. |
-| 5 | **Never destroy data** | Originals are never modified. Existing files are never overwritten unless the user asks. |
-| 6 | **Transparent** | Open source, bundled components listed in an SBOM, signed releases, a readable [privacy statement](../PRIVACY.md). |
-| 7 | **Simple for everyone** | Drag files in, pick a target format, click Convert. Advanced options stay hidden until you open them. |
+| 5 | **1:1 quality** | Conversions as faithful as possible: the best engine available, no needless re-compression, lossless where the target allows. Unavoidable losses are explained in the app. |
+| 6 | **Never destroy data** | Originals are never modified. Existing files are never overwritten unless the user asks. |
+| 7 | **Transparent** | Open source, bundled components listed in an SBOM, signed releases, a readable [privacy statement](../PRIVACY.md). |
+| 8 | **Simple for everyone** | Drag files in, pick a target format, click Convert. Advanced options stay hidden until you open them. |
 
 **Non-goals for now:** cloud sync, user accounts, a web version, mobile apps.
 
@@ -119,7 +120,10 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] GUI v1: drag and drop, batch list, target picker, output folder, options, progress, cancel
 - [x] "Supported formats" section in the app (open/close, searchable), generated from the converters
 - [ ] Test with real-world files: complex Word layouts, large PDFs, Excel with several sheets
-- [ ] **Optional Microsoft Word engine:** if Word is installed, use it for Word → PDF, which gives exact layout fidelity
+- [x] **Microsoft Word engine:** if Word is installed, it does Word → PDF (exact layout); falls back to LibreOffice. *Needs a check on a real Windows PC with Word.*
+- [x] **1:1 quality pass:** photos go into PDFs unchanged (Word/Excel/PowerPoint → PDF and image → PDF), lossless sources stay lossless, JPG at quality 95 with full colour detail, PDF pages as images at 300 DPI
+- [x] **Quality levels** (Maximum / High / Smaller files) with minimums that can't be undercut
+- [x] Locked dependency versions with hashes
 - [ ] Remember settings between sessions (last format, output folder), stored locally only
 - [ ] Inno Setup installer (Start menu entry, file associations optional, clean uninstall)
 - [ ] App icon, About dialog with licenses

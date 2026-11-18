@@ -22,7 +22,7 @@ def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_pa
     assert "docx" not in targets  # PNG can't become Word
 
     window.output_dir = tmp_path / "out"
-    window.dpi_spin.setValue(50)
+    window.set_quality_level("compact")
     window.target_combo.setCurrentIndex(targets.index("jpg"))
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
@@ -86,3 +86,8 @@ def test_options_section_collapsible(window):
     assert window.options_section.content.isHidden()
     window.options_section.set_expanded(True)
     assert not window.options_section.content.isHidden()
+
+
+def test_word_option_hidden_without_word(window):
+    assert not window.engine.uses_word()
+    assert window.word_check.isHidden()

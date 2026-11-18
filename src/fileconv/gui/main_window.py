@@ -20,15 +20,14 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
-    QSpinBox,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import __version__, formats
-from ..converters import ConversionCancelled, ConversionError
+from .. import __version__, formats, quality
+from ..converters import ConversionCancelled, ConversionError, all_converters
 from ..engine import Engine
 from .formats_panel import FormatsPanel
 from .widgets import CollapsibleSection
@@ -171,16 +170,27 @@ class MainWindow(QMainWindow):
         options = QWidget()
         opt_form = QFormLayout(options)
         opt_form.setContentsMargins(16, 0, 0, 0)
-        self.quality_spin = QSpinBox()
-        self.quality_spin.setRange(1, 100)
-        self.quality_spin.setValue(90)
-        self.dpi_spin = QSpinBox()
-        self.dpi_spin.setRange(50, 600)
-        self.dpi_spin.setValue(150)
         self.metadata_check = QCheckBox("Keep photo metadata (camera, date, GPS location)")
-        opt_form.addRow("Image quality (JPEG/WebP):", self.quality_spin)
-        opt_form.addRow("Resolution for PDF ↔ images (DPI):", self.dpi_spin)
+        self.level_combo = QComboBox()
+        for level in quality.LEVELS:
+            self.level_combo.addItem(level.label, level.id)
+        self.level_hint = QLabel()
+        self.level_hint.setWordWrap(True)
+        self.level_hint.setStyleSheet("color: palette(placeholder-text);")
+        self.level_combo.currentIndexChanged.connect(self._update_level_hint)
+        self._update_level_hint()
+        opt_form.addRow("Quality:", self.level_combo)
+        opt_form.addRow("", self.level_hint)
         opt_form.addRow(self.metadata_check)
+        self.word_check = QCheckBox("Use Microsoft Word for Word → PDF (exact layout and fonts)")
+        self.word_check.setToolTip(
+            "Word converts the file on this computer; nothing is uploaded.\n"
+            "Macros stay off. If Word fails, LibreOffice is used instead."
+        )
+        self.word_check.setChecked(self.engine.uses_word())
+        self.word_check.setVisible(self.engine.uses_word())  # only when Word is installed
+        self.word_check.toggled.connect(self._set_use_word)
+        opt_form.addRow(self.word_check)
         self.options_section = CollapsibleSection("Options", options)
         layout.addWidget(self.options_section)
 
@@ -298,10 +308,12 @@ class MainWindow(QMainWindow):
             common.sort(key=lambda f: (f.category, f.id))
         for fmt in common:
             self.target_combo.addItem(f"{fmt.name} (.{fmt.extension})", fmt.id)
-        if previous is not None:
-            index = self.target_combo.findData(previous)
+        # Keep the user's choice; otherwise start with PDF, the most common target.
+        for wanted in (previous, "pdf"):
+            index = self.target_combo.findData(wanted) if wanted else -1
             if index >= 0:
                 self.target_combo.setCurrentIndex(index)
+                break
         self.target_combo.blockSignals(False)
 
         if sources and not common:
@@ -321,6 +333,21 @@ class MainWindow(QMainWindow):
             self.output_reset_btn,
         ):
             w.setEnabled(not busy)
+
+    def _update_level_hint(self) -> None:
+        level = quality.BY_ID[self.level_combo.currentData()]
+        self.level_hint.setText(
+            f"{level.description} Photos: quality {level.image_quality} · "
+            f"PDF pages as images: {level.dpi} DPI. Word/Excel/PowerPoint → PDF and "
+            "image → PDF always keep full quality."
+        )
+
+    def set_quality_level(self, level_id: str) -> None:
+        self.level_combo.setCurrentIndex(self.level_combo.findData(level_id))
+
+    def _set_use_word(self, use_word: bool) -> None:
+        self.engine = Engine(all_converters(use_word=use_word))
+        self._update_notes()
 
     def _update_notes(self) -> None:
         target = self.target_combo.currentData()
@@ -375,8 +402,7 @@ class MainWindow(QMainWindow):
             return
 
         options = {
-            "quality": self.quality_spin.value(),
-            "dpi": self.dpi_spin.value(),
+            "level": self.level_combo.currentData(),
             "keep_metadata": self.metadata_check.isChecked(),
         }
         self._cancel = threading.Event()

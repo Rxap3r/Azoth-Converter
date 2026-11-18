@@ -31,6 +31,13 @@ LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL
 
 ## Non-negotiable rules for the code
 
+- **Quality: conversions as close to 1:1 as possible.** Prefer the highest-fidelity engine
+  (e.g. Microsoft Word for Word → PDF when installed). Never re-compress or downscale when
+  the target can hold the original data (photos in PDFs are embedded unchanged, lossless
+  sources stay lossless). Lossy settings come from `quality.py`, whose minimums
+  (`MIN_IMAGE_QUALITY`, `MIN_DPI`) must not be lowered. Add a test in `tests/test_quality.py`
+  for every quality guarantee. Where loss is unavoidable, say so in `quality_note()`.
+
 - **No network access.** No telemetry, analytics, crash reporting, online APIs or automatic update checks. Don't add dependencies that phone home. Engines run with network features disabled (see the LibreOffice hardened profile in `converters/office.py`).
 - **Never modify originals, and never overwrite existing files** unless the user asks (`overwrite=True`). Use `engine.unique_path`.
 - **Temporary files** go only into the per-job folder the engine provides (`ctx.work_dir`), which is always deleted.
