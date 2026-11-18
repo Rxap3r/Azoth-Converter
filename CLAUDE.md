@@ -83,6 +83,8 @@ src/azoth/
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),
                       make_icon.py; CI builds and tests the installer
+.github/workflows/    only two workflows: ci.yml and release.yml (shown in the Actions tab)
+.github/actions/      their shared steps: run-tests, build-windows (composite actions, not listed)
 samples/              test files (Word, PDF, Excel, PowerPoint, images, problem files);
                       recreate with `python samples/generate.py`, see samples/README.md
 ```

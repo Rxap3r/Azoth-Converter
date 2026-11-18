@@ -1,0 +1,41 @@
+name: Run tests
+description: >-
+  Installs LibreOffice and the locked Python packages, then runs lint and the full
+  test suite on the current runner (Linux or Windows). Check out the code first.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+
+    - name: Install LibreOffice (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libreoffice-writer libreoffice-calc libreoffice-impress \
+          libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+    - name: Install LibreOffice (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: choco install libreoffice-fresh --no-progress -y
+
+    - name: Install Python packages
+      # Exact versions with checked hashes (see requirements-dev.lock)
+      shell: bash
+      run: |
+        pip install --require-hashes -r requirements-dev.lock
+        pip install --no-deps -e .
+    - name: Lint
+      shell: bash
+      run: |
+        ruff check src tests
+        ruff format --check src tests
+    - name: Tests
+      shell: bash
+      env:
+        QT_QPA_PLATFORM: offscreen
+      run: pytest -v

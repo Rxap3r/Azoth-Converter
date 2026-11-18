@@ -42,21 +42,30 @@ jobs:
           echo "Releasing version $version"
 
   tests-linux:
+    name: Tests (Linux)
     needs: preflight
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
   tests-windows:
+    name: Tests (Windows)
     needs: preflight
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
   publish:
+    name: Build, test and publish
     needs: [tests-linux, tests-windows]
-    uses: ./.github/workflows/build-windows.yml
+    runs-on: windows-latest
     permissions:
-      contents: write
-    with:
-      release: true
+      contents: write  # to create the tag and the release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-windows
+        with:
+          release: "true"
+          github-token: ${{ github.token }}

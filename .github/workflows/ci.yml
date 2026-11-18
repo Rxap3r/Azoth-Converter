@@ -6,6 +6,7 @@ name: CI
 # - Started by hand (Actions -> CI -> Run workflow): the full check for any branch.
 # - Changes that only touch documentation start no run at all.
 # Releases are published by the separate "Release" workflow.
+# The steps themselves live in .github/actions/ (run-tests, build-windows).
 on:
   push:
     branches: [main, dev]
@@ -25,22 +26,26 @@ concurrency:
 
 jobs:
   tests-linux:
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: ubuntu-latest
+    name: Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
   tests-windows:
+    name: Tests (Windows)
     if: >-
       github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
       github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
   windows-app:
+    name: Windows app
     needs: [tests-linux, tests-windows]
-    uses: ./.github/workflows/build-windows.yml
-    permissions:
-      contents: write
-    with:
-      release: false
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-windows

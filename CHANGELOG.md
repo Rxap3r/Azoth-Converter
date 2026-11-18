@@ -13,6 +13,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - New **Release** workflow: started by hand on `main`, it tests everything, builds the installer
   and publishes the GitHub Release with the tag `v<version>`.
 - Pull requests into `main` are only opened when the owner asks for one.
+- The Actions tab lists only **CI** and **Release**; their shared steps are now reusable actions
+  in `.github/actions/` instead of extra workflows.
 
 ## [0.1.0] - 2026-11-18
 
