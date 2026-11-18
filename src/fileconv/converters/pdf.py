@@ -23,7 +23,9 @@ def _open(src: Path) -> pymupdf.Document:
     try:
         doc = pymupdf.open(src, filetype="pdf")
     except Exception as exc:
-        raise ConversionError(f"Could not open PDF: {exc}") from exc
+        raise ConversionError(
+            "Could not open the PDF. The file is damaged or isn't a real PDF."
+        ) from exc
     if doc.needs_pass:
         doc.close()
         raise ConversionError("This PDF is password-protected. Remove the password first.")

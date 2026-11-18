@@ -73,6 +73,12 @@ python -m fileconv
 On Linux or macOS, activate the environment with `source .venv/bin/activate` instead.
 `python -m fileconv` with no arguments opens the window; with arguments it works like `fileconv`.
 
+### Sample files
+
+`samples/` has ready-made test files: formatted Word documents, PDFs (including a
+scanned one and a password-protected one), Excel, PowerPoint, photos with GPS data,
+and deliberately broken files. See [samples/README.md](samples/README.md).
+
 ### Building the Windows app
 
 ```bash
@@ -97,6 +103,7 @@ src/fileconv/
   gui/              PySide6 app
 tests/              pytest suite (blocks network access in every test)
 packaging/          PyInstaller spec
+samples/            test files to try conversions with
 docs/               project plan
 ```
 

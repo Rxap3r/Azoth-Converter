@@ -1,0 +1,7 @@
+Plain text file
+===============
+
+File conversion should be simple, private and reliable. This paragraph exists to fill the page with realistic text so line wrapping, justification and hyphenation can be compared between the original and the converted file. 
+
+Umlaute und Sonderzeichen: äöü ÄÖÜ ß · é è ê à ç · ñ · ø å · € £ ¥ · « » „“ · ½ ° ± × ÷ · ✓ ★
+Emoji: 📄 ➜ 📕  (may not survive every conversion)

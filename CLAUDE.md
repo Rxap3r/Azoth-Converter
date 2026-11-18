@@ -48,6 +48,8 @@ src/fileconv/
   gui/                PySide6 window
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (FileConverter.exe + fileconv.exe)
+samples/              test files (Word, PDF, Excel, PowerPoint, images, problem files);
+                      recreate with `python samples/generate.py`, see samples/README.md
 ```
 
 To add a format family, write a new `Converter` subclass with `capabilities()` and `convert()`,
