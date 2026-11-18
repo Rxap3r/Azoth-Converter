@@ -102,9 +102,26 @@ jobs:
           Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
           & "$dir\azoth.exe" --version
           if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
+          # Simulate everything the app can leave behind while being used:
+          $data = "$env:APPDATA\Azoth Converter"
+          New-Item -ItemType Directory -Force "$data" | Out-Null
+          "x" | Out-File "$data\settings.ini"
+          "x" | Out-File "$data\QtProject.ini"
+          New-Item -ItemType Directory -Force "$env:TEMP\azoth-crashed-job" | Out-Null
+          "x" | Out-File "$env:TEMP\azoth-crashed-job\leftover.tmp"
+          "x" | Out-File "$dir\created-later.log"
           Start-Process "$dir\unins000.exe" -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
-          Start-Sleep -Seconds 3
-          if (Test-Path "$dir\azoth.exe") { throw "uninstall left files behind" }
+          Start-Sleep -Seconds 5
+          $left = @()
+          if (Test-Path "$dir") { $left += "program folder" }
+          if (Test-Path "$data") { $left += "settings folder" }
+          if (Test-Path "$env:TEMP\azoth-crashed-job") { $left += "temp folder" }
+          if (Test-Path "HKCU:\Software\Azoth Converter") { $left += "registry key" }
+          $entries = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
+            Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -eq "Azoth Converter" }
+          if ($entries) { $left += "Apps & features entry" }
+          if ($left.Count -gt 0) { throw "uninstall left behind: $($left -join ', ')" }
+          "Clean uninstall: nothing left behind"
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:

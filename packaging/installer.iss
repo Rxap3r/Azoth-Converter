@@ -52,8 +52,17 @@ Name: "{autoprograms}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"
 Name: "{autodesktop}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"; Tasks: desktopicon
 
 [Registry]
-; The app's saved preferences: removed again on uninstall, so nothing is left behind.
+; The app keeps no settings in the registry, but early test builds did: clean those up too.
 Root: HKCU; Subkey: "Software\Azoth Converter"; Flags: uninsdeletekey dontcreatekey
+
+[UninstallDelete]
+; Clean uninstall: nothing of the app stays on the computer.
+; The whole program folder, also files that weren't part of the installation.
+Type: filesandordirs; Name: "{app}"
+; Saved preferences and the file dialog's data (the app's only storage folder).
+Type: filesandordirs; Name: "{userappdata}\Azoth Converter"
+; Temporary job folders left behind if the app was ever force-closed mid-conversion.
+Type: filesandordirs; Name: "{%TEMP}\azoth-*"
 
 [Run]
 Filename: "{app}\AzothConverter.exe"; Description: "{cm:LaunchProgram,Azoth Converter}"; Flags: nowait postinstall skipifsilent

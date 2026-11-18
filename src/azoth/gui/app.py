@@ -9,9 +9,10 @@ def main() -> int:
     from PySide6.QtGui import QIcon
     from PySide6.QtWidgets import QApplication
 
+    from ..engine import cleanup_stale_temp_folders
     from .main_window import MainWindow
     from .resources import icon_path
-    from .settings import APPLICATION, ORGANIZATION
+    from .settings import APPLICATION, ORGANIZATION, configure_storage
 
     if sys.platform == "win32":
         # Show our icon in the taskbar instead of Python's when run from source.
@@ -19,6 +20,8 @@ def main() -> int:
 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("AzothConverter.App")
 
+    configure_storage()  # everything in one folder, removed by the uninstaller
+    cleanup_stale_temp_folders()  # leftovers from a crash or forced shutdown
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName(APPLICATION)
     app.setOrganizationName(ORGANIZATION)

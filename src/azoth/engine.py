@@ -27,6 +27,29 @@ from .converters import (
 )
 
 MAX_STEPS = 3
+TEMP_PREFIX = "azoth-"  # every job's private temp folder starts with this
+
+
+def cleanup_stale_temp_folders(max_age_hours: float = 6.0) -> int:
+    """Delete job folders left behind by a crash or a forced shutdown.
+
+    Normally each job removes its own folder. Only folders older than
+    ``max_age_hours`` are removed, so a conversion running in another window is
+    never disturbed. Returns the number of folders removed.
+    """
+    import time
+
+    root = Path(tempfile.gettempdir())
+    cutoff = time.time() - max_age_hours * 3600
+    removed = 0
+    for folder in root.glob(f"{TEMP_PREFIX}*"):
+        try:
+            if folder.is_dir() and folder.stat().st_mtime < cutoff:
+                shutil.rmtree(folder, ignore_errors=True)
+                removed += not folder.exists()
+        except OSError:
+            continue
+    return removed
 
 
 @dataclass(frozen=True)
@@ -150,7 +173,7 @@ class Engine:
         result = ConversionResult(source=source, notes=self.quality_notes(route))
         resolved_options = quality.resolve_options(options)  # level → values, enforce limits
 
-        with tempfile.TemporaryDirectory(prefix="azoth-") as tmp:
+        with tempfile.TemporaryDirectory(prefix=TEMP_PREFIX) as tmp:
             tmp_path = Path(tmp)
             current = source
             if source.suffix.lower().lstrip(".") not in src_fmt.extensions:

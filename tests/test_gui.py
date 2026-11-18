@@ -153,3 +153,23 @@ def test_about_dialog(window):
     assert "PyMuPDF / MuPDF" in names and "LibreOffice" in names
     assert "LibreOffice" in dialog.engines_label.text()
     dialog.close()
+
+
+def test_everything_is_stored_in_one_folder(window, tmp_path):
+    from PySide6.QtCore import QSettings
+
+    from azoth.gui.settings import forget_file_dialog_history, storage_dir
+
+    window.save_preferences()
+    assert (storage_dir() / "settings.ini").exists()
+
+    # Qt's file dialog remembers folders; that history goes to our folder and is erased.
+    qt = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, "QtProject")
+    qt.setValue("FileDialog/lastVisited", "file:///C:/Users/someone/Secret")
+    qt.setValue("FileDialog/history", ["file:///C:/Users/someone/Secret"])
+    qt.sync()
+    assert str(storage_dir()) in qt.fileName()
+    forget_file_dialog_history()
+    qt = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, "QtProject")
+    assert qt.value("FileDialog/lastVisited") is None
+    assert qt.value("FileDialog/history") is None

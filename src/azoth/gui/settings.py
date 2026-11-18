@@ -1,24 +1,62 @@
 """Remembers a few choices between launches.
 
-Stored only on this computer (on Windows in the registry under
-HKEY_CURRENT_USER\\Software\\Azoth Converter). Only preferences are kept: no file
-names, no history. The uninstaller removes them.
+Everything the app stores lives in ONE folder, so uninstalling can remove it
+completely: on Windows ``%APPDATA%\\Azoth Converter``. Nothing goes into the
+registry. Only preferences are kept: no file names, no history.
+
+Qt's file dialogs normally remember visited folders in a registry area shared by
+all Qt programs. ``configure_storage`` redirects that into our folder too, and
+``forget_file_dialog_history`` erases it after each dialog.
 """
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSettings
 
 ORGANIZATION = "Azoth Converter"
 APPLICATION = "Azoth Converter"
+FOLDER_NAME = "Azoth Converter"
+
+_storage_dir: Path | None = None
+
+
+def default_storage_dir() -> Path:
+    if sys.platform == "win32":
+        base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    return base / FOLDER_NAME
+
+
+def configure_storage(folder: Path | None = None) -> Path:
+    """Send all settings (ours and Qt's) to ``folder``. Call before any QSettings use."""
+    global _storage_dir
+    _storage_dir = Path(folder) if folder else default_storage_dir()
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(_storage_dir))
+    return _storage_dir
+
+
+def storage_dir() -> Path:
+    return _storage_dir or configure_storage()
 
 
 def open_settings() -> QSettings:
-    return QSettings(
-        QSettings.defaultFormat(), QSettings.Scope.UserScope, ORGANIZATION, APPLICATION
-    )
+    return QSettings(str(storage_dir() / "settings.ini"), QSettings.Format.IniFormat)
+
+
+def forget_file_dialog_history() -> None:
+    """Erase the folders Qt's file dialog remembered (privacy: no history)."""
+    storage_dir()  # make sure Qt's settings point at our folder
+    qt = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, "QtProject")
+    qt.remove("FileDialog")
+    qt.sync()
 
 
 class Preferences:

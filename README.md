@@ -30,7 +30,8 @@ PDF → Word, PDF ↔ images and the image conversions work without it.
 ## Using it
 
 **Install:** run `AzothConverter-Setup-<version>.exe`. No admin rights needed; it installs just for you
-unless you choose "all users". Uninstall it from *Settings → Apps* like any other program.
+unless you choose "all users". Uninstall it from *Settings → Apps* like any other program; the uninstall is clean
+and leaves no files, settings or registry entries behind.
 
 **The app:** start **Azoth Converter** from the Start menu, drag files into the window, choose a format,
 click **Convert**. It remembers your format, output folder and quality setting.

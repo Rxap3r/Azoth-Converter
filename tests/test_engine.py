@@ -96,3 +96,25 @@ def test_pdf_to_word_only_for_real_pdfs():
     # Excel → PDF → Word would give a poor Word file, so it isn't offered.
     assert engine.find_route("xlsx", "docx") is None
     assert engine.find_route("pptx", "txt") is None
+
+
+def test_stale_temp_folders_are_cleaned_up(private_tmp):
+    import os
+    import time
+
+    from azoth.engine import cleanup_stale_temp_folders
+
+    old = private_tmp / "azoth-crashed"
+    old.mkdir()
+    (old / "leftover.tmp").write_text("x")
+    week_ago = time.time() - 7 * 24 * 3600
+    os.utime(old, (week_ago, week_ago))
+    running = private_tmp / "azoth-running-now"  # e.g. a conversion in another window
+    running.mkdir()
+    other = private_tmp / "someone-else"  # not ours: never touched
+    other.mkdir()
+    os.utime(other, (week_ago, week_ago))
+
+    assert cleanup_stale_temp_folders() == 1
+    assert not old.exists()
+    assert running.exists() and other.exists()

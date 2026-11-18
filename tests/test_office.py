@@ -75,3 +75,8 @@ def test_photos_in_word_reach_pdf_unchanged(tmp_path):
         xref = doc[0].get_images()[0][0]
         embedded = doc.extract_image(xref)["image"]
     assert embedded == photo.read_bytes()
+
+
+def test_libreoffice_leaves_no_temp_files(sample_docx, tmp_path, private_tmp):
+    Engine().convert(sample_docx, "pdf", tmp_path / "o")
+    assert list(private_tmp.iterdir()) == []

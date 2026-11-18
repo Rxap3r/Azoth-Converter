@@ -10,6 +10,7 @@ else's server.
 - **No leftovers.** Intermediate files go to a private temporary folder that is deleted when the conversion finishes, fails or is cancelled.
 - **Photo metadata is removed by default.** Camera details, date and GPS location are stripped from converted images unless you choose "Keep photo metadata".
 - **Your originals are safe.** Source files are never changed, and existing files are never overwritten unless you ask for it.
+- **Clean uninstall.** The app stores its few preferences in one folder (`%APPDATA%\Azoth Converter`), never in the registry. The file dialog's list of recently visited folders is erased right after each use. Uninstalling removes the program, that folder, any leftover temporary files and the Start menu entries: nothing of the app stays behind.
 - **Documents can't run code.** Office documents are opened with macros disabled and external links blocked.
 
 Because Azoth Converter is open source (GPL-3.0), anyone can check these promises in the code.

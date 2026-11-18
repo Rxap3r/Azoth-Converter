@@ -42,6 +42,10 @@ LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL
 - **Never modify originals, and never overwrite existing files** unless the user asks (`overwrite=True`). Use `engine.unique_path`.
 - **Temporary files** go only into the per-job folder the engine provides (`ctx.work_dir`), which is always deleted.
 - **Photo metadata** (EXIF/GPS) is stripped by default.
+- **Clean uninstall.** The app may store data only in `gui/settings.storage_dir()`
+  (`%APPDATA%\Azoth Converter`), never in the registry; job temp folders start with
+  `engine.TEMP_PREFIX`. Anything new the app writes must be removed by `[UninstallDelete]` in
+  `packaging/installer.iss` and checked by the CI step "Test installer".
 - Untrusted input: catch engine errors and raise `ConversionError` with a message a non-technical user understands.
 
 ## Layout

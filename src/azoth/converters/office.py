@@ -210,11 +210,17 @@ class OfficeConverter(Converter):
         ]
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         ctx.progress(0.1, "Starting LibreOffice")
+        # LibreOffice's own temporary files go into the job folder (deleted afterwards),
+        # not into the user's general temp folder.
+        lo_tmp = ctx.work_dir / "lo-tmp"
+        lo_tmp.mkdir(exist_ok=True)
+        env = {**os.environ, "TMP": str(lo_tmp), "TEMP": str(lo_tmp), "TMPDIR": str(lo_tmp)}
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             stdin=subprocess.DEVNULL,
+            env=env,
             creationflags=creationflags,
         )
         timeout = float(ctx.option("timeout", DEFAULT_TIMEOUT))

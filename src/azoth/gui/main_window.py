@@ -33,7 +33,7 @@ from ..engine import Engine
 from .about import AboutDialog
 from .formats_panel import FormatsPanel
 from .resources import icon_path
-from .settings import Preferences
+from .settings import Preferences, forget_file_dialog_history
 from .widgets import CollapsibleSection
 
 COL_FILE, COL_TYPE, COL_STATUS = range(3)
@@ -271,6 +271,7 @@ class MainWindow(QMainWindow):
 
     def _choose_files(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(self, "Choose files to convert")
+        forget_file_dialog_history()
         self.add_files(paths)
 
     def _remove_selected(self) -> None:
@@ -386,6 +387,7 @@ class MainWindow(QMainWindow):
 
     def _choose_output(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Save converted files to")
+        forget_file_dialog_history()
         if folder:
             self.output_dir = Path(folder)
             self.output_label.setText(folder)

@@ -39,9 +39,10 @@ def isolated_settings(tmp_path_factory):
     except ImportError:  # pragma: no cover
         yield
         return
-    folder = tmp_path_factory.mktemp("settings")
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(folder))
+    from azoth.gui.settings import configure_storage
+
+    assert QSettings is not None
+    configure_storage(tmp_path_factory.mktemp("settings"))
     yield
 
 
