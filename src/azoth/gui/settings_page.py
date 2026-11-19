@@ -19,6 +19,16 @@ from .. import __version__
 from . import theme
 from .widgets import label
 
+METADATA_DETAILS = (
+    "When this is off (recommended), converted photos no longer contain:\n"
+    "  •  where the photo was taken (GPS location)\n"
+    "  •  date and time it was taken\n"
+    "  •  camera or phone make, model, serial number and settings\n"
+    "  •  hidden preview pictures (they can show parts you cropped out)\n"
+    "  •  author, captions, keywords, comments and editing history (XMP, IPTC)\n"
+    "Kept: the picture itself, its colours (colour profile) and the right way up.\n"
+    "When it's on, the camera details, date and GPS location are copied over."
+)
 RELEASES_URL = "https://github.com/Rxap3r/Azoth-Converter/releases"
 
 
@@ -59,6 +69,7 @@ class SettingsPage(QWidget):
         self.metadata_check.setToolTip(
             "Off by default: converted photos don't reveal where they were taken."
         )
+        self.metadata_details = label(METADATA_DETAILS, "small", wrap=True)
         self.word_check = QCheckBox("Use Microsoft Word for Word → PDF (exact layout and fonts)")
         self.word_check.setToolTip(
             "Word converts the file on this computer; nothing is uploaded.\n"
@@ -67,7 +78,12 @@ class SettingsPage(QWidget):
         self.word_check.setChecked(use_word)
         self.word_check.setVisible(word_installed)  # only when Word is installed
         self.word_check.toggled.connect(self.use_word_changed)
-        conversion = [label("Converting", "h2"), self.metadata_check, self.word_check]
+        conversion = [
+            label("Converting", "h2"),
+            self.metadata_check,
+            self.metadata_details,
+            self.word_check,
+        ]
 
         self.about_btn = QPushButton("About Azoth Converter…")
         self.about_btn.clicked.connect(self.about_requested)

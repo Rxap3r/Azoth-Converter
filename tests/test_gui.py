@@ -290,3 +290,10 @@ def test_check_for_updates_only_opens_the_browser(window, monkeypatch):
     window.settings_page.updates_btn.click()
     assert [u.toString() for u in opened] == [settings_page.RELEASES_URL]
     assert settings_page.RELEASES_URL.startswith("https://github.com/Rxap3r/Azoth-Converter/")
+
+
+def test_metadata_setting_explains_what_is_removed(window):
+    text = window.settings_page.metadata_details.text()
+    assert not window.settings_page.metadata_check.isChecked()  # removed by default
+    for word in ("GPS location", "date and time", "serial number", "preview", "Kept:"):
+        assert word in text
