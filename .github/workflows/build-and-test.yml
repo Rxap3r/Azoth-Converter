@@ -8,6 +8,14 @@ name: Build and test
 #   ALWAYS get the full check, so the checks can be required before merging.
 # Releases are published by the separate "Release" workflow.
 # The steps themselves live in .github/actions/ (run-tests, build-windows).
+# Runs that build the Windows download (installer + portable ZIP) get a title
+# starting with "📦 With download", so they are easy to find (and to clean up).
+run-name: >-
+  ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
+  github.event_name == 'workflow_dispatch')
+  && format('📦 With download · {0}', github.event.pull_request.title ||
+  github.event.head_commit.message || format('test build of {0}', github.ref_name))
+  || github.event.head_commit.message }}
 on:
   push:
     branches: [main, dev]
