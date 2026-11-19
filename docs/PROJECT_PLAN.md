@@ -160,7 +160,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 
 ### Technical improvements (from the code review, Nov 2026; schedule as needed)
 - [ ] **Faster large batches:** keep one LibreOffice (and one Word) instance running for a whole batch instead of starting it for every file (~1 s overhead per file today); convert several files in parallel where the engine allows it (images, PDF → images)
-- [ ] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh
+- [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
 - [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
 - [ ] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)

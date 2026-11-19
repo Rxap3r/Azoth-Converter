@@ -28,9 +28,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;
   - PDF tools and OCR (release 0.2; "remove photo metadata" is done);
-  - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` → design mockups →
-    PDF tools in the new design → OCR;
-  - technical improvements: faster batches, split `gui/main_window.py`, smaller download;
+  - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
+    mockups → PDF tools in the new design → OCR;
+  - technical improvements: faster batches, smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
@@ -134,7 +134,11 @@ src/azoth/
   converters/base.py  Converter plugin interface
   converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
   cli.py              `azoth` command line
-  gui/                PySide6 window, About dialog, saved preferences (QSettings)
+  metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
+  gui/                PySide6 app: main_window.py puts the parts together; file_list.py,
+                      options_panel.py, output_folder.py, worker.py (background thread),
+                      targets.py (which targets are offered, no Qt), About dialog,
+                      saved preferences (settings.py, QSettings)
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),

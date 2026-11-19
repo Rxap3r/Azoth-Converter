@@ -30,6 +30,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   a "motion photo") and multi-picture indexes are no longer put into the PDF.
 
 ### Development
+- The main window's code is split into parts (file list, options, output folder, target
+  choice, background worker), to prepare the design refresh. The window looks and works the
+  same; new tests cover each part on its own.
 - Pull requests into `main` always get the full check, also for documentation-only changes,
   so the checks can be required before merging.
 - Faster automatic tests: every commit to `dev` runs only the Linux tests; pull requests into `main` also run

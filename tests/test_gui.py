@@ -14,7 +14,7 @@ def window(qtbot):
 
 def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_path):
     window.add_files([sample_png, sample_pdf])
-    assert window.tree.topLevelItemCount() == 2
+    assert window.file_list.count() == 2
 
     # Only targets that work for both a PNG and a PDF are offered.
     targets = [window.target_combo.itemData(i) for i in range(window.target_combo.count())]
@@ -34,8 +34,8 @@ def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_pa
         "letter_page003.jpg",
         "logo.jpg",
     ]
-    assert window.tree.topLevelItem(0).text(2).startswith("✓")
-    assert window.tree.topLevelItem(1).text(2) == "✓ 3 files"
+    assert window.file_list.status(0).startswith("✓")
+    assert window.file_list.status(1) == "✓ 3 files"
 
 
 def test_files_already_in_target_format_are_skipped(
@@ -47,13 +47,13 @@ def test_files_already_in_target_format_are_skipped(
     window.target_combo.setCurrentIndex(targets.index("pdf"))
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
-    assert window.tree.topLevelItem(1).text(2) == "Skipped: already this format"
+    assert window.file_list.status(1) == "Skipped: already this format"
     assert (tmp_path / "out" / "logo.pdf").exists()
 
 
 def test_duplicates_ignored(window, sample_png):
     window.add_files([sample_png, sample_png])
-    assert window.tree.topLevelItemCount() == 1
+    assert window.file_list.count() == 1
 
 
 def test_supported_formats_section(window):
@@ -90,7 +90,7 @@ def test_options_section_collapsible(window):
 
 def test_word_option_hidden_without_word(window):
     assert not window.engine.uses_word()
-    assert window.word_check.isHidden()
+    assert window.options.word_check.isHidden()
 
 
 def test_preferences_are_remembered(qtbot, tmp_path, sample_png):
@@ -99,15 +99,15 @@ def test_preferences_are_remembered(qtbot, tmp_path, sample_png):
     first.add_files([sample_png])
     first.target_combo.setCurrentIndex(first.target_combo.findData("webp"))
     first.set_quality_level("high")
-    first.metadata_check.setChecked(True)
+    first.options.metadata_check.setChecked(True)
     first.output_dir = tmp_path / "out"
     first.start_conversion()  # remembers WebP as the choice for images
     qtbot.waitUntil(lambda: first._thread is None, timeout=30000)
 
     second = MainWindow()
     qtbot.addWidget(second)
-    assert second.level_combo.currentData() == "high"
-    assert second.metadata_check.isChecked()
+    assert second.options.level_combo.currentData() == "high"
+    assert second.options.metadata_check.isChecked()
     assert second.output_dir == tmp_path / "out"
     second.add_files([sample_png])
     assert second.target_combo.currentData() == "webp"
@@ -193,7 +193,7 @@ def _targets(window):
 
 
 def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
-    from azoth.gui.main_window import CLEAN_TARGET
+    from azoth.gui.targets import CLEAN_TARGET
 
     photo = _photo_with_location(tmp_path / "holiday.jpg")
     window.add_files([photo, sample_png])
@@ -202,20 +202,20 @@ def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
     assert targets[0] != CLEAN_TARGET  # never the default
 
     window.target_combo.setCurrentIndex(targets.index(CLEAN_TARGET))
-    assert not window.metadata_check.isEnabled()  # "keep metadata" makes no sense here
+    assert not window.options.metadata_check.isEnabled()  # "keep metadata" makes no sense here
     assert "stays exactly the same" in window.notes_label.text()
 
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
     assert (tmp_path / "holiday (clean).jpg").exists()
     assert (tmp_path / "logo (clean).png").exists()
-    assert window.tree.topLevelItem(0).text(2) == "✓ holiday (clean).jpg"
-    assert "Location (GPS)" in window.tree.topLevelItem(0).toolTip(2)
+    assert window.file_list.status(0) == "✓ holiday (clean).jpg"
+    assert "Location (GPS)" in window.file_list.status_tooltip(0)
     assert b"SecretCamera" not in (tmp_path / "holiday (clean).jpg").read_bytes()
 
 
 def test_remove_metadata_not_offered_for_documents(window, sample_png, sample_pdf):
-    from azoth.gui.main_window import CLEAN_TARGET
+    from azoth.gui.targets import CLEAN_TARGET
 
     window.add_files([sample_png, sample_pdf])
     assert CLEAN_TARGET not in _targets(window)
@@ -224,7 +224,7 @@ def test_remove_metadata_not_offered_for_documents(window, sample_png, sample_pd
 def test_show_metadata_text(window, sample_pdf, tmp_path):
     photo = _photo_with_location(tmp_path / "holiday.jpg")
     window.add_files([photo, sample_pdf])
-    text = window.metadata_text(0)
+    text = window.file_list.metadata_text(0)
     assert "Location (GPS): 47.36944° N, 8.53333° E" in text
     assert "Camera: SecretCamera" in text
-    assert "photos and images" in window.metadata_text(1)
+    assert "photos and images" in window.file_list.metadata_text(1)

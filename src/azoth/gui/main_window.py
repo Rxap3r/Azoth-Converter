@@ -1,111 +1,47 @@
-"""Main window: drop files, choose a format, convert."""
+"""Main window: drop files, choose a format, convert.
+
+The window puts the parts together and runs a conversion. The parts live in their own
+modules: ``file_list`` (the files and their status), ``options_panel``, ``output_folder``,
+``targets`` (which formats are offered, without Qt) and ``worker`` (the background thread).
+"""
 
 from __future__ import annotations
 
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QThread, QUrl, Signal, Slot
+from PySide6.QtCore import Qt, QThread, QUrl, Slot
 from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QCheckBox,
     QComboBox,
-    QFileDialog,
     QFormLayout,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
-    QTreeWidget,
-    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import __version__, formats, metadata, quality, ranking
-from ..converters import ConversionCancelled, ConversionError, all_converters
+from .. import __version__
+from ..converters import all_converters
 from ..converters.msword import word_installed
 from ..engine import Engine
+from . import targets
 from .about import AboutDialog
+from .file_list import FileList
 from .formats_panel import FormatsPanel
+from .options_panel import OptionsPanel
+from .output_folder import OutputFolderRow
 from .resources import icon_path
-from .settings import Preferences, forget_file_dialog_history
+from .settings import Preferences
+from .targets import CLEAN_LABEL, CLEAN_TARGET
 from .widgets import CollapsibleSection
+from .worker import ConversionWorker
 
-COL_FILE, COL_TYPE, COL_STATUS = range(3)
 TAGLINE = "– File conversion"
-SAME_FOLDER = "Same folder as the original"
-CLEAN_TARGET = "clean"  # not a format: same format, metadata removed (see metadata.py)
-CLEAN_LABEL = "Same format, remove metadata (location, camera, date)"
-CLEAN_NOTE = (
-    "Saves a copy without the hidden information: GPS location, camera, date, author, "
-    "comments and preview pictures. The picture itself stays exactly the same. "
-    "Next to the original, the copy is called “name (clean)”."
-)
-
-
-class ConversionWorker(QObject):
-    """Converts the files one after another in a background thread."""
-
-    file_started = Signal(int)
-    file_progress = Signal(int, float, str)
-    file_done = Signal(int, list, list)
-    file_failed = Signal(int, str)
-    finished = Signal(bool)
-
-    def __init__(self, engine, jobs, target, output_dir, options, cancel_event):
-        super().__init__()
-        self.engine = engine
-        self.jobs = jobs  # list of (row, path)
-        self.target = target
-        self.output_dir = output_dir
-        self.options = options
-        self.cancel_event = cancel_event
-
-    @Slot()
-    def run(self) -> None:
-        for row, path in self.jobs:
-            if self.cancel_event.is_set():
-                break
-            self.file_started.emit(row)
-            if self.target == CLEAN_TARGET:
-                self._clean(row, path)
-                continue
-            try:
-                result = self.engine.convert(
-                    path,
-                    self.target,
-                    self.output_dir,
-                    options=self.options,
-                    progress=lambda f, m, r=row: self.file_progress.emit(r, f, m),
-                    cancel_event=self.cancel_event,
-                )
-            except ConversionCancelled:
-                self.file_failed.emit(row, "Cancelled")
-                break
-            except ConversionError as exc:
-                self.file_failed.emit(row, str(exc))
-            except Exception as exc:  # never let one bad file kill the app
-                self.file_failed.emit(row, f"Unexpected error: {exc}")
-            else:
-                self.file_done.emit(row, [str(p) for p in result.outputs], result.notes)
-        self.finished.emit(self.cancel_event.is_set())
-
-    def _clean(self, row: int, path: Path) -> None:
-        try:
-            result = metadata.clean_file(path, self.output_dir)
-        except ConversionError as exc:
-            self.file_failed.emit(row, str(exc))
-        except Exception as exc:  # never let one bad file kill the app
-            self.file_failed.emit(row, f"Unexpected error: {exc}")
-        else:
-            removed = ", ".join(f.label for f in result.removed) or "no metadata found"
-            self.file_done.emit(row, [str(result.output)], [f"Removed: {removed}"])
 
 
 class MainWindow(QMainWindow):
@@ -113,15 +49,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.prefs = prefs or Preferences()
         self.engine = engine or Engine(all_converters(use_word=self.prefs.use_word))
-        self._word_installed = word_installed()
-        self.files: list[Path] = []
-        self.file_formats: list[formats.Format | None] = []
-        self.output_dir: Path | None = None
         self.last_output: Path | None = None
         self._thread: QThread | None = None
         self._worker: ConversionWorker | None = None
         self._cancel = threading.Event()
         self._done_count = 0
+        self._job_count = 0
 
         self.setWindowTitle(f"Azoth Converter {__version__}")
         self.resize(820, 600)
@@ -135,7 +68,53 @@ class MainWindow(QMainWindow):
     def _build_ui(self) -> None:
         root = QWidget()
         layout = QVBoxLayout(root)
+        layout.addLayout(self._header())
 
+        for conv in self.engine.unavailable():
+            banner = QLabel(f"⚠ {conv.unavailable_reason()}")
+            banner.setWordWrap(True)
+            banner.setStyleSheet(
+                "background:#fff4ce; color:#5c4400; padding:8px; border-radius:4px;"
+            )
+            layout.addWidget(banner)
+
+        self.file_list = FileList()
+        self.file_list.changed.connect(self._refresh)
+        layout.addWidget(self.file_list, 1)
+
+        form = QFormLayout()
+        self.target_combo = QComboBox()
+        self.target_combo.currentIndexChanged.connect(self._update_notes)
+        form.addRow("Convert to:", self.target_combo)
+        self.output_row = OutputFolderRow()
+        form.addRow("Save to:", self.output_row)
+        layout.addLayout(form)
+
+        self.options = OptionsPanel(
+            word_installed=word_installed(), use_word=self.engine.uses_word()
+        )
+        self.options.use_word_changed.connect(self._set_use_word)
+        self.options_section = CollapsibleSection("Options", self.options)
+        layout.addWidget(self.options_section)
+
+        libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
+        self.formats_panel = FormatsPanel(libreoffice_installed)
+        self.formats_section = CollapsibleSection("Supported formats", self.formats_panel)
+        layout.addWidget(self.formats_section)
+
+        self.notes_label = QLabel()
+        self.notes_label.setWordWrap(True)
+        self.notes_label.setStyleSheet("color: palette(placeholder-text);")
+        layout.addWidget(self.notes_label)
+
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 1000)
+        self.progress.setTextVisible(False)
+        layout.addWidget(self.progress)
+        layout.addLayout(self._actions())
+        self.setCentralWidget(root)
+
+    def _header(self) -> QHBoxLayout:
         header = QHBoxLayout()
         logo = QLabel()
         logo.setPixmap(QIcon(str(icon_path())).pixmap(40, 40))
@@ -155,107 +134,9 @@ class MainWindow(QMainWindow):
         self.about_btn = QPushButton("About")
         self.about_btn.clicked.connect(self.show_about)
         header.addWidget(self.about_btn, 0, Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(header)
+        return header
 
-        for conv in self.engine.unavailable():
-            banner = QLabel(f"⚠ {conv.unavailable_reason()}")
-            banner.setWordWrap(True)
-            banner.setStyleSheet(
-                "background:#fff4ce; color:#5c4400; padding:8px; border-radius:4px;"
-            )
-            layout.addWidget(banner)
-
-        self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["File", "Type", "Status"])
-        self.tree.setRootIsDecorated(False)
-        self.tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        header = self.tree.header()
-        header.setSectionResizeMode(COL_FILE, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(COL_TYPE, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(COL_STATUS, QHeaderView.ResizeMode.Stretch)
-        self.tree.itemDoubleClicked.connect(self._open_item_output)
-        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(self._file_menu)
-        self.drop_hint = QLabel("Drag files here, or click “Add files…”")
-        self.drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_hint.setStyleSheet(
-            "border: 2px dashed palette(mid); border-radius: 8px; padding: 40px; font-size: 14px;"
-        )
-        layout.addWidget(self.drop_hint, 1)  # takes the free space while the list is empty
-        layout.addWidget(self.tree, 1)
-
-        buttons = QHBoxLayout()
-        self.add_btn = QPushButton("Add files…")
-        self.add_btn.clicked.connect(self._choose_files)
-        self.remove_btn = QPushButton("Remove selected")
-        self.remove_btn.clicked.connect(self._remove_selected)
-        self.clear_btn = QPushButton("Clear list")
-        self.clear_btn.clicked.connect(self._clear)
-        buttons.addWidget(self.add_btn)
-        buttons.addWidget(self.remove_btn)
-        buttons.addWidget(self.clear_btn)
-        buttons.addStretch()
-        layout.addLayout(buttons)
-
-        form = QFormLayout()
-        self.target_combo = QComboBox()
-        self.target_combo.currentIndexChanged.connect(self._update_notes)
-        form.addRow("Convert to:", self.target_combo)
-
-        out_row = QHBoxLayout()
-        self.output_label = QLabel(SAME_FOLDER)
-        self.output_btn = QPushButton("Choose folder…")
-        self.output_btn.clicked.connect(self._choose_output)
-        self.output_reset_btn = QPushButton("Reset")
-        self.output_reset_btn.clicked.connect(self._reset_output)
-        out_row.addWidget(self.output_label, 1)
-        out_row.addWidget(self.output_btn)
-        out_row.addWidget(self.output_reset_btn)
-        form.addRow("Save to:", out_row)
-        layout.addLayout(form)
-
-        options = QWidget()
-        opt_form = QFormLayout(options)
-        opt_form.setContentsMargins(16, 0, 0, 0)
-        self.metadata_check = QCheckBox("Keep photo metadata (camera, date, GPS location)")
-        self.level_combo = QComboBox()
-        for level in quality.LEVELS:
-            self.level_combo.addItem(level.label, level.id)
-        self.level_hint = QLabel()
-        self.level_hint.setWordWrap(True)
-        self.level_hint.setStyleSheet("color: palette(placeholder-text);")
-        self.level_combo.currentIndexChanged.connect(self._update_level_hint)
-        self._update_level_hint()
-        opt_form.addRow("Quality:", self.level_combo)
-        opt_form.addRow("", self.level_hint)
-        opt_form.addRow(self.metadata_check)
-        self.word_check = QCheckBox("Use Microsoft Word for Word → PDF (exact layout and fonts)")
-        self.word_check.setToolTip(
-            "Word converts the file on this computer; nothing is uploaded.\n"
-            "Macros stay off. If Word fails, LibreOffice is used instead."
-        )
-        self.word_check.setChecked(self.engine.uses_word())
-        self.word_check.setVisible(self._word_installed)  # only when Word is installed
-        self.word_check.toggled.connect(self._set_use_word)
-        opt_form.addRow(self.word_check)
-        self.options_section = CollapsibleSection("Options", options)
-        layout.addWidget(self.options_section)
-
-        libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
-        self.formats_panel = FormatsPanel(libreoffice_installed)
-        self.formats_section = CollapsibleSection("Supported formats", self.formats_panel)
-        layout.addWidget(self.formats_section)
-
-        self.notes_label = QLabel()
-        self.notes_label.setWordWrap(True)
-        self.notes_label.setStyleSheet("color: palette(placeholder-text);")
-        layout.addWidget(self.notes_label)
-
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 1000)
-        self.progress.setTextVisible(False)
-        layout.addWidget(self.progress)
-
+    def _actions(self) -> QHBoxLayout:
         actions = QHBoxLayout()
         self.status_label = QLabel()
         self.open_btn = QPushButton("Open output folder")
@@ -272,82 +153,20 @@ class MainWindow(QMainWindow):
         actions.addWidget(self.open_btn)
         actions.addWidget(self.cancel_btn)
         actions.addWidget(self.convert_btn)
-        layout.addLayout(actions)
+        return actions
 
-        self.setCentralWidget(root)
-
-    # --- file list ------------------------------------------------------------
+    # --- files ------------------------------------------------------------------
 
     def add_files(self, paths) -> None:
-        known = {p.resolve() for p in self.files}
-        for raw in paths:
-            path = Path(raw)
-            if path.is_dir():
-                self.add_files(sorted(p for p in path.iterdir() if p.is_file()))
-                continue
-            if not path.is_file() or path.resolve() in known:
-                continue
-            fmt = formats.detect(path)
-            item = QTreeWidgetItem([path.name, fmt.id.upper() if fmt else "?", ""])
-            item.setToolTip(COL_FILE, str(path))
-            if fmt is None:
-                item.setText(COL_STATUS, "Unknown file type, will be skipped")
-            self.tree.addTopLevelItem(item)
-            self.files.append(path)
-            self.file_formats.append(fmt)
-            known.add(path.resolve())
-        self._refresh()
+        self.file_list.add_files(paths)
 
-    def _choose_files(self) -> None:
-        paths, _ = QFileDialog.getOpenFileNames(self, "Choose files to convert")
-        forget_file_dialog_history()
-        self.add_files(paths)
+    @property
+    def output_dir(self) -> Path | None:
+        return self.output_row.folder
 
-    def _remove_selected(self) -> None:
-        self._remove_rows([self.tree.indexOfTopLevelItem(i) for i in self.tree.selectedItems()])
-
-    def _remove_rows(self, rows: list[int]) -> None:
-        if self._thread is not None:
-            return
-        for row in sorted(rows, reverse=True):
-            self.tree.takeTopLevelItem(row)
-            del self.files[row]
-            del self.file_formats[row]
-        self._refresh()
-
-    def _clear(self) -> None:
-        self.tree.clear()
-        self.files.clear()
-        self.file_formats.clear()
-        self._refresh()
-
-    def _file_menu(self, pos) -> None:
-        item = self.tree.itemAt(pos)
-        if item is None:
-            return
-        row = self.tree.indexOfTopLevelItem(item)
-        menu = QMenu(self)
-        show = menu.addAction("Show metadata…")
-        fmt = self.file_formats[row]
-        show.setEnabled(fmt is not None and fmt.id in metadata.CLEANABLE)
-        show.triggered.connect(lambda: self.show_metadata(row))
-        remove = menu.addAction("Remove from list")
-        remove.triggered.connect(lambda: self._remove_rows([row]))
-        menu.exec(self.tree.viewport().mapToGlobal(pos))
-
-    def metadata_text(self, row: int) -> str:
-        path = self.files[row]
-        try:
-            found = metadata.inspect(path)
-        except ConversionError as exc:
-            return str(exc)
-        if not found:
-            return f"{path.name} contains no metadata."
-        lines = "\n".join(f"• {f}" for f in found)
-        return f"{path.name} contains:\n\n{lines}"
-
-    def show_metadata(self, row: int) -> None:
-        QMessageBox.information(self, "Photo metadata", self.metadata_text(row))
+    @output_dir.setter
+    def output_dir(self, folder: Path | None) -> None:
+        self.output_row.folder = folder
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls() and self._thread is None:
@@ -358,36 +177,15 @@ class MainWindow(QMainWindow):
 
     # --- target formats -------------------------------------------------------
 
-    def _source_formats(self) -> list[str]:
-        ids: list[str] = []
-        for fmt in self.file_formats:
-            if fmt is not None and fmt.id not in ids:
-                ids.append(fmt.id)
-        return ids
-
     def _refresh(self) -> None:
-        has_files = bool(self.files)
-        self.drop_hint.setVisible(not has_files)
-        self.tree.setVisible(has_files)
-
+        file_formats = self.file_list.formats
+        choices = targets.choices(self.engine, file_formats)
         previous = self.target_combo.currentData()
         self.target_combo.blockSignals(True)
         self.target_combo.clear()
-        sources = self._source_formats()
-        # A file that already has the target format is simply skipped, so a target
-        # is offered if every file either converts to it or already is it, and at
-        # least one file actually needs converting.
-        common: list[formats.Format] = []
-        if sources:
-            allowed = [{t.id for t in self.engine.targets_for(s)} | {s} for s in sources]
-            for fmt in formats.FORMATS.values():
-                if all(fmt.id in a for a in allowed) and sources != [fmt.id]:
-                    common.append(fmt)
-            categories = [f.category for f in self.file_formats if f is not None]
-            common = ranking.rank(common, categories)  # most useful first
-        for fmt in common:
+        for fmt in choices.formats:
             self.target_combo.addItem(f"{fmt.name} (.{fmt.extension})", fmt.id)
-        if sources and all(s in metadata.CLEANABLE for s in sources):
+        if choices.can_clean:
             if self.target_combo.count():
                 self.target_combo.insertSeparator(self.target_combo.count())
             self.target_combo.addItem(CLEAN_LABEL, CLEAN_TARGET)
@@ -401,75 +199,28 @@ class MainWindow(QMainWindow):
                 break
         self.target_combo.blockSignals(False)
 
-        if sources and self.target_combo.count() == 0:
-            self.notes_label.setText(
-                "These files have no target format in common. Convert them in separate groups."
-            )
+        if targets.source_formats(file_formats) and not choices:
+            self.notes_label.setText(targets.NO_COMMON_TARGET)
         else:
             self._update_notes()
         busy = self._thread is not None
-        self.convert_btn.setEnabled(has_files and self.target_combo.count() > 0 and not busy)
-        for w in (
-            self.add_btn,
-            self.remove_btn,
-            self.clear_btn,
-            self.target_combo,
-            self.output_btn,
-            self.output_reset_btn,
-        ):
-            w.setEnabled(not busy)
+        self.convert_btn.setEnabled(bool(choices) and not busy)
+        self.file_list.set_busy(busy)
+        self.output_row.set_busy(busy)
+        self.target_combo.setEnabled(not busy)
 
-    def _update_level_hint(self) -> None:
-        level = quality.BY_ID[self.level_combo.currentData()]
-        self.level_hint.setText(
-            f"{level.description} Photos: quality {level.image_quality} · "
-            f"PDF pages as images: {level.dpi} DPI. Word/Excel/PowerPoint → PDF and "
-            "image → PDF always keep full quality."
-        )
-
-    def set_quality_level(self, level_id: str) -> None:
-        self.level_combo.setCurrentIndex(self.level_combo.findData(level_id))
+    def _update_notes(self) -> None:
+        target = self.target_combo.currentData()
+        self.options.metadata_check.setEnabled(target != CLEAN_TARGET)
+        notes = targets.notes(self.engine, self.file_list.formats, target)
+        self.notes_label.setText("\n".join(f"ℹ {n}" for n in notes))
 
     def _set_use_word(self, use_word: bool) -> None:
         self.engine = Engine(all_converters(use_word=use_word))
         self._update_notes()
 
-    def _update_notes(self) -> None:
-        target = self.target_combo.currentData()
-        self.metadata_check.setEnabled(target != CLEAN_TARGET)
-        notes: list[str] = []
-        if target == CLEAN_TARGET:
-            notes.append(CLEAN_NOTE)
-        elif target:
-            for src in self._source_formats():
-                route = self.engine.find_route(src, target)
-                if route:
-                    for note in self.engine.quality_notes(route):
-                        if note not in notes:
-                            notes.append(note)
-        self.notes_label.setText("\n".join(f"ℹ {n}" for n in notes))
-
-    # --- output folder --------------------------------------------------------
-
-    def _choose_output(self) -> None:
-        folder = QFileDialog.getExistingDirectory(self, "Save converted files to")
-        forget_file_dialog_history()
-        if folder:
-            self.output_dir = Path(folder)
-            self.output_label.setText(folder)
-
-    def _reset_output(self) -> None:
-        self.output_dir = None
-        self.output_label.setText(SAME_FOLDER)
-
-    def _open_output_folder(self) -> None:
-        if self.last_output is not None:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.last_output)))
-
-    def _open_item_output(self, item: QTreeWidgetItem) -> None:
-        output = item.data(COL_STATUS, Qt.ItemDataRole.UserRole)
-        if output:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(output))
+    def set_quality_level(self, level_id: str) -> None:
+        self.options.set_level(level_id)
 
     # --- conversion -----------------------------------------------------------
 
@@ -478,26 +229,23 @@ class MainWindow(QMainWindow):
         if not target or self._thread is not None:
             return
         jobs = []
-        for row, (path, fmt) in enumerate(zip(self.files, self.file_formats, strict=True)):
-            item = self.tree.topLevelItem(row)
+        for row, (path, fmt) in enumerate(
+            zip(self.file_list.files, self.file_list.formats, strict=True)
+        ):
             if fmt is None:
-                item.setText(COL_STATUS, "Skipped: unknown file type")
+                self.file_list.set_status(row, "Skipped: unknown file type")
             elif fmt.id == target:
-                item.setText(COL_STATUS, "Skipped: already this format")
+                self.file_list.set_status(row, "Skipped: already this format")
             else:
-                item.setText(COL_STATUS, "Waiting")
+                self.file_list.set_status(row, "Waiting")
                 jobs.append((row, path))
         if not jobs:
             return
-        category = self._single_category()
+        category = targets.single_category(self.file_list.formats)
         if category is not None:
             self.prefs.save_target(category, target)
         self.save_preferences()
 
-        options = {
-            "level": self.level_combo.currentData(),
-            "keep_metadata": self.metadata_check.isChecked(),
-        }
         self._cancel = threading.Event()
         self._done_count = 0
         self._job_count = len(jobs)
@@ -506,7 +254,7 @@ class MainWindow(QMainWindow):
 
         self._thread = QThread(self)
         self._worker = ConversionWorker(
-            self.engine, jobs, target, self.output_dir, options, self._cancel
+            self.engine, jobs, target, self.output_dir, self.options.options(), self._cancel
         )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
@@ -534,36 +282,33 @@ class MainWindow(QMainWindow):
     def _on_started(self, row: int) -> None:
         cleaning = self._worker is not None and self._worker.target == CLEAN_TARGET
         verb = "Removing metadata from" if cleaning else "Converting"
-        self.tree.topLevelItem(row).setText(COL_STATUS, "Working…")
-        self.status_label.setText(f"{verb} {self.files[row].name}")
+        self.file_list.set_status(row, "Working…")
+        self.status_label.setText(f"{verb} {self.file_list.files[row].name}")
 
     @Slot(int, float, str)
     def _on_progress(self, row: int, fraction: float, message: str) -> None:
-        self.tree.topLevelItem(row).setText(COL_STATUS, f"{int(fraction * 100)}% {message}")
+        self.file_list.set_status(row, f"{int(fraction * 100)}% {message}")
         self._set_overall(fraction)
 
     @Slot(int, list, list)
     def _on_done(self, row: int, outputs: list, notes: list) -> None:
         self._done_count += 1
         self._set_overall(0)
-        item = self.tree.topLevelItem(row)
-        if len(outputs) == 1:
-            text = f"✓ {Path(outputs[0]).name}"
-        else:
-            text = f"✓ {len(outputs)} files"
-        item.setText(COL_STATUS, text)
-        item.setToolTip(COL_STATUS, "\n".join([*outputs, *notes]))
+        text = f"✓ {Path(outputs[0]).name}" if len(outputs) == 1 else f"✓ {len(outputs)} files"
+        self.file_list.set_status(
+            row,
+            text,
+            tooltip="\n".join([*outputs, *notes]),
+            output=outputs[0] if outputs else None,
+        )
         if outputs:
-            item.setData(COL_STATUS, Qt.ItemDataRole.UserRole, outputs[0])
             self.last_output = Path(outputs[0]).parent
 
     @Slot(int, str)
     def _on_failed(self, row: int, message: str) -> None:
         self._done_count += 1
         self._set_overall(0)
-        item = self.tree.topLevelItem(row)
-        item.setText(COL_STATUS, f"✗ {message}")
-        item.setToolTip(COL_STATUS, message)
+        self.file_list.set_status(row, f"✗ {message}", tooltip=message)
 
     @Slot(bool)
     def _on_finished(self, cancelled: bool) -> None:
@@ -581,32 +326,27 @@ class MainWindow(QMainWindow):
             self.progress.setValue(1000)
         self._refresh()
 
+    def _open_output_folder(self) -> None:
+        if self.last_output is not None:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.last_output)))
+
     # --- preferences and about ------------------------------------------------
 
     def _load_preferences(self) -> None:
-        level_index = self.level_combo.findData(self.prefs.level)
-        if level_index >= 0:
-            self.level_combo.setCurrentIndex(level_index)
-        self.metadata_check.setChecked(self.prefs.keep_metadata)
+        self.options.load(self.prefs)
         if self.prefs.output_dir is not None:
             self.output_dir = self.prefs.output_dir
-            self.output_label.setText(str(self.output_dir))
-
-    def _single_category(self) -> str | None:
-        """The kind of files in the list, if they're all the same kind."""
-        categories = {f.category for f in self.file_formats if f is not None}
-        return categories.pop() if len(categories) == 1 else None
 
     def _remembered_target(self) -> str | None:
-        category = self._single_category()
+        category = targets.single_category(self.file_list.formats)
         return self.prefs.target_for(category) if category else None
 
     def save_preferences(self) -> None:
         self.prefs.save(
             output_dir=self.output_dir,
-            level=self.level_combo.currentData(),
-            use_word=self.word_check.isChecked() if self._word_installed else self.prefs.use_word,
-            keep_metadata=self.metadata_check.isChecked(),
+            level=self.options.level(),
+            use_word=self.options.use_word(self.prefs.use_word),
+            keep_metadata=self.options.metadata_check.isChecked(),
         )
 
     def show_about(self) -> None:
