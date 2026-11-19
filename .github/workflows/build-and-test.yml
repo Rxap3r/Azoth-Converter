@@ -10,12 +10,13 @@ name: Build and test
 # The steps themselves live in .github/actions/ (run-tests, build-windows).
 # Runs that build the Windows download (installer + portable ZIP) get a title
 # starting with "📦 With download", so they are easy to find (and to clean up).
+# Other runs keep GitHub's normal title (an empty run-name means "use the default").
 run-name: >-
   ${{ (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
   github.event_name == 'workflow_dispatch')
   && format('📦 With download · {0}', github.event.pull_request.title ||
-  github.event.head_commit.message || format('test build of {0}', github.ref_name))
-  || github.event.head_commit.message }}
+  (github.event_name == 'push' && 'push to main') || format('test build of {0}', github.ref_name))
+  || '' }}
 on:
   push:
     branches: [main, dev]
