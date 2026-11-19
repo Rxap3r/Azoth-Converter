@@ -143,7 +143,9 @@ class Engine:
         overwrite: bool = False,
         progress: Callable[[float, str], None] | None = None,
         cancel_event: threading.Event | None = None,
+        name: str | None = None,
     ) -> ConversionResult:
+        """``name``: the result's file name without extension (default: the original's)."""
         source = Path(source)
         if not source.is_file():
             raise ConversionError(f"File not found: {source}")
@@ -166,6 +168,7 @@ class Engine:
                     break
             raise ConversionError(f"Cannot convert {src_fmt.name} to {dst_fmt.name}.{hint}")
 
+        stem = source.stem if name is None else check_file_name(name, dst_fmt.extension)
         out_dir = Path(output_dir) if output_dir is not None else source.parent
         out_dir.mkdir(parents=True, exist_ok=True)
         report = progress or (lambda f, m: None)
@@ -185,7 +188,9 @@ class Engine:
                 step_dir = tmp_path / f"step{i}"
                 step_dir.mkdir()
                 ext = formats.FORMATS[step.dst].extension
-                step_dst = (step_dir / "out" if last else step_dir) / f"{source.stem}.{ext}"
+                step_dst = (
+                    step_dir / "out" if last else step_dir
+                ) / f"{stem if last else source.stem}.{ext}"
                 step_dst.parent.mkdir(exist_ok=True)
 
                 def step_progress(fraction: float, message: str, _i: int = i) -> None:
@@ -213,6 +218,34 @@ class Engine:
                         result.outputs.append(final)
         report(1.0, "Done")
         return result
+
+
+BAD_NAME_CHARS = '<>:"/\\|?*'
+RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL"} | {
+    f"{d}{n}" for d in ("COM", "LPT") for n in range(10)
+}
+
+
+def check_file_name(name: str, extension: str = "") -> str:
+    """A name the user typed for the result, made safe: no folders, no forbidden characters.
+
+    Returns the name without the extension (``extension`` is removed if the user typed it).
+    """
+    name = name.strip()
+    if extension and name.lower().endswith(f".{extension.lower()}"):
+        name = name[: -len(extension) - 1]
+    name = name.rstrip(". ")
+    if not name:
+        raise ConversionError("Please enter a file name.")
+    bad = sorted({c for c in name if c in BAD_NAME_CHARS or ord(c) < 32})
+    if bad:
+        shown = " ".join(c if ord(c) >= 32 else "?" for c in bad)
+        raise ConversionError(f"A file name can't contain these characters: {shown}")
+    if name.split(".")[0].upper() in RESERVED_NAMES:
+        raise ConversionError(
+            f'Windows doesn\'t allow the file name "{name}". Please choose another.'
+        )
+    return name
 
 
 def unique_path(path: Path) -> Path:

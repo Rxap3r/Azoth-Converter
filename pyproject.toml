@@ -51,3 +51,5 @@ select = ["E", "F", "W", "I", "B", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 "samples/generate.py" = ["E501"]  # long sample text and HTML lines
+"src/azoth/gui/theme.py" = ["E501"]  # stylesheet rules read best on one line
+"src/azoth/gui/icons.py" = ["E501"]  # SVG drawing data

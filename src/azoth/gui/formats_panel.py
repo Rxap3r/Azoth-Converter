@@ -1,155 +1,196 @@
-"""The "Supported formats" section: every format and what it converts into."""
+"""The "Supported formats" page: every format and what it converts into."""
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QFontMetrics
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QHeaderView,
+    QButtonGroup,
+    QFrame,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
-    QTreeWidget,
-    QTreeWidgetItem,
+    QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import ranking
+from .. import metadata, ranking
 from ..format_list import CATEGORY_TITLES, conversion_table
+from .targets import display_name
+from .widgets import flow_container, label
 
-COL_FORMAT, COL_EXTENSIONS, COL_TARGETS, COL_LIBREOFFICE = range(4)
+LIBREOFFICE_TIP = "Needs LibreOffice, a free program from libreoffice.org"
 
 
-def _names(fmts) -> str:
-    return ", ".join(f.id.upper() for f in fmts) if fmts else "–"
+def _chip(text: str, *, libreoffice: bool = False, clean: bool = False) -> QLabel:
+    chip = QLabel(text)
+    chip.setProperty("role", "chip")
+    chip.setProperty("libreoffice", "true" if libreoffice else "false")
+    chip.setProperty("clean", "true" if clean else "false")
+    if libreoffice:
+        chip.setToolTip(LIBREOFFICE_TIP)
+    return chip
+
+
+class FormatRow(QFrame):
+    def __init__(self, row, libreoffice_installed: bool) -> None:
+        super().__init__()
+        fmt = row.format
+        self.format_id = fmt.id
+        self.category = fmt.category
+        self.setProperty("role", "card")
+        # Searchable text: id, name, extensions and all targets.
+        self.haystack = " ".join(
+            [fmt.id, fmt.name, *fmt.extensions]
+            + [t.id for t in row.right_away + row.needs_libreoffice]
+        ).lower()
+
+        badge = QLabel(display_name(fmt.id))
+        badge.setProperty("role", "badge")
+        badge.setProperty("category", fmt.category)
+        badge.setFixedSize(52, 28)
+        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        names = QVBoxLayout()
+        names.setSpacing(0)
+        name = label(fmt.name)
+        name.setStyleSheet("font-weight: 600; font-size: 13px;")
+        name.setWordWrap(True)
+        names.addWidget(name)
+        names.addWidget(label("  ".join(f".{e}" for e in fmt.extensions), "small"))
+        left = QHBoxLayout()
+        left.setSpacing(12)
+        left.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
+        left.addLayout(names, 1)
+        left_box = QWidget()
+        left_box.setLayout(left)
+        left_box.setFixedWidth(230)
+
+        chips, flow = flow_container()
+        ordered = ranking.rank(row.right_away + row.needs_libreoffice, [fmt.category])
+        needs = {t.id for t in row.needs_libreoffice}
+        for target in ordered:
+            flow.addWidget(
+                _chip(
+                    display_name(target.id),
+                    libreoffice=target.id in needs and not libreoffice_installed,
+                )
+            )
+        if fmt.id in metadata.CLEANABLE:
+            flow.addWidget(_chip("Remove metadata", clean=True))
+        if not ordered:
+            flow.addWidget(label("Nothing yet", "small"))
+
+        self.arrow = QLabel("→")
+        self.arrow.setProperty("role", "muted")
+        self.arrow.setAccessibleName("converts to")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(16)
+        layout.addWidget(left_box, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.arrow, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(chips, 1)
 
 
 class FormatsPanel(QWidget):
     def __init__(self, libreoffice_installed: bool) -> None:
         super().__init__()
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        self._category: str | None = None
 
         if libreoffice_installed:
             status = "LibreOffice is installed, so every conversion below is available."
         else:
             status = (
-                "LibreOffice isn't installed. Conversions in the last column need it "
+                "LibreOffice isn't installed. Conversions with a dashed outline need it "
                 "(free download from libreoffice.org)."
             )
-        self.status_label = QLabel(status)
-        self.status_label.setWordWrap(True)
-        layout.addWidget(self.status_label)
+        self.status_label = label(status, "muted", wrap=True)
 
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search, e.g. pdf, heic, word …")
+        self.search.setPlaceholderText("Search, e.g. heic or .docx")
         self.search.setClearButtonEnabled(True)
+        self.search.setAccessibleName("Search formats")
+        self.search.setFixedWidth(300)
         self.search.textChanged.connect(self.apply_filter)
-        layout.addWidget(self.search)
 
-        self.tree = QTreeWidget()
-        headers = ["Format", "File extensions", "Converts to"]
-        if not libreoffice_installed:
-            headers[2] = "Converts to (works now)"
-            headers.append("Needs LibreOffice")
-        self.tree.setHeaderLabels(headers)
-        self.tree.setAlternatingRowColors(True)
-        # Long target lists wrap onto a second line instead of being cut off with "…".
-        self.tree.setWordWrap(True)
-        self.tree.setTextElideMode(Qt.TextElideMode.ElideNone)
-        self.tree.setUniformRowHeights(False)
-        self.tree.setMinimumHeight(240)
-        header = self.tree.header()
-        header.setStretchLastSection(False)
-        header.setSectionResizeMode(COL_FORMAT, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(COL_EXTENSIONS, QHeaderView.ResizeMode.ResizeToContents)
-        for col in range(COL_TARGETS, len(headers)):
-            header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
-        # Qt wraps the text but doesn't grow the rows, so row heights are set by hand
-        # whenever a column changes width.
-        header.sectionResized.connect(lambda *_: self._update_row_heights())
-        layout.addWidget(self.tree)
-
-        self._categories: dict[str, QTreeWidgetItem] = {}
-        for category, title in CATEGORY_TITLES.items():
-            item = QTreeWidgetItem([title])
-            font = item.font(COL_FORMAT)
-            font.setBold(True)
-            item.setFont(COL_FORMAT, font)
-            item.setFirstColumnSpanned(False)
-            self.tree.addTopLevelItem(item)
-            self._categories[category] = item
-
-        for row in conversion_table():
-            fmt = row.format
-            if libreoffice_installed:
-                everything = ranking.rank(row.right_away + row.needs_libreoffice, [fmt.category])
-                columns = [_names(everything)]
-            else:
-                columns = [_names(row.right_away), _names(row.needs_libreoffice)]
-            item = QTreeWidgetItem(
-                [f"{fmt.id.upper()}  ({fmt.name})", ", ".join(f".{e}" for e in fmt.extensions)]
-                + columns
+        heading = QHBoxLayout()
+        titles = QVBoxLayout()
+        titles.setSpacing(2)
+        titles.addWidget(label("Supported formats", "h1"))
+        titles.addWidget(
+            label(
+                "Everything is converted on this computer. "
+                "Find a file type to see what it can become.",
+                "muted",
+                wrap=True,
             )
-            for col in range(COL_TARGETS, COL_TARGETS + len(columns)):
-                item.setToolTip(col, item.text(col))
-            # Searchable text: id, name, extensions and all targets.
-            haystack = " ".join(
-                [fmt.id, fmt.name, *fmt.extensions]
-                + [t.id for t in row.right_away + row.needs_libreoffice]
-            ).lower()
-            item.setData(COL_FORMAT, Qt.ItemDataRole.UserRole, haystack)
-            self._categories[fmt.category].addChild(item)
+        )
+        heading.addLayout(titles, 1)
+        heading.addWidget(self.search, 0, Qt.AlignmentFlag.AlignBottom)
 
-        self.tree.expandAll()
+        filters = QHBoxLayout()
+        filters.setSpacing(8)
+        self.filter_group = QButtonGroup(self)
+        self.filter_buttons: dict[str | None, QPushButton] = {}
+        for key, title in [(None, "All"), *CATEGORY_TITLES.items()]:
+            button = QPushButton(title)
+            button.setProperty("role", "filter")
+            button.setCheckable(True)
+            button.setChecked(key is None)
+            button.clicked.connect(lambda _=False, k=key: self.set_category(k))
+            self.filter_group.addButton(button)
+            self.filter_buttons[key] = button
+            filters.addWidget(button)
+        filters.addStretch(1)
+        if not libreoffice_installed:
+            legend = _chip("Dashed", libreoffice=True)
+            filters.addWidget(legend)
+            filters.addWidget(label("needs LibreOffice (free)", "small"))
 
-    def _update_row_heights(self) -> None:
-        metrics = QFontMetrics(self.tree.font())
-        header = self.tree.header()
-        line = metrics.height()
-        for category in self._categories.values():
-            for i in range(category.childCount()):
-                item = category.child(i)
-                height = line
-                for col in range(COL_TARGETS, self.tree.columnCount()):
-                    width = max(20, header.sectionSize(col) - 10)
-                    rect = metrics.boundingRect(
-                        0, 0, width, 10_000, Qt.TextFlag.TextWordWrap, item.text(col)
-                    )
-                    height = max(height, rect.height())
-                # Set on a stretched column: its width hint is ignored, only the height counts.
-                item.setSizeHint(COL_TARGETS, QSize(header.sectionSize(COL_TARGETS), height + 4))
+        column = QWidget()
+        rows_layout = QVBoxLayout(column)
+        rows_layout.setContentsMargins(0, 0, 4, 0)
+        rows_layout.setSpacing(6)
+        self.rows: list[FormatRow] = []
+        for row in conversion_table():
+            widget = FormatRow(row, libreoffice_installed)
+            self.rows.append(widget)
+            rows_layout.addWidget(widget)
+        self.no_match = label("No format matches your search.", "muted")
+        self.no_match.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.no_match.setVisible(False)
+        rows_layout.addWidget(self.no_match)
+        rows_layout.addStretch(1)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(column)
 
-    def showEvent(self, event) -> None:
-        super().showEvent(event)
-        QTimer.singleShot(0, self._update_row_heights)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(28, 24, 28, 20)
+        layout.setSpacing(14)
+        layout.addLayout(heading)
+        layout.addWidget(self.status_label)
+        layout.addLayout(filters)
+        layout.addWidget(scroll, 1)
 
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        # Wait until the header has stretched its columns to the new width.
-        QTimer.singleShot(0, self._update_row_heights)
+    def set_category(self, category: str | None) -> None:
+        self._category = category
+        self.filter_buttons[category].setChecked(True)
+        self.apply_filter(self.search.text())
 
-    def apply_filter(self, text: str) -> None:
-        """Show only formats whose name, extension or targets contain ``text``."""
-        words = text.lower().split()
-        for category in self._categories.values():
-            visible_children = 0
-            for i in range(category.childCount()):
-                child = category.child(i)
-                haystack = child.data(COL_FORMAT, Qt.ItemDataRole.UserRole)
-                match = all(w.lstrip(".") in haystack for w in words)
-                child.setHidden(not match)
-                visible_children += match
-            category.setHidden(visible_children == 0)
+    def apply_filter(self, text: str | None = None) -> None:
+        """Show only formats of the chosen kind whose name, extension or targets match."""
+        words = (self.search.text() if text is None else text).lower().split()
+        shown = 0
+        for row in self.rows:
+            match = (self._category is None or row.category == self._category) and all(
+                w.lstrip(".") in row.haystack for w in words
+            )
+            row.setVisible(match)
+            shown += match
+        self.no_match.setVisible(shown == 0)
 
     def visible_formats(self) -> list[str]:
         """Format ids currently shown (used by tests)."""
-        ids = []
-        for category in self._categories.values():
-            if category.isHidden():
-                continue
-            for i in range(category.childCount()):
-                child = category.child(i)
-                if not child.isHidden():
-                    ids.append(child.text(COL_FORMAT).split()[0].lower())
-        return ids
+        return [row.format_id for row in self.rows if not row.isHidden()]

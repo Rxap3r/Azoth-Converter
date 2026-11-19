@@ -39,4 +39,4 @@ def test_window_defaults_to_most_useful(qtbot, sample_pdf):
     window = MainWindow()
     qtbot.addWidget(window)
     window.add_files([sample_pdf])
-    assert window.target_combo.currentData() == "docx"
+    assert window.target_picker.current() == "docx"

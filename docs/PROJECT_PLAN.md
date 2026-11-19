@@ -9,7 +9,7 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 
 | Topic | Decision |
 |-------|----------|
-| Name | **Azoth Converter** (from *azoth*, the alchemists' universal solvent that transforms any substance). Checked Nov 2026: no software trademark "AZOTH" found in the US/EU registers; final check in Swissreg/TMview by the owner. CLI command: `azoth`. |
+| Name | **Azoth Converter** (from *azoth*, the alchemists' universal solvent that transforms any substance). Checked Nov 2026: no software trademark "AZOTH" found in the US/EU registers; Swissreg/TMview check by the owner: clear (Nov 2026). CLI command: `azoth`. |
 | License | **Open source, GPL-3.0-or-later.** The repository is public since 19 Nov 2026 (after release 0.1.0). Because the project is GPL, we can use GPL and AGPL engines (PyMuPDF, Ghostscript, a full FFmpeg build). PyMuPDF is AGPL-3.0; section 13 of the GPL-3.0 and the AGPL-3.0 explicitly allows combining the two. |
 | Priorities | **PDF conversions first**, especially **Word → PDF** and **PDF → Word**, then the other office formats. |
 | Stack | Python 3.12 and PySide6 (Qt 6), packaged with PyInstaller (see §2). |
@@ -86,13 +86,13 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | **PDF → Word** | PDF → DOCX (also DOC, ODT, RTF via DOCX) | pdf2docx | ✅ |
 | **PDF → images / text** | PDF → PNG, JPG, WebP, BMP, multi-page TIFF; PDF → TXT | PyMuPDF | ✅ |
 | **Images → PDF** | any image → PDF | Pillow | ✅ |
-| PDF tools | merge, split | PyMuPDF | ✅ (command line) |
-| PDF tools | rotate, reorder, compress, password, in the GUI | PyMuPDF | 🔜 |
+| PDF tools | merge, split (by page or range), rotate, delete, reorder pages; in the app and the command line | PyMuPDF | ✅ |
+| PDF tools | compress, password | PyMuPDF | 🔜 |
 | Scanned PDFs | OCR → searchable PDF, then Word | Tesseract | 🔜 |
 | Spreadsheets | XLSX, XLS, ODS, CSV ↔ each other, → PDF | LibreOffice | ✅ |
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
 | Images | JPG, PNG, WebP, BMP, TIFF, GIF, ICO, HEIC, AVIF | Pillow, pillow-heif | ✅ |
-| Privacy | Remove photo metadata, same format in and out | Pillow | 🔜 |
+| Privacy | Remove photo metadata, same format in and out (JPG, PNG, WebP, GIF, TIFF, HEIC, AVIF) | own lossless code, Pillow | ✅ |
 | Camera RAW, SVG | CR2, NEF, ARW, DNG, SVG | rawpy, resvg | 🔜 |
 | Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | 🔜 |
 | Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | 🔜 |
@@ -133,32 +133,38 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Release 0.1.0** (18 Nov 2026), repository made public, `main` protected, security policy (`SECURITY.md`) and private vulnerability reporting
 
 ### Phase 2: PDF power tools and OCR (≈ 4–6 weeks)
-- [ ] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails
+- [x] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails. *Done (Nov 2026): lossless (pages copied, not redrawn), bookmarks kept; `pdf_tools.py`, `gui/pdf_tools_page.py`, `azoth pdf split --ranges`, `azoth pdf edit`.*
 - [ ] Compress PDF (downsample images)
 - [ ] Add or remove a password (only with the user's own password)
 - [ ] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs)
 - [ ] PDF → Excel for tables
-- [ ] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it.
+- [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
+  - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
+  - [ ] With the design refresh: a "Show metadata" button on each file card instead of the right-click menu
 - [ ] **Release 0.2**
 
 ### Design refresh (timing flexible)
-- [ ] Mockups first: agree on the look before changing code
-- [ ] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain
-- [ ] Modern Windows 11 look (Fluent style): rounded corners, accent colour, Mica-style background; follows Windows light/dark mode
-- [ ] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**
-- [ ] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
-- [ ] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
-- [ ] Target format picker as a grid of format tiles grouped by type, with the most used ones first
-- [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations
-- [ ] **Rework the app icon:** the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
-- [ ] Consistent icon set inside the app (bundled, no web fonts or online assets)
-- [ ] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)
-- [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %
+- [x] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. **Owner's choice (Nov 2026): style A.** Icon choice postponed.*
+- [x] **Light / dark mode setting** (owner's wish, Nov 2026): Settings offers *Follow Windows* (default), *Light* and *Dark*
+- [x] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain. *Done with style A (Nov 2026); not yet seen on a real Windows PC.*
+- [x] Modern Windows 11 look (Fluent style): rounded corners, accent colour; follows Windows light/dark mode. *Own stylesheet on Qt's Fusion style (`gui/theme.py`); the Mica see-through background is not done.*
+- [x] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**. *All four entries exist (PDF tools since Nov 2026).*
+- [x] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
+- [x] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
+- [x] **Choose the result's file name** (owner's wish, Nov 2026): "File name" under "Save to", pre-filled with the original's name; for one file at a time (with several files each keeps its own name)
+- [x] **Bin button on every PDF in the Merge list** (owner's wish, Nov 2026), like on the Convert page; "Remove" below the list and the Delete key still work
+- [x] **Plain-language quality texts** (owner's wish, Nov 2026): "quality 95 / 300 DPI" replaced by what it means for the user; the numbers are in the tooltip
+- [x] Target format picker as a grid of format tiles, with the most used ones first
+- [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
+- [ ] **Rework the app icon** (ideas 1–3 on the design canvas; owner postponed the choice, Nov 2026): the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
+- [x] Consistent icon set inside the app (bundled, no web fonts or online assets): line icons drawn in `gui/icons.py`
+- [x] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)
+- [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %. *Partly: all colours pass contrast checks (`tests/test_theme.py`), buttons have names for screen readers, focus rings for the keyboard; Windows high-contrast mode and 200 % scaling not yet tested.*
 - Options: Qt's built-in Windows 11 style plus our own stylesheet, or the GPL-licensed *PySide6-Fluent-Widgets* library (compatible with our license)
 
 ### Technical improvements (from the code review, Nov 2026; schedule as needed)
 - [ ] **Faster large batches:** keep one LibreOffice (and one Word) instance running for a whole batch instead of starting it for every file (~1 s overhead per file today); convert several files in parallel where the engine allows it (images, PDF → images)
-- [ ] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh
+- [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
 - [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
 - [ ] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
@@ -180,10 +186,16 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 ### Phase 5: Production release 1.0 (≈ 3–4 weeks)
 - [ ] **Bundled "Office pack"** so users don't need to install LibreOffice separately (offline installer)
 - [ ] Smaller download: trim unused Qt and OpenCV parts, or try Nuitka
-- [ ] Code signing so Windows SmartScreen doesn't warn users: apply to the **SignPath Foundation** (free for public open-source projects; possible now that the repository is public)
+- [ ] **Code signing** through the free **SignPath Foundation** program, so Windows SmartScreen doesn't warn users:
+  - [x] Two-factor authentication on GitHub
+  - [x] Code signing policy page (`CODE_SIGNING.md`), linked from the README and the release notes
+  - [ ] Apply on signpath.org (owner); approval can take a few weeks
+  - [ ] After approval: SignPath API key as a GitHub secret (owner), then add signing to the Release workflow: build → sign `.exe` files → build installer → sign installer, with manual approval per release
 - [ ] SBOM (CycloneDX) and third-party license notices bundled in the app
 - [ ] Accessibility (keyboard navigation, screen readers, high contrast)
 - [ ] Translations of the app (e.g. German, French, Italian). **Each language added to the app must also be added to the installer** (`packaging/installer.iss`, `[Languages]`), and no installer language without the app: the two always match. Until then both are English only.
+- [x] **"Check for updates" button** (owner asked, Nov 2026): Settings → About opens the GitHub Releases page in the browser; the app itself stays offline
+- [ ] **Version check inside the app** (owner's wish for later, Nov 2026): the app looks up the newest version itself and says "Update available", then later downloads and installs it. Needs a decision, because it means the app goes online: only when the user clicks (never automatic, see principle 2), ask once before the first check, and only after code signing so a download can be checked as really coming from us
 - [ ] Publish on winget and optionally the Microsoft Store (MSIX)
 
 ### Phase 6: Other platforms

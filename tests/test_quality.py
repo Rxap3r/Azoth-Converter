@@ -142,3 +142,106 @@ def test_lower_level_gives_smaller_photo(tmp_path):
     [best] = Engine().convert(src, "jpg", tmp_path / "a", options={"level": "maximum"}).outputs
     [small] = Engine().convert(src, "jpg", tmp_path / "b", options={"level": "compact"}).outputs
     assert small.stat().st_size < best.stat().st_size
+
+
+# --- removing photo metadata (azoth clean) ---------------------------------------
+
+
+def _part(data: bytes, start: bytes, end: bytes | None = None) -> bytes:
+    i = data.index(start)
+    return data[i : data.index(end, i) + len(end)] if end else data[i:]
+
+
+def test_clean_jpeg_keeps_compressed_picture_byte_for_byte(tmp_path):
+    from azoth import metadata
+
+    src = _two_colour_photo(tmp_path / "p.jpg", orientation=6)
+    original = src.read_bytes()
+    cleaned = metadata.clean_bytes("jpg", original)
+    # Everything from the first quantisation table to the end marker is the picture.
+    assert _part(cleaned, b"\xff\xdb") == _part(original, b"\xff\xdb")
+    assert b"SecretCamera" not in cleaned
+    with Image.open(io.BytesIO(cleaned)) as im:
+        assert dict(im.getexif()) == {0x0112: 6}  # still shown upright
+
+
+def test_clean_png_and_webp_keep_picture_data_byte_for_byte():
+    from azoth import metadata
+    from azoth.converters import strip
+
+    exif = Image.Exif()
+    exif[0x010F] = "SecretCamera"
+    img = Image.new("RGBA", (50, 40), (10, 200, 30, 128))
+    for fmt, chunks, picture_kinds in (
+        ("png", strip._png_chunks, {b"IDAT"}),
+        ("webp", strip._webp_chunks, {b"ALPH", b"VP8 ", b"VP8L"}),
+    ):
+        buf = io.BytesIO()
+        img.save(buf, fmt, exif=exif.tobytes())
+        original = buf.getvalue()
+        cleaned = metadata.clean_bytes(fmt, original)
+        assert b"SecretCamera" not in cleaned
+        before = [c for k, c in chunks(original) if k in picture_kinds]
+        after = [c for k, c in chunks(cleaned) if k in picture_kinds]
+        assert before and after == before, fmt
+
+
+def test_clean_keeps_colour_profile():
+    from PIL import ImageCms
+
+    from azoth import metadata
+
+    icc = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    exif = Image.Exif()
+    exif[0x010F] = "SecretCamera"
+    for fmt in ("JPEG", "PNG", "WEBP", "TIFF"):
+        buf = io.BytesIO()
+        Image.new("RGB", (20, 20), "red").save(buf, fmt, exif=exif.tobytes(), icc_profile=icc)
+        cleaned = metadata.clean_bytes({"JPEG": "jpg"}.get(fmt, fmt.lower()), buf.getvalue())
+        with Image.open(io.BytesIO(cleaned)) as im:
+            assert im.info.get("icc_profile") == icc, fmt
+
+
+def test_jpg_to_pdf_drops_data_hidden_after_the_photo(tmp_path):
+    src = _two_colour_photo(tmp_path / "p.jpg")
+    src.write_bytes(src.read_bytes() + b"\xff\xd8SecretTrailer")  # e.g. motion-photo video
+    [pdf] = Engine().convert(src, "pdf", tmp_path / "o").outputs
+    with pymupdf.open(pdf) as doc:
+        embedded = doc.extract_image(doc[0].get_images()[0][0])["image"]
+    assert b"SecretTrailer" not in embedded
+    assert embedded.endswith(b"\xff\xd9")
+
+
+# --- PDF tools (merge, split, edit pages) -------------------------------------------
+
+
+def test_pdf_tools_copy_pages_without_redrawing(tmp_path):
+    from azoth import pdf_tools
+
+    src = tmp_path / "photos.pdf"
+    doc = pymupdf.open()
+    for colour in ((200, 30, 30), (30, 160, 60)):
+        buf = io.BytesIO()
+        Image.new("RGB", (300, 200), colour).save(buf, "JPEG", quality=92)
+        page = doc.new_page()
+        page.insert_text((72, 60), "Holiday", fontsize=18)
+        page.insert_image(pymupdf.Rect(72, 80, 372, 280), stream=buf.getvalue())
+    doc.save(src)
+    doc.close()
+
+    def pages(path):
+        with pymupdf.open(path) as d:
+            return [
+                (p.read_contents(), [d.extract_image(x[0])["image"] for x in p.get_images()])
+                for p in d
+            ]
+
+    original = pages(src)
+    edited = pdf_tools.edit_pages(
+        src, tmp_path / "e.pdf", [pdf_tools.PageEdit(1, 90), pdf_tools.PageEdit(0)]
+    )
+    assert pages(edited) == [original[1], original[0]]  # same drawing, same photo bytes
+    merged = pdf_tools.merge([src, src], tmp_path / "m.pdf")
+    assert pages(merged) == original * 2
+    [part] = pdf_tools.split(src, tmp_path / "s", [[1]])
+    assert pages(part) == [original[1]]

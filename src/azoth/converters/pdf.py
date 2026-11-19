@@ -20,7 +20,7 @@ DEFAULT_DPI = 300  # print quality: text and lines stay sharp when zooming in
 RASTER_TARGETS = {"png": "PNG", "jpg": "JPEG", "webp": "WEBP", "bmp": "BMP", "tiff": "TIFF"}
 
 
-def _open(src: Path) -> pymupdf.Document:
+def open_pdf(src: Path) -> pymupdf.Document:
     try:
         doc = pymupdf.open(src, filetype="pdf")
     except Exception as exc:
@@ -43,7 +43,7 @@ def page_file_name(dst: Path, index: int, total: int) -> Path:
 
 def is_probably_scanned(src: Path, sample_pages: int = 5) -> bool:
     """True if the first pages contain images but (almost) no selectable text."""
-    with _open(src) as doc:
+    with open_pdf(src) as doc:
         pages = [doc[i] for i in range(min(sample_pages, doc.page_count))]
         text = sum(len(p.get_text("text").strip()) for p in pages)
         images = sum(len(p.get_images()) for p in pages)
@@ -70,7 +70,7 @@ class PdfToImageConverter(Converter):
         dpi = int(ctx.option("dpi", DEFAULT_DPI))
         quality = int(ctx.option("quality", 95))
         outputs: list[Path] = []
-        with _open(src) as doc:
+        with open_pdf(src) as doc:
             total = doc.page_count
             if total == 0:
                 raise ConversionError("The PDF has no pages")
@@ -123,7 +123,7 @@ class PdfToTextConverter(Converter):
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
         parts: list[str] = []
-        with _open(src) as doc:
+        with open_pdf(src) as doc:
             total = doc.page_count
             for i, page in enumerate(doc):
                 ctx.check_cancelled()
@@ -162,7 +162,7 @@ class PdfToWordConverter(Converter):
                 "Converting it to Word needs text recognition (OCR), which is planned "
                 "for a later version."
             )
-        with _open(src) as doc:
+        with open_pdf(src) as doc:
             total = doc.page_count
 
         # pdf2docx has no progress callback or cancel hook; it logs chatty INFO lines.
@@ -184,33 +184,14 @@ class PdfToWordConverter(Converter):
 
 
 def merge_pdfs(sources: list[Path], dst: Path) -> Path:
-    """Join several PDFs into one, in the given order."""
-    if not sources:
-        raise ConversionError("No PDFs to merge")
-    out = pymupdf.open()
-    try:
-        for src in sources:
-            with _open(src) as doc:
-                out.insert_pdf(doc)
-        out.save(dst, garbage=3, deflate=True)
-    finally:
-        out.close()
-    return dst
+    """Join several PDFs into one, in the given order (see ``pdf_tools.merge``)."""
+    from ..pdf_tools import merge
+
+    return merge(sources, dst, overwrite=True)
 
 
 def split_pdf(src: Path, out_dir: Path) -> list[Path]:
-    """Save every page of ``src`` as its own PDF in ``out_dir``."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    outputs = []
-    with _open(src) as doc:
-        total = doc.page_count
-        for i in range(total):
-            part = pymupdf.open()
-            part.insert_pdf(doc, from_page=i, to_page=i)
-            path = page_file_name(out_dir / f"{src.stem}.pdf", i, total)
-            if total == 1:
-                path = out_dir / f"{src.stem}_page001.pdf"
-            part.save(path, garbage=3, deflate=True)
-            part.close()
-            outputs.append(path)
-    return outputs
+    """Save every page of ``src`` as its own PDF in ``out_dir`` (see ``pdf_tools.split``)."""
+    from ..pdf_tools import split
+
+    return split(src, out_dir)

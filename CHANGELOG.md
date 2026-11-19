@@ -8,9 +8,79 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ## [Unreleased]
 
 ### Added
+- **PDF tools** in the app (new sidebar entry): **Merge** PDFs in any order (drag or Move up /
+  Move down), **Split** a PDF into single pages or page ranges like "1-3, 5, 8-", and **Edit
+  pages**: turn, delete and reorder pages using page previews. The result is saved as a new
+  file; the original is never changed.
+- Command line: `azoth pdf split --ranges "1-3, 5"` and the new `azoth pdf edit` (`--pages`,
+  `--delete`, `--rotate 2=90`).
+- **Light and dark look:** under **Settings → Appearance**, choose *Follow Windows* (the default),
+  *Light* or *Dark*. The window's title bar follows too.
+- Each file in the list has its own **remove** button, its own progress bar, and **Open** /
+  **Show in folder** once it's converted.
+- **Remove photo metadata** without changing the format or the picture: GPS location, camera,
+  date, author, comments, preview pictures and other hidden data are removed from JPG, PNG,
+  WebP, GIF, TIFF, HEIC and AVIF files. In the app, choose **Remove metadata only**;
+  on the command line, use `azoth clean`. The copy is saved as "name (clean)" next to the
+  original, or under the same name in another folder.
+- **Show metadata…** (right-click a file in the list) and `azoth clean --show` list what a
+  photo contains, for example the place where it was taken.
+- Right-click a file in the list to remove it.
+- Settings explains (when you point at the setting) in plain words which photo details are removed when converting (location,
+  date, camera, preview pictures, captions …) and what is kept.
+- **Check for updates…** in Settings: opens the download page in your browser so you can compare
+  versions. The app itself never goes online.
+- **Choose the file name** of the result (Convert page, under "Save to"): starts as the original's
+  name and can be changed when converting one file. With several files, each keeps its own name.
+  Names that could reach another folder or that Windows doesn't allow are refused; an existing
+  file is still never overwritten.
 - `SECURITY.md`: how to report security or privacy problems privately.
+- `CODE_SIGNING.md`: code signing policy, needed for free code signing through SignPath Foundation.
+
+### Changed
+- **New look** (design "A"): a sidebar with **Convert**, **Supported formats** and **Settings**;
+  files shown as cards; the target formats as tiles with a short note on what each is good for;
+  quality as three buttons (Maximum / High / Smaller) next to them; the Convert button says what
+  will happen ("Convert 3 files to JPG").
+- **Supported formats** is now its own page with search, filter buttons per kind of file, and
+  conversions that need LibreOffice marked with a dashed outline.
+- "Keep photo metadata" and "Use Microsoft Word" moved to **Settings**; the About window opens
+  from there.
+
+- PDF tools → Merge: every PDF in the list has its own bin button to remove it (the Delete key
+  works too); "Remove" below the list still removes the selected ones.
+- Quality: the texts under Maximum / High / Smaller now say in plain words what you get
+  (e.g. "Looks the same as the original. Biggest files."); the technical numbers moved to the
+  tooltip.
+
+- The app icon is no longer repeated in the sidebar next to the name; it stays in the title
+  bar and on the taskbar.
+- "Save to" now says "Same folder as the original" instead of "Next to the originals".
+
+### Quality
+- Removing metadata never re-compresses the picture: the picture data is copied byte for byte
+  (TIFF is rewritten with the same lossless compression). Before saving, the app compares the
+  cleaned copy with the original pixel by pixel and checks it again for leftover metadata; if
+  either check fails, nothing is saved. Colour profile, orientation and animation are kept.
+- PDF tools copy pages exactly as they are (text, pictures, fonts, links, form fields): nothing
+  is redrawn or re-compressed. Bookmarks are kept when merging and editing.
+
+### Privacy and safety
+- PDF tools save into a private temporary folder first, so a failure never leaves a half-written
+  file, and they never overwrite an existing file. Split no longer replaces files of an earlier
+  split with the same names.
+- JPG → PDF: data that phones hide after the end of a photo (a second picture or the video of
+  a "motion photo") and multi-picture indexes are no longer put into the PDF.
 
 ### Development
+- The "Build and test" workflow file is renamed from `ci.yml` to `build-and-test.yml`, to match its name.
+- Runs of "Build and test" that build the Windows download are titled "📦 With download · …".
+- A push no longer cancels a test build of the same branch that was started by hand.
+- Every colour of the light and dark look is checked automatically for readable contrast
+  (WCAG: 4.5:1 for text).
+- The main window's code is split into parts (file list, options, output folder, target
+  choice, background worker), to prepare the design refresh. The window looks and works the
+  same; new tests cover each part on its own.
 - Pull requests into `main` always get the full check, also for documentation-only changes,
   so the checks can be required before merging.
 - Faster automatic tests: every commit to `dev` runs only the Linux tests; pull requests into `main` also run

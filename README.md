@@ -17,11 +17,19 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 
 **Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).** The app shows the same list under **Supported formats**.
 
-Plus PDF merge and split from the command line.
+**PDF tools:** merge PDFs, split them (every page, or ranges like 1-3, 5), and turn, delete or
+reorder pages with page previews. Pages are copied as they are, so there's no quality loss and
+the original is never changed. In the app under **PDF tools**, or `azoth pdf` on the command line.
+
+**Remove photo metadata:** save a copy of your photos without the hidden information
+(GPS location, camera, date, author, comments, preview pictures) before you share them. The
+picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC and AVIF:
+in the app, choose **Remove metadata only**; right-click a file and choose
+**Show metadata…** to see what it contains first.
 
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
 unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
-Word → PDF for an exact layout. Under **Options → Quality** you can choose smaller files
+Word → PDF for an exact layout. Under **Quality** next to the format tiles you can choose smaller files
 instead, but never below a sensible minimum.
 
 Office formats need [LibreOffice](https://www.libreoffice.org/download/) (free) to be installed.
@@ -41,8 +49,9 @@ The "Source code" archives that GitHub adds to every release are only needed by 
 unless you choose "all users". Uninstall it from *Settings → Apps* like any other program; the uninstall is clean
 and leaves no files, settings or registry entries behind.
 
-**The app:** start **Azoth Converter** from the Start menu, drag files into the window, choose a format,
-click **Convert**. It remembers your format, output folder and quality setting.
+**The app:** start **Azoth Converter** from the Start menu, drag files into the window, pick a format
+tile on the right and click **Convert**. It remembers your format, output folder and quality setting.
+Under **Settings** you can choose a light or dark look, or let it follow Windows.
 
 **The command line:**
 
@@ -59,11 +68,27 @@ azoth convert IMG_0001.heic IMG_0002.heic --to jpg -o converted
 ```
 
 ```bash
+azoth clean holiday.jpg IMG_0002.heic -o to-share
+```
+
+```bash
+azoth clean --show holiday.jpg
+```
+
+```bash
 azoth formats contract.pdf
 ```
 
 ```bash
 azoth pdf merge part1.pdf part2.pdf -o complete.pdf
+```
+
+```bash
+azoth pdf split contract.pdf --ranges "1-3, 4-"
+```
+
+```bash
+azoth pdf edit scan.pdf --delete 2 --rotate 1=90
 ```
 
 ## Development
@@ -139,6 +164,11 @@ packaging/          PyInstaller spec
 samples/            test files to try conversions with
 docs/               project plan
 ```
+
+## Code signing policy
+
+Releases are built automatically from this repository and will be signed through the
+SignPath Foundation's free program for open-source projects. See [CODE_SIGNING.md](CODE_SIGNING.md).
 
 ## Security
 
