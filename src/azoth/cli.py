@@ -10,6 +10,8 @@ Examples::
     azoth formats report.pdf
     azoth pdf merge a.pdf b.pdf -o combined.pdf
     azoth pdf split big.pdf -o pages
+    azoth pdf split big.pdf --ranges "1-3, 4-"
+    azoth pdf edit scan.pdf --delete 2 --rotate 1=90
 """
 
 from __future__ import annotations
@@ -141,18 +143,53 @@ def cmd_pdf_merge(args: argparse.Namespace) -> int:
 
 
 def cmd_pdf_split(args: argparse.Namespace) -> int:
-    from .converters.pdf import split_pdf
+    from . import pdf_tools
 
     src = Path(args.file)
-    out_dir = Path(args.output) if args.output else src.parent / f"{src.stem}_pages"
-    if out_dir.exists() and any(out_dir.iterdir()) and not args.overwrite:
-        out_dir = unique_path(out_dir)
+    out_dir = Path(args.output) if args.output else pdf_tools.split_folder(src)
     try:
-        pages = split_pdf(src, out_dir)
+        groups = None
+        if args.ranges:
+            groups = pdf_tools.parse_ranges(args.ranges, pdf_tools.page_count(src))
+        pages = pdf_tools.split(src, out_dir, groups, overwrite=args.overwrite)
     except ConversionError as exc:
         print(f"✗ {exc}", file=sys.stderr)
         return 1
     print(f"✓ Split into {len(pages)} files in {out_dir}")
+    return 0
+
+
+def cmd_pdf_edit(args: argparse.Namespace) -> int:
+    from . import pdf_tools
+
+    src = Path(args.file)
+    try:
+        total = pdf_tools.page_count(src)
+        if args.pages:
+            order = [i for g in pdf_tools.parse_ranges(args.pages, total) for i in g]
+        else:
+            order = list(range(total))
+        delete = set()
+        if args.delete:
+            delete = {i for g in pdf_tools.parse_ranges(args.delete, total) for i in g}
+        turns: dict[int, int] = {}
+        for item in args.rotate or []:
+            page, _, degrees = item.partition("=")
+            if not page.strip().isdigit() or degrees.strip() not in ("90", "180", "270", "-90"):
+                raise ConversionError(
+                    f"“{item}” should look like 2=90 (page=degrees: 90, 180, 270)."
+                )
+            index = int(page) - 1
+            if not 0 <= index < total:
+                raise ConversionError(f"Page {page} isn't in this PDF ({total} pages).")
+            turns[index] = (turns.get(index, 0) + int(degrees)) % 360
+        pages = [pdf_tools.PageEdit(i, turns.get(i, 0)) for i in order if i not in delete]
+        out = Path(args.output) if args.output else pdf_tools.edited_path(src)
+        result = pdf_tools.edit_pages(src, out, pages, overwrite=args.overwrite)
+    except ConversionError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
+    print(f"✓ Saved {len(pages)} pages → {result}")
     return 0
 
 
@@ -244,11 +281,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output", "-o", required=True)
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_merge)
-    p = pdf.add_parser("split", help="save every page as its own PDF")
+    p = pdf.add_parser("split", help="save every page (or each page range) as its own PDF")
     p.add_argument("file")
-    p.add_argument("--output", "-o", help="output folder")
+    p.add_argument("--output", "-o", help="output folder (default: name_pages next to the PDF)")
+    p.add_argument("--ranges", help='one PDF per range instead of per page, e.g. "1-3, 5, 8-"')
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_split)
+    p = pdf.add_parser(
+        "edit", help="save a copy with pages reordered, rotated or deleted (no quality loss)"
+    )
+    p.add_argument("file")
+    p.add_argument("--pages", help='new page order, e.g. "3, 1-2" (pages left out are dropped)')
+    p.add_argument("--delete", help='pages to delete, e.g. "2, 5-6"')
+    p.add_argument(
+        "--rotate", action="append", metavar="PAGE=DEGREES", help="turn a page clockwise, e.g. 2=90"
+    )
+    p.add_argument("--output", "-o", help="output file (default: 'name (edited).pdf')")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_pdf_edit)
 
     p = sub.add_parser("gui", help="open the graphical app")
     p.set_defaults(func=lambda a: __import__("azoth.gui.app", fromlist=["main"]).main())

@@ -8,6 +8,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ## [Unreleased]
 
 ### Added
+- **PDF tools** in the app (new sidebar entry): **Merge** PDFs in any order (drag or Move up /
+  Move down), **Split** a PDF into single pages or page ranges like "1-3, 5, 8-", and **Edit
+  pages**: turn, delete and reorder pages using page previews. The result is saved as a new
+  file; the original is never changed.
+- Command line: `azoth pdf split --ranges "1-3, 5"` and the new `azoth pdf edit` (`--pages`,
+  `--delete`, `--rotate 2=90`).
 - **Light and dark look:** under **Settings → Appearance**, choose *Follow Windows* (the default),
   *Light* or *Dark*. The window's title bar follows too.
 - Each file in the list has its own **remove** button, its own progress bar, and **Open** /
@@ -39,7 +45,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   cleaned copy with the original pixel by pixel and checks it again for leftover metadata; if
   either check fails, nothing is saved. Colour profile, orientation and animation are kept.
 
+- PDF tools copy pages exactly as they are (text, pictures, fonts, links, form fields): nothing
+  is redrawn or re-compressed. Bookmarks are kept when merging and editing.
+
 ### Privacy and safety
+- PDF tools save into a private temporary folder first, so a failure never leaves a half-written
+  file, and they never overwrite an existing file. Split no longer replaces files of an earlier
+  split with the same names.
 - JPG → PDF: data that phones hide after the end of a photo (a second picture or the video of
   a "motion photo") and multi-picture indexes are no longer put into the PDF.
 

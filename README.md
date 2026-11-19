@@ -17,7 +17,9 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 
 **Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).** The app shows the same list under **Supported formats**.
 
-Plus PDF merge and split from the command line.
+**PDF tools:** merge PDFs, split them (every page, or ranges like 1-3, 5), and turn, delete or
+reorder pages with page previews. Pages are copied as they are, so there's no quality loss and
+the original is never changed. In the app under **PDF tools**, or `azoth pdf` on the command line.
 
 **Remove photo metadata:** save a copy of your photos without the hidden information
 (GPS location, camera, date, author, comments, preview pictures) before you share them. The
@@ -79,6 +81,14 @@ azoth formats contract.pdf
 
 ```bash
 azoth pdf merge part1.pdf part2.pdf -o complete.pdf
+```
+
+```bash
+azoth pdf split contract.pdf --ranges "1-3, 4-"
+```
+
+```bash
+azoth pdf edit scan.pdf --delete 2 --rotate 1=90
 ```
 
 ## Development

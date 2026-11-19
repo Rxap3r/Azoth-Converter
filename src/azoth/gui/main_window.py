@@ -37,6 +37,7 @@ from .about import AboutDialog
 from .convert_page import ConvertPage
 from .file_list import DONE, FAILED, WAITING
 from .formats_panel import FormatsPanel
+from .pdf_tools_page import PdfToolsPage
 from .resources import icon_path
 from .settings import Preferences
 from .settings_page import SettingsPage
@@ -44,8 +45,12 @@ from .targets import CLEAN_TARGET, display_name
 from .widgets import label
 from .worker import ConversionWorker
 
-PAGES = [("convert", "Convert", "convert"), ("formats", "Supported formats", "formats"),
-         ("settings", "Settings", "settings")]  # fmt: skip
+PAGES = [  # (key, text in the sidebar, icon)
+    ("convert", "Convert", "convert"),
+    ("pdf", "PDF tools", "pdf"),
+    ("formats", "Supported formats", "formats"),
+    ("settings", "Settings", "settings"),
+]
 
 
 class MainWindow(QMainWindow):
@@ -93,6 +98,7 @@ class MainWindow(QMainWindow):
         self.cancel_btn.clicked.connect(self._cancel_conversion)
         self.convert_btn.clicked.connect(self.start_conversion)
 
+        self.pdf_page = PdfToolsPage()
         libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
         self.formats_panel = FormatsPanel(libreoffice_installed)
         self.settings_page = SettingsPage(
@@ -109,6 +115,7 @@ class MainWindow(QMainWindow):
         self._page_index = {}
         for key, widget in (
             ("convert", self.convert_page),
+            ("pdf", self.pdf_page),
             ("formats", self.formats_panel),
             ("settings", self.settings_page),
         ):
@@ -223,8 +230,12 @@ class MainWindow(QMainWindow):
 
     def dropEvent(self, event: QDropEvent) -> None:
         self.convert_page.set_drop_active(False)
+        paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
+        if self.current_page() == "pdf":
+            self.pdf_page.add_files(paths)  # goes to the PDF tool that is open
+            return
         self.show_page("convert")
-        self.add_files(u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile())
+        self.add_files(paths)
 
     # --- target formats -------------------------------------------------------
 

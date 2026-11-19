@@ -210,3 +210,38 @@ def test_jpg_to_pdf_drops_data_hidden_after_the_photo(tmp_path):
         embedded = doc.extract_image(doc[0].get_images()[0][0])["image"]
     assert b"SecretTrailer" not in embedded
     assert embedded.endswith(b"\xff\xd9")
+
+
+# --- PDF tools (merge, split, edit pages) -------------------------------------------
+
+
+def test_pdf_tools_copy_pages_without_redrawing(tmp_path):
+    from azoth import pdf_tools
+
+    src = tmp_path / "photos.pdf"
+    doc = pymupdf.open()
+    for colour in ((200, 30, 30), (30, 160, 60)):
+        buf = io.BytesIO()
+        Image.new("RGB", (300, 200), colour).save(buf, "JPEG", quality=92)
+        page = doc.new_page()
+        page.insert_text((72, 60), "Holiday", fontsize=18)
+        page.insert_image(pymupdf.Rect(72, 80, 372, 280), stream=buf.getvalue())
+    doc.save(src)
+    doc.close()
+
+    def pages(path):
+        with pymupdf.open(path) as d:
+            return [
+                (p.read_contents(), [d.extract_image(x[0])["image"] for x in p.get_images()])
+                for p in d
+            ]
+
+    original = pages(src)
+    edited = pdf_tools.edit_pages(
+        src, tmp_path / "e.pdf", [pdf_tools.PageEdit(1, 90), pdf_tools.PageEdit(0)]
+    )
+    assert pages(edited) == [original[1], original[0]]  # same drawing, same photo bytes
+    merged = pdf_tools.merge([src, src], tmp_path / "m.pdf")
+    assert pages(merged) == original * 2
+    [part] = pdf_tools.split(src, tmp_path / "s", [[1]])
+    assert pages(part) == [original[1]]

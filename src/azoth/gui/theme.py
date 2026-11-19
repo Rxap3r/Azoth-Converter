@@ -275,6 +275,12 @@ QMenu {{ background: {c.surface}; border: 1px solid {c.border_strong}; padding: 
 QMenu::item {{ padding: 6px 16px; border-radius: 4px; }}
 QMenu::item:selected {{ background: {c.accent_soft}; color: {c.accent_soft_text}; }}
 QMenu::item:disabled {{ color: {c.muted}; }}
+QListWidget {{ background: {c.surface}; border: 1px solid {c.border}; border-radius: 8px; padding: 4px;
+    outline: 0; }}
+QListWidget::item {{ padding: 8px 10px; border-radius: 6px; color: {c.text}; }}
+QListWidget::item:hover {{ background: {c.hover}; }}
+QListWidget::item:selected {{ background: {c.accent_soft}; color: {c.accent_soft_text}; }}
+QListWidget[role="pages"]::item {{ padding: 6px; }}
 QTreeWidget {{ background: {c.surface}; border: 1px solid {c.border}; border-radius: 8px; }}
 QHeaderView::section {{ background: {c.note}; border: 0; padding: 6px; }}
 """

@@ -86,8 +86,8 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | **PDF → Word** | PDF → DOCX (also DOC, ODT, RTF via DOCX) | pdf2docx | ✅ |
 | **PDF → images / text** | PDF → PNG, JPG, WebP, BMP, multi-page TIFF; PDF → TXT | PyMuPDF | ✅ |
 | **Images → PDF** | any image → PDF | Pillow | ✅ |
-| PDF tools | merge, split | PyMuPDF | ✅ (command line) |
-| PDF tools | rotate, reorder, compress, password, in the GUI | PyMuPDF | 🔜 |
+| PDF tools | merge, split (by page or range), rotate, delete, reorder pages; in the app and the command line | PyMuPDF | ✅ |
+| PDF tools | compress, password | PyMuPDF | 🔜 |
 | Scanned PDFs | OCR → searchable PDF, then Word | Tesseract | 🔜 |
 | Spreadsheets | XLSX, XLS, ODS, CSV ↔ each other, → PDF | LibreOffice | ✅ |
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
@@ -133,7 +133,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Release 0.1.0** (18 Nov 2026), repository made public, `main` protected, security policy (`SECURITY.md`) and private vulnerability reporting
 
 ### Phase 2: PDF power tools and OCR (≈ 4–6 weeks)
-- [ ] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails
+- [x] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails. *Done (Nov 2026): lossless (pages copied, not redrawn), bookmarks kept; `pdf_tools.py`, `gui/pdf_tools_page.py`, `azoth pdf split --ranges`, `azoth pdf edit`.*
 - [ ] Compress PDF (downsample images)
 - [ ] Add or remove a password (only with the user's own password)
 - [ ] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs)
@@ -148,7 +148,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Light / dark mode setting** (owner's wish, Nov 2026): Settings offers *Follow Windows* (default), *Light* and *Dark*
 - [x] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain. *Done with style A (Nov 2026); not yet seen on a real Windows PC.*
 - [x] Modern Windows 11 look (Fluent style): rounded corners, accent colour; follows Windows light/dark mode. *Own stylesheet on Qt's Fusion style (`gui/theme.py`); the Mica see-through background is not done.*
-- [x] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**. *PDF tools gets its sidebar entry when the tools are built.*
+- [x] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**. *All four entries exist (PDF tools since Nov 2026).*
 - [x] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
 - [x] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
 - [x] Target format picker as a grid of format tiles, with the most used ones first

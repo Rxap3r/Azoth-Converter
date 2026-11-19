@@ -27,10 +27,12 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Next planned work (owner decides the order):**
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;
-  - PDF tools and OCR (release 0.2; "remove photo metadata" is done);
+  - PDF compress and passwords, then OCR (release 0.2; metadata tool and the first PDF tools
+    are done);
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
-    real Windows PC; icon choice postponed by the owner) → PDF tools in the new design → OCR;
+    real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
+    edit pages; compress and passwords next) → OCR;
   - technical improvements: faster batches, smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
@@ -135,11 +137,13 @@ src/azoth/
   converters/base.py  Converter plugin interface
   converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
   cli.py              `azoth` command line
+  pdf_tools.py        merge, split, edit pages (lossless; used by the app and `azoth pdf`)
   metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py
                       (format tiles), options_panel.py (quality), output_folder.py,
-                      formats_panel.py, settings_page.py, worker.py (background thread),
+                      formats_panel.py, settings_page.py, pdf_tools_page.py (Merge / Split /
+                      Edit pages), worker.py (background thread),
                       targets.py (which targets are offered, no Qt), theme.py (light/dark
                       colours + stylesheet; widgets only set a "role" property), icons.py
                       (line icons drawn from SVG), About dialog, settings.py (QSettings)
