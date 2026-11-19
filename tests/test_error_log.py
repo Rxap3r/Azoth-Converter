@@ -5,6 +5,7 @@ from __future__ import annotations
 import faulthandler
 import sys
 import threading
+from pathlib import Path
 
 import pytest
 
@@ -76,7 +77,7 @@ def test_settings_button_opens_the_log(qtbot, log, monkeypatch):
     opened = []
     monkeypatch.setattr(settings_page.QDesktopServices, "openUrl", opened.append)
     page.log_btn.click()
-    assert [u.toLocalFile() for u in opened] == [str(path)]
+    assert [Path(u.toLocalFile()) for u in opened] == [path]
 
 
 def test_failed_conversion_is_logged(log, sample_png, monkeypatch):
