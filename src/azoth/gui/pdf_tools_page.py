@@ -7,6 +7,7 @@ choices, runs the job in a background thread and shows the result.
 from __future__ import annotations
 
 import threading
+import traceback
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
@@ -38,7 +39,7 @@ from PySide6.QtWidgets import (
 
 from .. import formats, pdf_tools
 from ..converters import ConversionError
-from . import icons
+from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
 from .output_folder import OutputFolderRow
 from .settings import forget_file_dialog_history
@@ -81,6 +82,7 @@ class Task(QObject):
             except ConversionError as exc:
                 self.failed.emit(str(exc))
             except Exception as exc:  # never let a bad file kill the app
+                error_log.write("PDF tool failed", traceback.format_exc())
                 self.failed.emit(f"Unexpected error: {exc}")
             else:
                 self.done.emit(result)

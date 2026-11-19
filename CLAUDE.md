@@ -157,6 +157,7 @@ src/azoth/
                       targets.py (which targets are offered, no Qt), theme.py (light/dark
                       colours + stylesheet; widgets only set a "role" property), icons.py
                       (line icons drawn from SVG), About dialog, settings.py (QSettings)
+                      error_log.py (local error log + crash dump, Settings → Error log…)
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),

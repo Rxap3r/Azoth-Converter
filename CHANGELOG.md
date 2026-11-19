@@ -7,6 +7,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+- **Error log:** if something goes wrong, the details are saved in a file on your computer
+  (Settings → **Error log…**) and a short message is shown instead of the app just closing.
+  Hard crashes inside a library are written there too. The log is never sent anywhere and is
+  removed by the uninstaller.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added

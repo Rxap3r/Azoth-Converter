@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__
-from . import theme
+from . import error_log, theme
 from .widgets import label
 
 METADATA_DETAILS = (
@@ -86,11 +86,16 @@ class SettingsPage(QWidget):
         self.updates_btn = QPushButton("Check for updates…")
         self.updates_btn.setToolTip(RELEASES_URL)
         self.updates_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
+        self.log_btn = QPushButton("Error log…")
+        self.log_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(error_log.log_path())))
+        )
         buttons = QWidget()
         row = QHBoxLayout(buttons)
         row.setContentsMargins(0, 0, 0, 0)
         row.addWidget(self.updates_btn)
         row.addWidget(self.about_btn)
+        row.addWidget(self.log_btn)
         row.addStretch(1)
         about = [
             label("About", "h2"),
@@ -119,6 +124,19 @@ class SettingsPage(QWidget):
             card.setMinimumWidth(520)
         self.about_btn.setMaximumWidth(260)
         layout.addStretch(1)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self.update_log_button()
+
+    def update_log_button(self) -> None:
+        exists = error_log.log_path().is_file()
+        self.log_btn.setEnabled(exists)
+        self.log_btn.setToolTip(
+            "Details of errors, saved on this computer only. Attach it when reporting a problem."
+            if exists
+            else "No errors so far."
+        )
 
     def theme_choice(self) -> str:
         return next(k for k, b in self.theme_buttons.items() if b.isChecked())

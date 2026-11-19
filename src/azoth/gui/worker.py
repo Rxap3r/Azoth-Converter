@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import traceback
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal, Slot
@@ -10,6 +11,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 from .. import metadata
 from ..converters import ConversionCancelled, ConversionError
 from ..engine import Engine
+from . import error_log
 from .targets import CLEAN_TARGET
 
 
@@ -58,6 +60,10 @@ class ConversionWorker(QObject):
             except ConversionError as exc:
                 self.file_failed.emit(row, str(exc))
             except Exception as exc:  # never let one bad file kill the app
+                error_log.write(
+                    f"Converting a {path.suffix or 'file'} to {self.target} failed",
+                    traceback.format_exc(),
+                )
                 self.file_failed.emit(row, f"Unexpected error: {exc}")
             else:
                 self.file_done.emit(row, outputs, notes)
