@@ -11,6 +11,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - `SECURITY.md`: how to report security or privacy problems privately.
 
 ### Development
+- Pull requests into `main` always get the full check, also for documentation-only changes,
+  so the checks can be required before merging.
 - Faster automatic tests: every commit to `dev` runs only the Linux tests; pull requests into `main` also run
   the Windows tests and build and test the installer; documentation-only changes start no run.
 - New **Release** workflow: started by hand on `main`, it tests everything, builds the installer

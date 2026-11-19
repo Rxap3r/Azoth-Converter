@@ -24,8 +24,9 @@ Rules:
 - Never force-push `main` or `dev`.
 - The **Build and test** workflow (`.github/workflows/ci.yml`): every push to `dev` runs only the fast Linux tests; pull
   requests into `main`, pushes to `main` and manual runs also run the Windows tests and build
-  and test the ~190 MB installer. Doc-only changes (`docs/**`, `*.md`) start no run. This keeps
-  Actions minutes and artifact storage low; don't change it without asking.
+  and test the ~190 MB installer. Doc-only pushes (`docs/**`, `*.md`) start no run, but pull
+  requests into `main` always get the full check, because the three checks (Tests (Linux),
+  Tests (Windows), Windows app) are required before merging. Don't change this without asking.
 
 ## Releasing (only when the owner asks)
 
