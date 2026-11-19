@@ -66,10 +66,7 @@ class SettingsPage(QWidget):
         self.metadata_check = QCheckBox(
             "Keep photo metadata when converting (camera, date, GPS location)"
         )
-        self.metadata_check.setToolTip(
-            "Off by default: converted photos don't reveal where they were taken."
-        )
-        self.metadata_details = label(METADATA_DETAILS, "small", wrap=True)
+        self.metadata_check.setToolTip(METADATA_DETAILS)  # shown on hover
         self.word_check = QCheckBox("Use Microsoft Word for Word → PDF (exact layout and fonts)")
         self.word_check.setToolTip(
             "Word converts the file on this computer; nothing is uploaded.\n"
@@ -81,7 +78,6 @@ class SettingsPage(QWidget):
         conversion = [
             label("Converting", "h2"),
             self.metadata_check,
-            self.metadata_details,
             self.word_check,
         ]
 

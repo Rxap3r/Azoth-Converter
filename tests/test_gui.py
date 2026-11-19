@@ -293,7 +293,7 @@ def test_check_for_updates_only_opens_the_browser(window, monkeypatch):
 
 
 def test_metadata_setting_explains_what_is_removed(window):
-    text = window.settings_page.metadata_details.text()
+    text = window.settings_page.metadata_check.toolTip()  # explained on hover
     assert not window.settings_page.metadata_check.isChecked()  # removed by default
     for word in ("GPS location", "date and time", "serial number", "preview", "Kept:"):
         assert word in text
