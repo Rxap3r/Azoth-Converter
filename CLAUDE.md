@@ -71,6 +71,11 @@ Rules:
   If the session started on another branch that already has commits not on `dev`, bring them over (`git checkout dev && git merge --no-edit <that-branch>`) instead of losing them.
 - **Never commit or push to `main` directly.** `main` only changes through a **pull request from
   `dev` into `main` that the owner reviews and merges**. Never merge it yourself.
+- **Before opening a pull request into `main`** (owner's wish, Nov 2026): check whether the
+  changes since the last release are worth a release (new features or fixes users notice). If
+  yes, first ask the owner whether to release; if they agree, prepare the release on `dev`
+  (see "Releasing") and only then open one pull request, so `main` doesn't need a second one
+  just for the version and notes.
 - **Only open that pull request when the owner explicitly tells you to** (e.g. "pull it"). When
   work seems ready, you may ask whether they want a pull request, but wait for the go-ahead;
   a request for a release or a build is not a go-ahead for a pull request on its own.
