@@ -75,6 +75,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ### Development
 - The "Build and test" workflow file is renamed from `ci.yml` to `build-and-test.yml`, to match its name.
 - Runs of "Build and test" that build the Windows download are titled "📦 With download · …".
+- A push no longer cancels a test build of the same branch that was started by hand.
 - Every colour of the light and dark look is checked automatically for readable contrast
   (WCAG: 4.5:1 for text).
 - The main window's code is split into parts (file list, options, output folder, target

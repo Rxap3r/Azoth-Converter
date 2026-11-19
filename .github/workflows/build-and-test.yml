@@ -29,8 +29,9 @@ permissions:
   contents: read
 
 # A newer push to the same branch cancels the older run that's still going.
+# Test builds started by hand have their own slot, so a push doesn't cancel them.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
