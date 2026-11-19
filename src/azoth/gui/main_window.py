@@ -56,7 +56,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.prefs = prefs or Preferences()
         self.engine = engine or Engine(all_converters(use_word=self.prefs.use_word))
-        self.last_output: Path | None = None
+        self.last_output: Path | None = None  # set only when all results share one folder
+        self._output_folders: set[Path] = set()
         self._thread: QThread | None = None
         self._worker: ConversionWorker | None = None
         self._cancel = threading.Event()
@@ -91,7 +92,7 @@ class MainWindow(QMainWindow):
         self.open_btn = page.open_btn
         self.convert_btn = page.convert_btn
         self.cancel_btn = page.cancel_btn
-        self.file_list.changed.connect(self._refresh)
+        self.file_list.changed.connect(self._files_changed)
         self.target_picker.changed.connect(lambda _target: self._update_notes())
         self.open_btn.clicked.connect(self._open_output_folder)
         self.cancel_btn.clicked.connect(self._cancel_conversion)
@@ -234,6 +235,14 @@ class MainWindow(QMainWindow):
 
     # --- target formats -------------------------------------------------------
 
+    def _files_changed(self) -> None:
+        """Files added or removed: the result of the last run no longer matches the list."""
+        if self._thread is None:
+            self.status_label.setText("")
+            self.progress.setVisible(False)
+            self.open_btn.setVisible(False)
+        self._refresh()
+
     def _refresh(self) -> None:
         file_formats = self.file_list.formats
         self.name_row.set_sources(self.file_list.files)
@@ -329,6 +338,8 @@ class MainWindow(QMainWindow):
         self.progress.setValue(0)
         self.progress.setVisible(True)
         self.open_btn.setVisible(False)
+        self._output_folders.clear()
+        self.last_output = None
         options = {
             "level": self.quality.level(),
             "keep_metadata": self.settings_page.metadata_check.isChecked(),
@@ -389,8 +400,7 @@ class MainWindow(QMainWindow):
             output=outputs[0] if outputs else None,
             state=DONE,
         )
-        if outputs:
-            self.last_output = Path(outputs[0]).parent
+        self._output_folders.update(Path(p).parent for p in outputs)
 
     @Slot(int, str)
     def _on_failed(self, row: int, message: str) -> None:
@@ -408,6 +418,11 @@ class MainWindow(QMainWindow):
         self._worker = None
         self.convert_btn.setVisible(True)
         self.cancel_btn.setVisible(False)
+        # One button for the whole batch only makes sense when all results are in one folder;
+        # otherwise each file has its own "Show in folder".
+        self.last_output = (
+            next(iter(self._output_folders)) if len(self._output_folders) == 1 else None
+        )
         self.open_btn.setVisible(self.last_output is not None)
         self.status_label.setText("Cancelled" if cancelled else "Finished")
         if not cancelled:

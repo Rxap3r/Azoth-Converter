@@ -297,3 +297,34 @@ def test_metadata_setting_explains_what_is_removed(window):
     assert not window.settings_page.metadata_check.isChecked()  # removed by default
     for word in ("GPS location", "date and time", "serial number", "preview", "Kept:"):
         assert word in text
+
+
+def test_open_folder_only_for_one_folder_and_result_clears(window, qtbot, sample_png, tmp_path):
+    import shutil
+
+    def convert():
+        assert window.target_picker.select("webp")
+        window.start_conversion()
+        qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    one = shutil.copy(sample_png, a / "one.png")
+    two = shutil.copy(sample_png, b / "two.png")
+
+    window.add_files([one])
+    convert()
+    assert window.open_btn.isVisibleTo(window) and window.last_output == a
+
+    window.add_files([two])  # list changed: the old result is cleared
+    assert not window.open_btn.isVisibleTo(window)
+    assert not window.progress.isVisibleTo(window) and window.status_label.text() == ""
+
+    convert()  # results in two folders: each file has its own "Show in folder" instead
+    assert window.status_label.text() == "Finished"
+    assert not window.open_btn.isVisibleTo(window) and window.last_output is None
+
+    window.file_list.remove_rows(range(window.file_list.count()))  # empty list
+    assert window.status_label.text() == "" and not window.progress.isVisibleTo(window)

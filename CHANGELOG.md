@@ -13,6 +13,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   Hard crashes inside a library are written there too. The log is never sent anywhere and is
   removed by the uninstaller.
 
+### Changed
+- **Open output folder** (under the Convert button) only appears when all results are in one
+  folder. When they are in different folders, use **Show in folder** on each file.
+- Adding or removing files clears "Finished" and the progress bar of the last conversion.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added
