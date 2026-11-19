@@ -2,6 +2,47 @@
 
 Guidance for Claude sessions working on this repository.
 
+## Current status (keep this section up to date)
+
+Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
+
+- **Released:** Azoth Converter **0.1.0** (18 Nov 2026) on GitHub Releases (installer + portable
+  ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
+  the old URL redirects, but connect new sessions to the new name).
+- **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
+  (Linux), Tests (Windows) and Windows app required). `dev` accepts direct pushes. Dependabot
+  alerts, private vulnerability reporting and two-factor authentication are on.
+- **Waiting on the owner:** the SignPath Foundation code-signing application. Sequence:
+  1. `CODE_SIGNING.md` reaches `main` (pull request when the owner says "pull it");
+  2. the owner applies on signpath.org with the repo link and the link to `CODE_SIGNING.md`
+     on `main`;
+  3. after approval, the owner saves the SignPath API key as a GitHub secret (never in chat);
+  4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
+     build → sign the `.exe` files → build the installer → sign the installer, with manual
+     approval per release in SignPath.
+- **Unreleased work on `dev`:** see `CHANGELOG.md` → Unreleased (workflow and docs changes only,
+  no app changes since 0.1.0).
+- **Next planned work (owner decides the order):**
+  - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
+    smiley from afar), a cleaner "Supported formats" section;
+  - PDF tools and OCR, "remove photo metadata" (release 0.2);
+  - technical improvements: faster batches, split `gui/main_window.py`, smaller download;
+  - a fully portable version.
+- **Session limits:** sessions can push branches but **not tags**, which is why releases are
+  created by the Release workflow. To get a test build of `dev`, start "Build and test" with
+  `workflow_dispatch` on `dev` (the owner can also do it in the Actions tab).
+
+## Working with the owner
+
+- Explain things in plain, simple language; the owner isn't a professional developer. Avoid
+  jargon or explain it ("CI" was renamed to "Build and test" for that reason).
+- The owner trusts you with technical choices, but wants to be asked before pull requests,
+  releases and anything that changes GitHub settings, workflows or rules.
+- Priorities: data safety first, then **1:1 conversion quality**, then clean and efficient
+  solutions. Never weaken tests or checks to save time.
+- Write ideas and requests the owner mentions into `docs/PROJECT_PLAN.md` right away, so
+  nothing gets lost between sessions.
+
 ## Branches (important)
 
 | Branch | Purpose |
