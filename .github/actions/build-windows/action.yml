@@ -1,0 +1,95 @@
+name: Build Windows app
+description: >-
+  Builds the app and the installer, tests install -> run -> uninstall (including leftover
+  checks) and uploads the installer. With `portable: "true"` it also uploads the portable
+  ZIP (used by the Release workflow, which publishes exactly these tested files).
+  Runs on windows-latest; check out the code first.
+inputs:
+  portable:
+    description: '"true" to also upload the portable ZIP (and keep artifacts 30 days)'
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+    - name: Install
+      shell: pwsh
+      run: |
+        pip install --require-hashes -r requirements-dev.lock
+        pip install --no-deps .
+    - name: Build
+      working-directory: packaging
+      shell: pwsh
+      run: pyinstaller azoth.spec --noconfirm
+    - name: Smoke test the built program
+      shell: pwsh
+      run: |
+        $exe = "packaging/dist/AzothConverter/azoth.exe"
+        & $exe --version
+        & $exe formats
+        if ($LASTEXITCODE -ne 0) { exit 1 }
+    - name: Build installer
+      shell: pwsh
+      working-directory: packaging
+      run: |
+        $version = python -c "import azoth; print(azoth.__version__)"
+        $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $iscc)) {
+          choco install innosetup --no-progress -y
+        }
+        & $iscc "/DAppVersion=$version" installer.iss
+        if ($LASTEXITCODE -ne 0) { exit 1 }
+        "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+    - name: Test installer (install, run, uninstall)
+      shell: pwsh
+      run: |
+        $setup = "packaging/Output/AzothConverter-Setup-$env:VERSION.exe"
+        $dir = "$env:RUNNER_TEMP\fc-install"
+        Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
+        & "$dir\azoth.exe" --version
+        if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
+        # Simulate everything the app can leave behind while being used:
+        $data = "$env:APPDATA\Azoth Converter"
+        New-Item -ItemType Directory -Force "$data" | Out-Null
+        "x" | Out-File "$data\settings.ini"
+        "x" | Out-File "$data\QtProject.ini"
+        New-Item -ItemType Directory -Force "$env:TEMP\azoth-crashed-job" | Out-Null
+        "x" | Out-File "$env:TEMP\azoth-crashed-job\leftover.tmp"
+        "x" | Out-File "$dir\created-later.log"
+        Start-Process "$dir\unins000.exe" -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
+        Start-Sleep -Seconds 5
+        $left = @()
+        if (Test-Path "$dir") { $left += "program folder" }
+        if (Test-Path "$data") { $left += "settings folder" }
+        if (Test-Path "$env:TEMP\azoth-crashed-job") { $left += "temp folder" }
+        if (Test-Path "HKCU:\Software\Azoth Converter") { $left += "registry key" }
+        $entries = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
+          Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -eq "Azoth Converter" }
+        if ($entries) { $left += "Apps & features entry" }
+        if ($left.Count -gt 0) { throw "uninstall left behind: $($left -join ', ')" }
+        "Clean uninstall: nothing left behind"
+    - name: Upload installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: AzothConverter-Setup
+        path: packaging/Output/AzothConverter-Setup-*.exe
+        compression-level: 0  # already compressed
+        retention-days: ${{ inputs.portable == 'true' && 30 || 7 }}
+    - name: Make portable ZIP
+      if: inputs.portable == 'true'
+      shell: pwsh
+      run: |
+        Compress-Archive -Path "packaging/dist/AzothConverter/*" `
+          -DestinationPath "packaging/Output/AzothConverter-portable-$env:VERSION.zip"
+    - name: Upload portable ZIP
+      if: inputs.portable == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: AzothConverter-portable
+        path: packaging/Output/AzothConverter-portable-*.zip
+        compression-level: 0  # already compressed
+        retention-days: 30

@@ -1,11 +1,12 @@
-name: CI
+name: Build and test
 
 # - Every push to dev or main: fast Linux tests (~2 min).
 # - Pull requests into main and pushes to main: also Windows tests and the
 #   Windows installer build with the install/uninstall test.
-# - Started by hand (Actions -> CI -> Run workflow): the full check for any branch.
+# - Started by hand (Actions -> Build and test -> Run workflow): the full check for any branch.
 # - Changes that only touch documentation start no run at all.
 # Releases are published by the separate "Release" workflow.
+# The steps themselves live in .github/actions/ (run-tests, build-windows).
 on:
   push:
     branches: [main, dev]
@@ -25,22 +26,30 @@ concurrency:
 
 jobs:
   tests-linux:
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: ubuntu-latest
+    name: Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
   tests-windows:
+    name: Tests (Windows)
     if: >-
       github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
       github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
+  # Runs at the same time as the tests (it doesn't depend on them), which saves
+  # several minutes. A pull request still needs all three checks to be green.
   windows-app:
-    needs: [tests-linux, tests-windows]
-    uses: ./.github/workflows/build-windows.yml
-    permissions:
-      contents: write
-    with:
-      release: false
+    name: Windows app
+    if: >-
+      github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-windows

@@ -42,7 +42,7 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 | GUI | **PySide6 (Qt 6)** | Native-looking, mature, handles drag-and-drop, dark mode and high-DPI screens. |
 | Packaging | **PyInstaller**, then an **Inno Setup** installer and a portable ZIP, with winget/MSIX later | A normal Windows install experience. |
 | Engines | Proven tools wrapped behind one plugin interface (see §4) | FFmpeg, LibreOffice and PyMuPDF are industry standard. No need to reinvent codecs. |
-| CI | GitHub Actions on Windows and Linux | Tests and lint on every push; the Windows build for `main` and on demand (saves artifact storage). Official releases go to GitHub Releases. |
+| Automatic tests | GitHub Actions: **Build and test** and **Release** workflows | Linux tests on every commit; Windows tests and the installer build for pull requests into `main` and `main` itself; releases started by hand. |
 
 ---
 
@@ -127,8 +127,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Locked dependency versions with hashes
 - [x] Target formats sorted by usefulness (e.g. PDF → Word first; DOC/XLS/PPT last); the first one is the default
 - [x] Remember settings between sessions (target format, output folder, quality, Word, metadata); stored locally only, removed on uninstall
-- [x] Clean uninstall: one storage folder (no registry), file dialog history erased after use, crash leftovers cleaned at start; the uninstaller removes program folder, settings, temp leftovers and its own entries. CI simulates leftovers and fails if anything remains.
-- [x] Inno Setup installer: per-user install without admin rights, Start menu entry, optional desktop icon, clean uninstall; tested automatically in CI (install → run → uninstall)
+- [x] Clean uninstall: one storage folder (no registry), file dialog history erased after use, crash leftovers cleaned at start; the uninstaller removes program folder, settings, temp leftovers and its own entries. The automatic build simulates leftovers and fails if anything remains.
+- [x] Inno Setup installer: per-user install without admin rights, Start menu entry, optional desktop icon, clean uninstall; tested automatically on every build (install → run → uninstall)
 - [x] App icon ("F1": document with a golden seal holding the convert arrows, indigo tile), About window with version, privacy promise, license and component licenses
 - [ ] **Release 0.1**, then make the repository public
 
@@ -156,6 +156,13 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %
 - Options: Qt's built-in Windows 11 style plus our own stylesheet, or the GPL-licensed *PySide6-Fluent-Widgets* library (compatible with our license)
 
+### Technical improvements (from the code review, Nov 2026; schedule as needed)
+- [ ] **Faster large batches:** keep one LibreOffice (and one Word) instance running for a whole batch instead of starting it for every file (~1 s overhead per file today); convert several files in parallel where the engine allows it (images, PDF → images)
+- [ ] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh
+- [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
+- [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
+- [ ] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
+
 ### Phase 3: Audio and video (≈ 4 weeks)
 - [ ] FFmpeg plugin with progress parsed from FFmpeg's output
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
@@ -164,6 +171,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **Release 0.3**
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
+- [ ] **Fully portable version** (runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
 - [ ] Windows Explorer right-click menu: "Convert with Azoth Converter → …"
 - [ ] Watch folders (files dropped in a folder are converted automatically)
 - [ ] Data formats (CSV/JSON/XML/YAML/XLSX), Markdown/HTML/EPUB, archives, Camera RAW, SVG
@@ -189,13 +197,13 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 | Check | How | Status |
 |-------|-----|--------|
 | No network in the app process | Autouse pytest fixture blocks sockets for every test | ✅ |
-| No network from engines (LibreOffice, later FFmpeg) | CI job with network blocked at the OS level (firewall rule) | 🔜 |
+| No network from engines (LibreOffice, later FFmpeg) | Automatic test with network blocked at the OS level (firewall rule) | 🔜 |
 | Temp files cleaned | Tests check the temp folder after success, failure and cancel | ✅ |
 | Metadata stripping | Tests check that GPS and EXIF data is gone, and that rotation is still correct | ✅ |
 | LibreOffice hardened | Fresh profile per job: macros disabled, link updates never, update check off | ✅ |
 | Originals untouched, no silent overwrite | Tests | ✅ |
 | Untrusted input | Fuzz tests on detection and parsers; malicious sample files | 🔜 |
-| Supply chain: locked versions | `requirements.lock` / `requirements-dev.lock` with hashes; CI installs with `--require-hashes` | ✅ |
+| Supply chain: locked versions | `requirements.lock` / `requirements-dev.lock` with hashes; the automatic builds install with `--require-hashes` | ✅ |
 | Supply chain: releases | Signed releases, SBOM | 🔜 |
 
 ---
@@ -204,7 +212,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 
 - **Unit and integration tests** (`tests/`): every converter, the engine, the CLI and the GUI (pytest-qt, headless).
 - **Round-trip tests:** e.g. DOCX → PDF → DOCX keeps headings, text and tables.
-- **Office tests** run when LibreOffice is installed. CI installs it on both Windows and Linux.
+- **Office tests** run when LibreOffice is installed. The automatic tests install it on both Windows and Linux.
 - **Manual release checklist:** a clean Windows 10 and Windows 11 VM: install, convert one file per category, uninstall, check nothing is left behind.
 
 ---

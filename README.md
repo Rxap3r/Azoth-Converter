@@ -3,7 +3,7 @@
 An offline desktop file converter for Windows (macOS and Linux later).
 **Your files never leave your computer:** no uploads, no cloud, no telemetry. See [PRIVACY.md](PRIVACY.md).
 
-Status: early development (0.1). See the [project plan](docs/PROJECT_PLAN.md) for the roadmap.
+Status: early development (0.1). What changed in each version: [CHANGELOG.md](CHANGELOG.md). See the [project plan](docs/PROJECT_PLAN.md) for the roadmap.
 
 ## What it converts today
 
@@ -30,6 +30,12 @@ PDF → Word, PDF ↔ images and the image conversions work without it.
 ## Using it
 
 **Download:** the latest installer is on the [Releases page](https://github.com/Rxap3r/Azoth-Converter/releases/latest).
+
+Each release offers two versions of the same app:
+- **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry and clean uninstall.
+- **AzothConverter-portable-<version>.zip**: no installation; unzip and run `AzothConverter.exe`, delete the folder to remove it.
+
+The "Source code" archives that GitHub adds to every release are only needed by developers.
 
 **Install:** run `AzothConverter-Setup-<version>.exe`. No admin rights needed; it installs just for you
 unless you choose "all users". Uninstall it from *Settings → Apps* like any other program; the uninstall is clean
@@ -117,7 +123,7 @@ iscc /DAppVersion=0.1.0 installer.iss
 ```
 
 The app icon is drawn by `python packaging/make_icon.py`.
-GitHub Actions builds it automatically for pull requests into `main` and for `main` itself. For any other branch (e.g. `dev`), start a build by hand: **Actions** tab → **CI** → **Run workflow** → choose the branch. When the run finishes, download `AzothConverter-Setup` (the installer) from its **Artifacts** section. These test builds are kept for 7 days; released versions stay permanently on the [Releases page](https://github.com/Rxap3r/Azoth-Converter/releases).
+GitHub Actions builds it automatically for pull requests into `main` and for `main` itself. For any other branch (e.g. `dev`), start a build by hand: **Actions** tab → **Build and test** → **Run workflow** → choose the branch. When the run finishes, download `AzothConverter-Setup` (the installer) from its **Artifacts** section. These test builds are kept for 7 days; released versions stay permanently on the [Releases page](https://github.com/Rxap3r/Azoth-Converter/releases).
 
 ### Project layout
 

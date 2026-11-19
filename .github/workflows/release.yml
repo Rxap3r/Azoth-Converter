@@ -19,9 +19,12 @@ jobs:
   preflight:
     name: Check version and release notes
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - name: Check
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -39,24 +42,60 @@ jobs:
           if gh release view "v$version" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             echo "::error::Version $version is already released. Raise the version first."; exit 1
           fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Releasing version $version"
 
   tests-linux:
+    name: Tests (Linux)
     needs: preflight
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
   tests-windows:
+    name: Tests (Windows)
     needs: preflight
-    uses: ./.github/workflows/tests.yml
-    with:
-      os: windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
+  # Built and tested at the same time as the test suites, to save time.
+  build:
+    name: Build and test installer
+    needs: preflight
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-windows
+        with:
+          portable: "true"
+
+  # Only runs when ALL tests and the installer test passed, and publishes exactly
+  # the files that were built and tested above.
   publish:
-    needs: [tests-linux, tests-windows]
-    uses: ./.github/workflows/build-windows.yml
+    name: Publish release
+    needs: [preflight, tests-linux, tests-windows, build]
+    runs-on: ubuntu-latest
     permissions:
-      contents: write
-    with:
-      release: true
+      contents: write  # to create the tag and the release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-files
+          merge-multiple: true
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          setup="release-files/AzothConverter-Setup-$VERSION.exe"
+          portable="release-files/AzothConverter-portable-$VERSION.zip"
+          ls -l release-files
+          test -f "$setup" && test -f "$portable"
+          gh release create "v$VERSION" "$setup" "$portable" \
+            --target "$GITHUB_SHA" \
+            --title "Azoth Converter $VERSION" \
+            --notes-file "docs/releases/v$VERSION.md"

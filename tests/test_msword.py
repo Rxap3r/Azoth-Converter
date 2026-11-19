@@ -1,5 +1,6 @@
 """Microsoft Word engine. Word itself only exists on Windows PCs with Office, so most
-tests replace PowerShell with a fake; on Windows CI the real PowerShell checks the script."""
+tests replace PowerShell with a fake; on GitHub's Windows test machine the real
+PowerShell checks the script."""
 
 import base64
 import subprocess
