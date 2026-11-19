@@ -45,6 +45,11 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   jargon or explain it ("CI" was renamed to "Build and test" for that reason).
 - The owner trusts you with technical choices, but wants to be asked before pull requests,
   releases and anything that changes GitHub settings, workflows or rules.
+- **Keep answers short** (owner's wish, Nov 2026): lead with the one thing that matters (result,
+  question or next step), a few bullets at most, no long explanations unless asked.
+- **Save tokens:** read only the parts of files you need (grep first, then a line range), but
+  read enough of the surroundings to not miss problems. Make small edits instead of rewriting
+  files. Screenshots only when the look changed, cropped to the part that changed.
 - Priorities: data safety first, then **1:1 conversion quality**, then clean and efficient
   solutions. Never weaken tests or checks to save time.
 - Write ideas and requests the owner mentions into `docs/PROJECT_PLAN.md` right away, so
