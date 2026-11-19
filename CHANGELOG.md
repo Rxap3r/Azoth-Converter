@@ -12,6 +12,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   (Settings → **Error log…**) and a short message is shown instead of the app just closing.
   Hard crashes inside a library are written there too. The log is never sent anywhere and is
   removed by the uninstaller.
+- **Uninstall…** at the bottom of Settings (installed app only): asks first, then closes the app
+  and starts the normal uninstaller. Your own and converted files are not touched.
 
 ### Changed
 - **Open output folder** (under the Convert button) only appears when all results are in one

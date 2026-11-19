@@ -1,14 +1,19 @@
-"""The Settings page: look (light / dark / follow Windows), conversion settings, About."""
+"""The Settings page: look, conversion settings, About, and Uninstall (installed app only)."""
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QUrl, Signal
+import sys
+from pathlib import Path
+
+from PySide6.QtCore import QProcess, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QCheckBox,
     QFrame,
     QHBoxLayout,
+    QMessageBox,
     QPushButton,
     QRadioButton,
     QVBoxLayout,
@@ -29,6 +34,16 @@ METADATA_DETAILS = (
     "Kept: the picture itself, its colours (colour profile) and the right way up.\n"
     "When it's on, the camera details, date and GPS location are copied over."
 )
+
+
+def uninstaller() -> Path | None:
+    """The installer's uninstall program next to the app, or None (portable or run from source)."""
+    if not getattr(sys, "frozen", False):
+        return None
+    found = sorted(Path(sys.executable).parent.glob("unins[0-9][0-9][0-9].exe"))
+    return found[-1] if found else None
+
+
 RELEASES_URL = "https://github.com/Rxap3r/Azoth-Converter/releases"
 
 
@@ -113,17 +128,57 @@ class SettingsPage(QWidget):
             ),
         ]
 
+        self.uninstall_btn = QPushButton("Uninstall Azoth Converter…")
+        self.uninstall_btn.clicked.connect(self.uninstall)
+        uninstall = [
+            label("Uninstall", "h2"),
+            label(
+                "Removes the app and everything it saved on this computer (settings, error log). "
+                "Your own files and converted files are not touched.",
+                "small",
+                wrap=True,
+            ),
+            self.uninstall_btn,
+        ]
+        groups = [appearance, conversion, about]
+        if uninstaller() is not None:  # only in the installed app, not the portable one
+            groups.append(uninstall)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 20)
         layout.setSpacing(14)
         layout.addWidget(label("Settings", "h1"))
-        for group in (appearance, conversion, about):
+        for group in groups:
             card = _card(*group)
             card.setMaximumWidth(640)
             layout.addWidget(card, 0, Qt.AlignmentFlag.AlignLeft)
             card.setMinimumWidth(520)
         self.about_btn.setMaximumWidth(260)
+        self.uninstall_btn.setMaximumWidth(260)
         layout.addStretch(1)
+
+    def uninstall(self) -> None:
+        program = uninstaller()
+        if program is None:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Uninstall Azoth Converter",
+            "Remove Azoth Converter and its settings from this computer?\n\n"
+            "Your own files and converted files are not touched. The app closes now.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        if QProcess.startDetached(str(program), []):
+            QApplication.quit()  # the uninstaller can't remove files of a running app
+        else:
+            QMessageBox.warning(
+                self,
+                "Uninstall Azoth Converter",
+                "The uninstaller could not be started. Use Windows Settings → Apps instead.",
+            )
 
     def showEvent(self, event) -> None:
         super().showEvent(event)

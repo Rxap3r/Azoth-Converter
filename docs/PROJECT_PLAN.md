@@ -164,6 +164,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - Options: Qt's built-in Windows 11 style plus our own stylesheet, or the GPL-licensed *PySide6-Fluent-Widgets* library (compatible with our license)
 
 ### Technical improvements (from the code review, Nov 2026; schedule as needed)
+- [x] **Uninstall button in Settings** (owner's wish, Nov 2026): only in the installed app; starts the normal uninstaller
 - [x] **Error log** (owner's wish, Nov 2026, after a crash with mixed PNG and other photos that couldn't be reproduced): details of unexpected errors and hard crashes go to `error-log.txt` in the app's folder; Settings → Error log…; never sent anywhere
 - [ ] Find the crash the owner saw in 0.2.0 (several photos, some already PNG, then Convert) once the error log shows it
 - [ ] **Faster large batches:** keep one LibreOffice (and one Word) instance running for a whole batch instead of starting it for every file (~1 s overhead per file today); convert several files in parallel where the engine allows it (images, PDF → images)

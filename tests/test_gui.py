@@ -328,3 +328,44 @@ def test_open_folder_only_for_one_folder_and_result_clears(window, qtbot, sample
 
     window.file_list.remove_rows(range(window.file_list.count()))  # empty list
     assert window.status_label.text() == "" and not window.progress.isVisibleTo(window)
+
+
+def test_uninstall_button_only_in_installed_app(qtbot, monkeypatch, tmp_path):
+    import sys
+
+    from azoth.gui import settings_page
+
+    assert settings_page.uninstaller() is None  # run from source: nothing to uninstall
+    exe = tmp_path / "AzothConverter.exe"
+    exe.write_bytes(b"")
+    (tmp_path / "unins000.exe").write_bytes(b"")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(exe))
+    assert settings_page.uninstaller() == tmp_path / "unins000.exe"
+
+    window = MainWindow()
+    qtbot.addWidget(window)
+    page = window.settings_page
+    assert page.uninstall_btn.isVisibleTo(page)
+
+    started, quit_called = [], []
+    monkeypatch.setattr(
+        settings_page.QProcess,
+        "startDetached",
+        lambda program, args: started.append(program) or True,
+    )
+    monkeypatch.setattr(settings_page.QApplication, "quit", lambda: quit_called.append(True))
+    no, yes = (
+        settings_page.QMessageBox.StandardButton.No,
+        settings_page.QMessageBox.StandardButton.Yes,
+    )
+    monkeypatch.setattr(settings_page.QMessageBox, "question", lambda *a: no)
+    page.uninstall_btn.click()
+    assert started == [] and quit_called == []  # asked first; "No" does nothing
+    monkeypatch.setattr(settings_page.QMessageBox, "question", lambda *a: yes)
+    page.uninstall_btn.click()
+    assert started == [str(tmp_path / "unins000.exe")] and quit_called == [True]
+
+
+def test_no_uninstall_button_when_run_from_source(window):
+    assert not window.settings_page.uninstall_btn.isVisibleTo(window.settings_page)
