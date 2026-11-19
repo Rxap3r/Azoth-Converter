@@ -45,6 +45,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   (e.g. "Looks the same as the original. Biggest files."); the technical numbers moved to the
   tooltip.
 
+- The app icon is no longer repeated in the sidebar next to the name; it stays in the title
+  bar and on the taskbar.
+- "Save to" now says "Same folder as the original files" instead of "Next to the originals".
+
 ### Quality
 - Removing metadata never re-compresses the picture: the picture data is copied byte for byte
   (TIFF is rewritten with the same lossless compression). Before saving, the app compares the

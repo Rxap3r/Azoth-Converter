@@ -13,13 +13,12 @@ import threading
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, QUrl, Slot
-from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QPixmap
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QFrame,
     QHBoxLayout,
-    QLabel,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -38,7 +37,6 @@ from .convert_page import ConvertPage
 from .file_list import DONE, FAILED, WAITING
 from .formats_panel import FormatsPanel
 from .pdf_tools_page import PdfToolsPage
-from .resources import icon_path
 from .settings import Preferences
 from .settings_page import SettingsPage
 from .targets import CLEAN_TARGET, display_name
@@ -147,11 +145,6 @@ class MainWindow(QMainWindow):
         brand = QHBoxLayout()
         brand.setContentsMargins(8, 4, 0, 14)
         brand.setSpacing(10)
-        logo = QLabel()
-        logo.setPixmap(QPixmap(str(icon_path())).scaled(
-            28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-        ))  # fmt: skip
-        brand.addWidget(logo)
         brand.addWidget(label("Azoth Converter", "brand"), 1)
         column.addLayout(brand)
 
