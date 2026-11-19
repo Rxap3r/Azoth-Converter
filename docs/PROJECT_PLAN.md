@@ -9,7 +9,7 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 
 | Topic | Decision |
 |-------|----------|
-| Name | **Azoth Converter** (from *azoth*, the alchemists' universal solvent that transforms any substance). Checked Nov 2026: no software trademark "AZOTH" found in the US/EU registers; final check in Swissreg/TMview by the owner. CLI command: `azoth`. |
+| Name | **Azoth Converter** (from *azoth*, the alchemists' universal solvent that transforms any substance). Checked Nov 2026: no software trademark "AZOTH" found in the US/EU registers; Swissreg/TMview check by the owner: clear (Nov 2026). CLI command: `azoth`. |
 | License | **Open source, GPL-3.0-or-later.** The repository is public since 19 Nov 2026 (after release 0.1.0). Because the project is GPL, we can use GPL and AGPL engines (PyMuPDF, Ghostscript, a full FFmpeg build). PyMuPDF is AGPL-3.0; section 13 of the GPL-3.0 and the AGPL-3.0 explicitly allows combining the two. |
 | Priorities | **PDF conversions first**, especially **Word → PDF** and **PDF → Word**, then the other office formats. |
 | Stack | Python 3.12 and PySide6 (Qt 6), packaged with PyInstaller (see §2). |
@@ -180,7 +180,11 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 ### Phase 5: Production release 1.0 (≈ 3–4 weeks)
 - [ ] **Bundled "Office pack"** so users don't need to install LibreOffice separately (offline installer)
 - [ ] Smaller download: trim unused Qt and OpenCV parts, or try Nuitka
-- [ ] Code signing so Windows SmartScreen doesn't warn users: apply to the **SignPath Foundation** (free for public open-source projects; possible now that the repository is public)
+- [ ] **Code signing** through the free **SignPath Foundation** program, so Windows SmartScreen doesn't warn users:
+  - [x] Two-factor authentication on GitHub
+  - [x] Code signing policy page (`CODE_SIGNING.md`), linked from the README and the release notes
+  - [ ] Apply on signpath.org (owner); approval can take a few weeks
+  - [ ] After approval: SignPath API key as a GitHub secret (owner), then add signing to the Release workflow: build → sign `.exe` files → build installer → sign installer, with manual approval per release
 - [ ] SBOM (CycloneDX) and third-party license notices bundled in the app
 - [ ] Accessibility (keyboard navigation, screen readers, high contrast)
 - [ ] Translations of the app (e.g. German, French, Italian). **Each language added to the app must also be added to the installer** (`packaging/installer.iss`, `[Languages]`), and no installer language without the app: the two always match. Until then both are English only.

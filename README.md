@@ -140,6 +140,11 @@ samples/            test files to try conversions with
 docs/               project plan
 ```
 
+## Code signing policy
+
+Releases are built automatically from this repository and will be signed through the
+SignPath Foundation's free program for open-source projects. See [CODE_SIGNING.md](CODE_SIGNING.md).
+
 ## Security
 
 Found a security or privacy problem? Please report it privately; see [SECURITY.md](SECURITY.md).

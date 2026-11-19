@@ -9,6 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Added
 - `SECURITY.md`: how to report security or privacy problems privately.
+- `CODE_SIGNING.md`: code signing policy, needed for free code signing through SignPath Foundation.
 
 ### Development
 - Pull requests into `main` always get the full check, also for documentation-only changes,
