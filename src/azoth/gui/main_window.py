@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -26,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import __version__, formats, quality, ranking
+from .. import __version__, formats, metadata, quality, ranking
 from ..converters import ConversionCancelled, ConversionError, all_converters
 from ..converters.msword import word_installed
 from ..engine import Engine
@@ -39,6 +40,13 @@ from .widgets import CollapsibleSection
 COL_FILE, COL_TYPE, COL_STATUS = range(3)
 TAGLINE = "– File conversion"
 SAME_FOLDER = "Same folder as the original"
+CLEAN_TARGET = "clean"  # not a format: same format, metadata removed (see metadata.py)
+CLEAN_LABEL = "Same format, remove metadata (location, camera, date)"
+CLEAN_NOTE = (
+    "Saves a copy without the hidden information: GPS location, camera, date, author, "
+    "comments and preview pictures. The picture itself stays exactly the same. "
+    "Next to the original, the copy is called “name (clean)”."
+)
 
 
 class ConversionWorker(QObject):
@@ -65,6 +73,9 @@ class ConversionWorker(QObject):
             if self.cancel_event.is_set():
                 break
             self.file_started.emit(row)
+            if self.target == CLEAN_TARGET:
+                self._clean(row, path)
+                continue
             try:
                 result = self.engine.convert(
                     path,
@@ -84,6 +95,17 @@ class ConversionWorker(QObject):
             else:
                 self.file_done.emit(row, [str(p) for p in result.outputs], result.notes)
         self.finished.emit(self.cancel_event.is_set())
+
+    def _clean(self, row: int, path: Path) -> None:
+        try:
+            result = metadata.clean_file(path, self.output_dir)
+        except ConversionError as exc:
+            self.file_failed.emit(row, str(exc))
+        except Exception as exc:  # never let one bad file kill the app
+            self.file_failed.emit(row, f"Unexpected error: {exc}")
+        else:
+            removed = ", ".join(f.label for f in result.removed) or "no metadata found"
+            self.file_done.emit(row, [str(result.output)], [f"Removed: {removed}"])
 
 
 class MainWindow(QMainWindow):
@@ -152,6 +174,8 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(COL_TYPE, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_STATUS, QHeaderView.ResizeMode.Stretch)
         self.tree.itemDoubleClicked.connect(self._open_item_output)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._file_menu)
         self.drop_hint = QLabel("Drag files here, or click “Add files…”")
         self.drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drop_hint.setStyleSheet(
@@ -280,10 +304,12 @@ class MainWindow(QMainWindow):
         self.add_files(paths)
 
     def _remove_selected(self) -> None:
-        rows = sorted(
-            (self.tree.indexOfTopLevelItem(i) for i in self.tree.selectedItems()), reverse=True
-        )
-        for row in rows:
+        self._remove_rows([self.tree.indexOfTopLevelItem(i) for i in self.tree.selectedItems()])
+
+    def _remove_rows(self, rows: list[int]) -> None:
+        if self._thread is not None:
+            return
+        for row in sorted(rows, reverse=True):
             self.tree.takeTopLevelItem(row)
             del self.files[row]
             del self.file_formats[row]
@@ -294,6 +320,34 @@ class MainWindow(QMainWindow):
         self.files.clear()
         self.file_formats.clear()
         self._refresh()
+
+    def _file_menu(self, pos) -> None:
+        item = self.tree.itemAt(pos)
+        if item is None:
+            return
+        row = self.tree.indexOfTopLevelItem(item)
+        menu = QMenu(self)
+        show = menu.addAction("Show metadata…")
+        fmt = self.file_formats[row]
+        show.setEnabled(fmt is not None and fmt.id in metadata.CLEANABLE)
+        show.triggered.connect(lambda: self.show_metadata(row))
+        remove = menu.addAction("Remove from list")
+        remove.triggered.connect(lambda: self._remove_rows([row]))
+        menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def metadata_text(self, row: int) -> str:
+        path = self.files[row]
+        try:
+            found = metadata.inspect(path)
+        except ConversionError as exc:
+            return str(exc)
+        if not found:
+            return f"{path.name} contains no metadata."
+        lines = "\n".join(f"• {f}" for f in found)
+        return f"{path.name} contains:\n\n{lines}"
+
+    def show_metadata(self, row: int) -> None:
+        QMessageBox.information(self, "Photo metadata", self.metadata_text(row))
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls() and self._thread is None:
@@ -333,6 +387,10 @@ class MainWindow(QMainWindow):
             common = ranking.rank(common, categories)  # most useful first
         for fmt in common:
             self.target_combo.addItem(f"{fmt.name} (.{fmt.extension})", fmt.id)
+        if sources and all(s in metadata.CLEANABLE for s in sources):
+            if self.target_combo.count():
+                self.target_combo.insertSeparator(self.target_combo.count())
+            self.target_combo.addItem(CLEAN_LABEL, CLEAN_TARGET)
         # Keep the current choice or the remembered one; otherwise the list is ordered
         # by usefulness, so its first entry (e.g. Word for a PDF) is the default.
         self.target_combo.setCurrentIndex(0)
@@ -343,7 +401,7 @@ class MainWindow(QMainWindow):
                 break
         self.target_combo.blockSignals(False)
 
-        if sources and not common:
+        if sources and self.target_combo.count() == 0:
             self.notes_label.setText(
                 "These files have no target format in common. Convert them in separate groups."
             )
@@ -378,8 +436,11 @@ class MainWindow(QMainWindow):
 
     def _update_notes(self) -> None:
         target = self.target_combo.currentData()
+        self.metadata_check.setEnabled(target != CLEAN_TARGET)
         notes: list[str] = []
-        if target:
+        if target == CLEAN_TARGET:
+            notes.append(CLEAN_NOTE)
+        elif target:
             for src in self._source_formats():
                 route = self.engine.find_route(src, target)
                 if route:
@@ -471,8 +532,10 @@ class MainWindow(QMainWindow):
 
     @Slot(int)
     def _on_started(self, row: int) -> None:
-        self.tree.topLevelItem(row).setText(COL_STATUS, "Converting…")
-        self.status_label.setText(f"Converting {self.files[row].name}")
+        cleaning = self._worker is not None and self._worker.target == CLEAN_TARGET
+        verb = "Removing metadata from" if cleaning else "Converting"
+        self.tree.topLevelItem(row).setText(COL_STATUS, "Working…")
+        self.status_label.setText(f"{verb} {self.files[row].name}")
 
     @Slot(int, float, str)
     def _on_progress(self, row: int, fraction: float, message: str) -> None:
@@ -489,7 +552,7 @@ class MainWindow(QMainWindow):
         else:
             text = f"✓ {len(outputs)} files"
         item.setText(COL_STATUS, text)
-        item.setToolTip(COL_STATUS, "\n".join(outputs))
+        item.setToolTip(COL_STATUS, "\n".join([*outputs, *notes]))
         if outputs:
             item.setData(COL_STATUS, Qt.ItemDataRole.UserRole, outputs[0])
             self.last_output = Path(outputs[0]).parent

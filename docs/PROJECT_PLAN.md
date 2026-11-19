@@ -92,7 +92,7 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | Spreadsheets | XLSX, XLS, ODS, CSV ↔ each other, → PDF | LibreOffice | ✅ |
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
 | Images | JPG, PNG, WebP, BMP, TIFF, GIF, ICO, HEIC, AVIF | Pillow, pillow-heif | ✅ |
-| Privacy | Remove photo metadata, same format in and out | Pillow | 🔜 |
+| Privacy | Remove photo metadata, same format in and out (JPG, PNG, WebP, GIF, TIFF, HEIC, AVIF) | own lossless code, Pillow | ✅ |
 | Camera RAW, SVG | CR2, NEF, ARW, DNG, SVG | rawpy, resvg | 🔜 |
 | Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | 🔜 |
 | Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | 🔜 |
@@ -138,7 +138,9 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Add or remove a password (only with the user's own password)
 - [ ] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs)
 - [ ] PDF → Excel for tables
-- [ ] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it.
+- [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
+  - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
+  - [ ] With the design refresh: a "Show metadata" button on each file card instead of the right-click menu
 - [ ] **Release 0.2**
 
 ### Design refresh (timing flexible)

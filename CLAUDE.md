@@ -20,12 +20,16 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
-- **Unreleased work on `dev`:** see `CHANGELOG.md` → Unreleased (workflow and docs changes only,
-  no app changes since 0.1.0).
+- **Unreleased work on `dev`:** see `CHANGELOG.md` → Unreleased. First 0.2 feature done:
+  **remove photo metadata** (`metadata.py`, `converters/strip.py`, `azoth clean`, the
+  "Same format, remove metadata" target and "Show metadata…" in the app); not yet tried on
+  Windows or with real phone photos.
 - **Next planned work (owner decides the order):**
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;
-  - PDF tools and OCR, "remove photo metadata" (release 0.2);
+  - PDF tools and OCR (release 0.2; "remove photo metadata" is done);
+  - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` → design mockups →
+    PDF tools in the new design → OCR;
   - technical improvements: faster batches, split `gui/main_window.py`, smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are

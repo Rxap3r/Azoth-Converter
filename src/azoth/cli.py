@@ -5,6 +5,8 @@ Examples::
     azoth convert report.docx --to pdf
     azoth convert *.heic --to jpg -o converted
     azoth convert scan.pdf --to png --dpi 300
+    azoth clean *.jpg -o to-share
+    azoth clean --show photo.heic
     azoth formats report.pdf
     azoth pdf merge a.pdf b.pdf -o combined.pdf
     azoth pdf split big.pdf -o pages
@@ -67,6 +69,30 @@ def cmd_convert(args: argparse.Namespace) -> int:
                 print(f"✓ {path.name} → {out}")
             for note in result.notes:
                 print(f"  note: {note}")
+    return 1 if failures else 0
+
+
+def cmd_clean(args: argparse.Namespace) -> int:
+    from . import metadata
+
+    failures = 0
+    for file in args.files:
+        path = Path(file)
+        try:
+            if args.show:
+                found = metadata.inspect(path)
+                print(f"{path.name}:" if found else f"{path.name}: no metadata found")
+                for item in found:
+                    print(f"  {item}")
+                continue
+            result = metadata.clean_file(path, args.output, overwrite=args.overwrite)
+        except ConversionError as exc:
+            failures += 1
+            print(f"✗ {path.name}: {exc}", file=sys.stderr)
+            continue
+        if not args.quiet:
+            removed = ", ".join(f.label for f in result.removed) or "nothing found"
+            print(f"✓ {path.name} → {result.output}  (removed: {removed})")
     return 1 if failures else 0
 
 
@@ -188,6 +214,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--quiet", "-q", action="store_true")
     p.set_defaults(func=cmd_convert)
+
+    p = sub.add_parser(
+        "clean",
+        help="remove photo metadata (location, camera, date) without changing the picture",
+        description="Save a copy of each photo without its metadata: GPS location, camera, "
+        "date, author, comments and preview pictures. The picture itself stays exactly "
+        "the same; the original file is not changed.",
+    )
+    p.add_argument("files", nargs="+", help="photos or images (JPG, PNG, WebP, HEIC, …)")
+    p.add_argument(
+        "--output", "-o", help="output folder (default: next to each file, as 'name (clean)')"
+    )
+    p.add_argument("--overwrite", action="store_true", help="replace existing output files")
+    p.add_argument(
+        "--show", action="store_true", help="only list the metadata, don't change anything"
+    )
+    p.add_argument("--quiet", "-q", action="store_true")
+    p.set_defaults(func=cmd_clean)
 
     p = sub.add_parser("formats", help="list supported conversions")
     p.add_argument("file", nargs="?", help="show targets for this file")

@@ -176,3 +176,55 @@ def test_everything_is_stored_in_one_folder(window, tmp_path):
     qt = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, "QtProject")
     assert qt.value("FileDialog/lastVisited") is None
     assert qt.value("FileDialog/history") is None
+
+
+def _photo_with_location(path):
+    from PIL import Image
+
+    exif = Image.Exif()
+    exif[0x010F] = "SecretCamera"
+    exif.get_ifd(0x8825).update({1: "N", 2: (47.0, 22.0, 10.0), 3: "E", 4: (8.0, 32.0, 0.0)})
+    Image.new("RGB", (40, 30), "red").save(path, exif=exif)
+    return path
+
+
+def _targets(window):
+    return [window.target_combo.itemData(i) for i in range(window.target_combo.count())]
+
+
+def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
+    from azoth.gui.main_window import CLEAN_TARGET
+
+    photo = _photo_with_location(tmp_path / "holiday.jpg")
+    window.add_files([photo, sample_png])
+    targets = _targets(window)
+    assert targets[-1] == CLEAN_TARGET  # offered last, after the real formats
+    assert targets[0] != CLEAN_TARGET  # never the default
+
+    window.target_combo.setCurrentIndex(targets.index(CLEAN_TARGET))
+    assert not window.metadata_check.isEnabled()  # "keep metadata" makes no sense here
+    assert "stays exactly the same" in window.notes_label.text()
+
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    assert (tmp_path / "holiday (clean).jpg").exists()
+    assert (tmp_path / "logo (clean).png").exists()
+    assert window.tree.topLevelItem(0).text(2) == "✓ holiday (clean).jpg"
+    assert "Location (GPS)" in window.tree.topLevelItem(0).toolTip(2)
+    assert b"SecretCamera" not in (tmp_path / "holiday (clean).jpg").read_bytes()
+
+
+def test_remove_metadata_not_offered_for_documents(window, sample_png, sample_pdf):
+    from azoth.gui.main_window import CLEAN_TARGET
+
+    window.add_files([sample_png, sample_pdf])
+    assert CLEAN_TARGET not in _targets(window)
+
+
+def test_show_metadata_text(window, sample_pdf, tmp_path):
+    photo = _photo_with_location(tmp_path / "holiday.jpg")
+    window.add_files([photo, sample_pdf])
+    text = window.metadata_text(0)
+    assert "Location (GPS): 47.36944° N, 8.53333° E" in text
+    assert "Camera: SecretCamera" in text
+    assert "photos and images" in window.metadata_text(1)

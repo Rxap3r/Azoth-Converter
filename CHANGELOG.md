@@ -8,8 +8,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ## [Unreleased]
 
 ### Added
+- **Remove photo metadata** without changing the format or the picture: GPS location, camera,
+  date, author, comments, preview pictures and other hidden data are removed from JPG, PNG,
+  WebP, GIF, TIFF, HEIC and AVIF files. In the app, choose **Same format, remove metadata**;
+  on the command line, use `azoth clean`. The copy is saved as "name (clean)" next to the
+  original, or under the same name in another folder.
+- **Show metadata…** (right-click a file in the list) and `azoth clean --show` list what a
+  photo contains, for example the place where it was taken.
+- Right-click a file in the list to remove it.
 - `SECURITY.md`: how to report security or privacy problems privately.
 - `CODE_SIGNING.md`: code signing policy, needed for free code signing through SignPath Foundation.
+
+### Quality
+- Removing metadata never re-compresses the picture: the picture data is copied byte for byte
+  (TIFF is rewritten with the same lossless compression). Before saving, the app compares the
+  cleaned copy with the original pixel by pixel and checks it again for leftover metadata; if
+  either check fails, nothing is saved. Colour profile, orientation and animation are kept.
+
+### Privacy and safety
+- JPG → PDF: data that phones hide after the end of a photo (a second picture or the video of
+  a "motion photo") and multi-picture indexes are no longer put into the PDF.
 
 ### Development
 - Pull requests into `main` always get the full check, also for documentation-only changes,

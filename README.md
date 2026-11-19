@@ -19,6 +19,12 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 
 Plus PDF merge and split from the command line.
 
+**Remove photo metadata:** save a copy of your photos without the hidden information
+(GPS location, camera, date, author, comments, preview pictures) before you share them. The
+picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC and AVIF:
+in the app, choose **Same format, remove metadata**; right-click a file and choose
+**Show metadata…** to see what it contains first.
+
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
 unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
 Word → PDF for an exact layout. Under **Options → Quality** you can choose smaller files
@@ -56,6 +62,14 @@ azoth convert contract.pdf --to docx
 
 ```bash
 azoth convert IMG_0001.heic IMG_0002.heic --to jpg -o converted
+```
+
+```bash
+azoth clean holiday.jpg IMG_0002.heic -o to-share
+```
+
+```bash
+azoth clean --show holiday.jpg
 ```
 
 ```bash
