@@ -151,6 +151,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**. *All four entries exist (PDF tools since Nov 2026).*
 - [x] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
 - [x] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
+- [x] **Choose the result's file name** (owner's wish, Nov 2026): "File name" under "Save to", pre-filled with the original's name; for one file at a time (with several files each keeps its own name)
 - [x] **Bin button on every PDF in the Merge list** (owner's wish, Nov 2026), like on the Convert page; "Remove" below the list and the Delete key still work
 - [x] **Plain-language quality texts** (owner's wish, Nov 2026): "quality 95 / 300 DPI" replaced by what it means for the user; the numbers are in the tooltip
 - [x] Target format picker as a grid of format tiles, with the most used ones first

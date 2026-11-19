@@ -22,7 +22,7 @@ from PIL import ExifTags, Image, ImageSequence
 from . import formats
 from .converters import ConversionError, jpeg_tools, strip
 from .converters import images as _images  # registers the HEIC opener
-from .engine import unique_path
+from .engine import check_file_name, unique_path
 
 CLEANABLE = ["jpg", "png", "webp", "gif", "tiff"]
 if _images.HEIF_SUPPORTED:
@@ -304,21 +304,30 @@ def clean_bytes(fmt: str, data: bytes) -> bytes:
     return cleaned
 
 
-def output_path(source: Path, fmt: str, output_dir: Path | None) -> Path:
-    """Next to the original: ``photo (clean).jpg``. In another folder: the same name."""
+def output_path(source: Path, fmt: str, output_dir: Path | None, name: str | None = None) -> Path:
+    """Next to the original: ``photo (clean).jpg``. In another folder: the same name.
+
+    ``name`` (without extension) replaces the original's name.
+    """
     suffix = (
         source.suffix
         if source.suffix.lower().lstrip(".") in formats.FORMATS[fmt].extensions
         else f".{formats.FORMATS[fmt].extension}"
     )
     folder = output_dir if output_dir is not None else source.parent
+    if name is not None:
+        return folder / f"{check_file_name(name, suffix.lstrip('.'))}{suffix}"
     if folder.resolve() == source.parent.resolve():
         return folder / f"{source.stem}{CLEAN_SUFFIX}{suffix}"
     return folder / f"{source.stem}{suffix}"
 
 
 def clean_file(
-    source: Path | str, output_dir: Path | str | None = None, *, overwrite: bool = False
+    source: Path | str,
+    output_dir: Path | str | None = None,
+    *,
+    overwrite: bool = False,
+    name: str | None = None,
 ) -> CleanResult:
     """Save a copy of ``source`` without metadata. The original is never changed."""
     source = Path(source)
@@ -330,7 +339,7 @@ def clean_file(
     folder = Path(output_dir) if output_dir is not None else None
     if folder is not None:
         folder.mkdir(parents=True, exist_ok=True)
-    target = output_path(source, fmt, folder)
+    target = output_path(source, fmt, folder, name)
     if not overwrite or target.resolve() == source.resolve():
         target = unique_path(target)
     try:

@@ -26,6 +26,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - **Show metadata…** (right-click a file in the list) and `azoth clean --show` list what a
   photo contains, for example the place where it was taken.
 - Right-click a file in the list to remove it.
+- **Choose the file name** of the result (Convert page, under "Save to"): starts as the original's
+  name and can be changed when converting one file. With several files, each keeps its own name.
+  Names that could reach another folder or that Windows doesn't allow are refused; an existing
+  file is still never overwritten.
 - `SECURITY.md`: how to report security or privacy problems privately.
 - `CODE_SIGNING.md`: code signing policy, needed for free code signing through SignPath Foundation.
 
@@ -47,7 +51,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 - The app icon is no longer repeated in the sidebar next to the name; it stays in the title
   bar and on the taskbar.
-- "Save to" now says "Same folder as the original files" instead of "Next to the originals".
+- "Save to" now says "Same folder as the original" instead of "Next to the originals".
 
 ### Quality
 - Removing metadata never re-compresses the picture: the picture data is copied byte for byte

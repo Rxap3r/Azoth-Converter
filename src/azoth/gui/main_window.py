@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import __version__
+from .. import __version__, formats
 from ..converters import all_converters
 from ..converters.msword import word_installed
 from ..engine import Engine
@@ -84,6 +84,7 @@ class MainWindow(QMainWindow):
         self.target_picker = page.target_picker
         self.quality = page.quality
         self.output_row = page.output_row
+        self.name_row = page.name_row
         self.notes_label = page.notes_label
         self.status_label = page.status_label
         self.progress = page.progress
@@ -235,6 +236,7 @@ class MainWindow(QMainWindow):
 
     def _refresh(self) -> None:
         file_formats = self.file_list.formats
+        self.name_row.set_sources(self.file_list.files)
         choices = targets.choices(self.engine, file_formats)
         self.target_picker.set_choices(
             choices, keep=[self.target_picker.current(), self._remembered_target()]
@@ -247,6 +249,7 @@ class MainWindow(QMainWindow):
         busy = self._thread is not None
         self.file_list.set_busy(busy)
         self.output_row.set_busy(busy)
+        self.name_row.set_busy(busy)
         self.target_picker.set_busy(busy)
         self.quality.set_busy(busy)
         count = self.file_list.count()
@@ -276,11 +279,18 @@ class MainWindow(QMainWindow):
 
     def _update_notes(self) -> None:
         target = self.target_picker.current()
+        self.name_row.set_extension(self._result_extension(target))
         self.settings_page.metadata_check.setEnabled(target != CLEAN_TARGET)
         notes = targets.notes(self.engine, self.file_list.formats, target)
         self.notes_label.setText("\n".join(notes))
         self.notes_label.setVisible(bool(notes))
         self._update_action()
+
+    def _result_extension(self, target: str | None) -> str:
+        if target == CLEAN_TARGET:
+            files = self.file_list.files
+            return files[0].suffix.lstrip(".") if len(files) == 1 else ""
+        return formats.FORMATS[target].extension if target in formats.FORMATS else ""
 
     def _set_use_word(self, use_word: bool) -> None:
         self.engine = Engine(all_converters(use_word=use_word))
@@ -325,7 +335,13 @@ class MainWindow(QMainWindow):
         }
         self._thread = QThread(self)
         self._worker = ConversionWorker(
-            self.engine, jobs, target, self.output_dir, options, self._cancel
+            self.engine,
+            jobs,
+            target,
+            self.output_dir,
+            options,
+            self._cancel,
+            name=self.name_row.custom_name() if len(jobs) == 1 else None,
         )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)

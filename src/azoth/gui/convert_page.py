@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from . import icons
 from .file_list import FileList
 from .options_panel import QualitySelector
-from .output_folder import OutputFolderRow
+from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .theme import Colors, repolish
 from .widgets import label
@@ -29,6 +29,7 @@ class ConvertPage(QWidget):
         self.target_picker = TargetPicker()
         self.quality = QualitySelector()
         self.output_row = OutputFolderRow()
+        self.name_row = FileNameRow()
 
         # --- left: header, drop area, files
         self.title = label("Convert files", "h1")
@@ -99,6 +100,7 @@ class ConvertPage(QWidget):
         right.addWidget(self.notes_label)
         right.addWidget(self.quality)
         right.addWidget(self.output_row)
+        right.addWidget(self.name_row)
         right.addStretch(1)
         right.addWidget(self.status_label)
         right.addWidget(self.progress)

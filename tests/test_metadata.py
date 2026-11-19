@@ -188,6 +188,11 @@ def test_clean_file_names_and_never_overwrites(tmp_path):
     assert other.output == tmp_path / "to share" / "IMG_0001.jpg"  # same name elsewhere
     assert src.read_bytes() == before  # the original is never changed
 
+    named = metadata.clean_file(src, name="For Anna")
+    assert named.output == tmp_path / "For Anna.jpg"
+    with pytest.raises(ConversionError):
+        metadata.clean_file(src, name="../up")
+
 
 def test_clean_file_overwrite_replaces_old_copy_only(tmp_path):
     src = tmp_path / "photo.jpg"

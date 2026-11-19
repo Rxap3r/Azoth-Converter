@@ -24,6 +24,24 @@ def test_overwrite_when_asked(sample_png, tmp_path):
     assert existing.read_bytes() != b"old"
 
 
+def test_custom_name(sample_png, sample_pdf, tmp_path):
+    engine = Engine()
+    [out] = engine.convert(sample_png, "jpg", tmp_path, name="  Holiday 2026.jpg ").outputs
+    assert out.name == "Holiday 2026.jpg"  # typed extension and spaces are dropped
+    [again] = engine.convert(sample_png, "jpg", tmp_path, name="Holiday 2026").outputs
+    assert again.name == "Holiday 2026 (1).jpg"  # never overwrites
+    pages = engine.convert(sample_pdf, "jpg", tmp_path / "p", name="Scan").outputs
+    assert [p.name for p in pages][:2] == ["Scan_page001.jpg", "Scan_page002.jpg"]
+
+
+@pytest.mark.parametrize("bad", ["../escape", "a/b", "c:\\x", "what?", "", "  ", "CON", "nul.txt"])
+def test_unsafe_names_are_refused(sample_png, tmp_path, bad):
+    with pytest.raises(ConversionError):
+        Engine().convert(sample_png, "jpg", tmp_path / "out", name=bad)
+    assert not (tmp_path / "out").exists() or not any((tmp_path / "out").iterdir())
+    assert not (tmp_path / "escape.jpg").exists()
+
+
 def test_original_is_untouched(sample_png, tmp_path):
     before = sample_png.read_bytes()
     Engine().convert(sample_png, "webp", tmp_path / "o")

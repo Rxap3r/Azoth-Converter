@@ -41,6 +41,25 @@ def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_pa
     assert window.file_list.status(1) == "✓ 3 files"
 
 
+def test_choose_file_name(window, qtbot, sample_png, sample_pdf, tmp_path):
+    row = window.name_row
+    assert not row.edit.isEnabled()
+    window.add_files([sample_png])
+    assert row.edit.isEnabled() and row.edit.text() == "logo"
+    assert row.custom_name() is None  # unchanged: the original's name
+    window.target_picker.select("webp")
+    assert row.extension.text() == ".webp"
+    row.edit.setText("Company logo")
+    window.output_dir = tmp_path / "out"
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    assert [p.name for p in (tmp_path / "out").iterdir()] == ["Company logo.webp"]
+
+    window.add_files([sample_pdf])  # several files: each keeps its own name
+    assert not row.edit.isEnabled() and row.custom_name() is None
+    assert row.edit.placeholderText() == row.MANY
+
+
 def test_files_already_in_target_format_are_skipped(
     window, qtbot, sample_pdf, sample_png, tmp_path
 ):

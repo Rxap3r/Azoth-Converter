@@ -30,6 +30,7 @@ class ConversionWorker(QObject):
         output_dir: Path | None,
         options: dict,
         cancel_event: threading.Event,
+        name: str | None = None,
     ) -> None:
         super().__init__()
         self.engine = engine
@@ -38,6 +39,7 @@ class ConversionWorker(QObject):
         self.output_dir = output_dir
         self.options = options
         self.cancel_event = cancel_event
+        self.name = name  # result's name (only used with a single file)
 
     @Slot()
     def run(self) -> None:
@@ -69,10 +71,11 @@ class ConversionWorker(QObject):
             options=self.options,
             progress=lambda f, m: self.file_progress.emit(row, f, m),
             cancel_event=self.cancel_event,
+            name=self.name,
         )
         return [str(p) for p in result.outputs], result.notes
 
     def _clean(self, path: Path) -> tuple[list[str], list[str]]:
-        result = metadata.clean_file(path, self.output_dir)
+        result = metadata.clean_file(path, self.output_dir, name=self.name)
         removed = ", ".join(f.label for f in result.removed) or "no metadata found"
         return [str(result.output)], [f"Removed: {removed}"]
