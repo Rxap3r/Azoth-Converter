@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+- `SECURITY.md`: how to report security or privacy problems privately.
+
 ### Development
 - Faster automatic tests: every commit to `dev` runs only the Linux tests; pull requests into `main` also run
   the Windows tests and build and test the installer; documentation-only changes start no run.

@@ -140,6 +140,10 @@ samples/            test files to try conversions with
 docs/               project plan
 ```
 
+## Security
+
+Found a security or privacy problem? Please report it privately; see [SECURITY.md](SECURITY.md).
+
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
