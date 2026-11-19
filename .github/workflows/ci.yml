@@ -1,10 +1,11 @@
 name: Build and test
 
-# - Every push to dev or main: fast Linux tests (~2 min).
+# - Every push to dev or main: fast Linux tests (~1 min).
 # - Pull requests into main and pushes to main: also Windows tests and the
 #   Windows installer build with the install/uninstall test.
 # - Started by hand (Actions -> Build and test -> Run workflow): the full check for any branch.
-# - Changes that only touch documentation start no run at all.
+# - Pushes that only touch documentation start no run. Pull requests into main
+#   ALWAYS get the full check, so the checks can be required before merging.
 # Releases are published by the separate "Release" workflow.
 # The steps themselves live in .github/actions/ (run-tests, build-windows).
 on:
@@ -13,7 +14,6 @@ on:
     paths-ignore: ["docs/**", "**.md", "LICENSE"]
   pull_request:
     branches: [main]
-    paths-ignore: ["docs/**", "**.md", "LICENSE"]
   workflow_dispatch:
 
 permissions:
