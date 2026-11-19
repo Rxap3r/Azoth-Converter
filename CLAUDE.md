@@ -29,7 +29,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     smiley from afar), a cleaner "Supported formats" section;
   - PDF tools and OCR (release 0.2; "remove photo metadata" is done);
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
-    mockups → PDF tools in the new design → OCR;
+    mockups (made, waiting for the owner's choice of A/B/C and icon 1/2/3) → PDF tools in
+    the new design → OCR;
   - technical improvements: faster batches, smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are

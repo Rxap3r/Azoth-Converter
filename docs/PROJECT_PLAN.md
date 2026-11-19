@@ -144,7 +144,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **Release 0.2**
 
 ### Design refresh (timing flexible)
-- [ ] Mockups first: agree on the look before changing code
+- [ ] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. Waiting for the owner's choice.*
 - [ ] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain
 - [ ] Modern Windows 11 look (Fluent style): rounded corners, accent colour, Mica-style background; follows Windows light/dark mode
 - [ ] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**
