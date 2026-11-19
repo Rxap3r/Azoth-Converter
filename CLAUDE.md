@@ -20,10 +20,10 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
-- **Unreleased work** (on `main` since PR #5, not released yet): see `CHANGELOG.md` → Unreleased. First 0.2 feature done:
-  **remove photo metadata** (`metadata.py`, `converters/strip.py`, `azoth clean`, the
-  "Remove metadata only" tile and "Show metadata…" in the app); not yet tried on
-  Windows or with real phone photos.
+- **Version 0.2.0** prepared (19 Nov 2026): new look, PDF tools, remove photo metadata. The owner
+  publishes it with the Release workflow after the pull request is merged. Later work goes
+  under `CHANGELOG.md` → Unreleased. Not yet tried on a real Windows PC: the new look, and
+  metadata removal with real phone photos.
 - **Next planned work (owner decides the order):**
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;
