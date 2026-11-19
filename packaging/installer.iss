@@ -47,6 +47,11 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "dist\AzothConverter\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+; Updates: remove the old version's program libraries first, so files a newer version no
+; longer uses can't linger and get loaded by mistake. Settings (in %APPDATA%) are not touched.
+Type: filesandordirs; Name: "{app}\_internal"
+
 [Icons]
 Name: "{autoprograms}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"
 Name: "{autodesktop}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"; Tasks: desktopicon
