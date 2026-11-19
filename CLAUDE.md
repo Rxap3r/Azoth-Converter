@@ -13,17 +13,17 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   (Linux), Tests (Windows) and Windows app required). `dev` accepts direct pushes. Dependabot
   alerts, private vulnerability reporting and two-factor authentication are on.
 - **Waiting on the owner:** the SignPath Foundation code-signing application. Sequence:
-  1. `CODE_SIGNING.md` reaches `main` (pull request when the owner says "pull it");
-  2. the owner applies on signpath.org with the repo link and the link to `CODE_SIGNING.md`
+  1. ✓ `CODE_SIGNING.md` is on `main` (pull request #5, merged 19 Nov 2026);
+  2. **next:** the owner applies on signpath.org with the repo link and the link to `CODE_SIGNING.md`
      on `main`;
   3. after approval, the owner saves the SignPath API key as a GitHub secret (never in chat);
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
-- **Unreleased work on `dev`:** see `CHANGELOG.md` → Unreleased. First 0.2 feature done:
-  **remove photo metadata** (`metadata.py`, `converters/strip.py`, `azoth clean`, the
-  "Remove metadata only" tile and "Show metadata…" in the app); not yet tried on
-  Windows or with real phone photos.
+- **Version 0.2.0** prepared (19 Nov 2026): new look, PDF tools, remove photo metadata. The owner
+  publishes it with the Release workflow after the pull request is merged. Later work goes
+  under `CHANGELOG.md` → Unreleased. Not yet tried on a real Windows PC: the new look, and
+  metadata removal with real phone photos.
 - **Next planned work (owner decides the order):**
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;

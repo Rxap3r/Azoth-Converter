@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
 ### Added
 - **PDF tools** in the app (new sidebar entry): **Merge** PDFs in any order (drag or Move up /
   Move down), **Split** a PDF into single pages or page ranges like "1-3, 5, 8-", and **Edit
@@ -123,5 +125,6 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Rxap3r/Azoth-Converter/releases/tag/v0.1.0
