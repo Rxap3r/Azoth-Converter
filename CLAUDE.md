@@ -53,6 +53,13 @@ in the matching phase (design wishes under "Design refresh"); there is no separa
 Stack: Python 3.11+, PySide6 (GUI), Pillow and pillow-heif (images), PyMuPDF and pdf2docx (PDF),
 LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL-3.0-or-later.
 
+## Public repository
+
+The repository is public. Never commit secrets, personal data or real user files (samples are
+made up). Commits are authored as "Claude <noreply@anthropic.com>"; don't put the owner's
+email or other personal details into commits, code or docs. Security reports go through
+GitHub's private vulnerability reporting (see `SECURITY.md`), never public issues.
+
 ## Non-negotiable rules for the code
 
 - **Quality: conversions as close to 1:1 as possible.** Prefer the highest-fidelity engine

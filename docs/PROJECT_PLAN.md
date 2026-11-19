@@ -10,7 +10,7 @@ No uploads, no cloud, no telemetry. Windows first, then macOS and Linux.
 | Topic | Decision |
 |-------|----------|
 | Name | **Azoth Converter** (from *azoth*, the alchemists' universal solvent that transforms any substance). Checked Nov 2026: no software trademark "AZOTH" found in the US/EU registers; final check in Swissreg/TMview by the owner. CLI command: `azoth`. |
-| License | **Open source, GPL-3.0-or-later.** The repository stays private until basic use is solid, then goes public. Because the project is GPL, we can use GPL and AGPL engines (PyMuPDF, Ghostscript, a full FFmpeg build). PyMuPDF is AGPL-3.0; section 13 of the GPL-3.0 and the AGPL-3.0 explicitly allows combining the two. |
+| License | **Open source, GPL-3.0-or-later.** The repository is public since 19 Nov 2026 (after release 0.1.0). Because the project is GPL, we can use GPL and AGPL engines (PyMuPDF, Ghostscript, a full FFmpeg build). PyMuPDF is AGPL-3.0; section 13 of the GPL-3.0 and the AGPL-3.0 explicitly allows combining the two. |
 | Priorities | **PDF conversions first**, especially **Word → PDF** and **PDF → Word**, then the other office formats. |
 | Stack | Python 3.12 and PySide6 (Qt 6), packaged with PyInstaller (see §2). |
 | Office engine | LibreOffice (headless). For now the app uses an installed LibreOffice. A bundled "Office pack" comes later. |
@@ -113,7 +113,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] GitHub Actions: tests on Windows and Linux, plus a Windows build artifact
 - [x] `PRIVACY.md`, and a test fixture that fails any test that touches the network
 
-### Phase 1: PDF and Office MVP (mostly done, then release 0.1 and go public)
+### Phase 1: PDF and Office MVP (done: release 0.1.0, repository public)
 - [x] Word/Excel/PowerPoint/OpenDocument → PDF and between each other (LibreOffice, hardened profile per job)
 - [x] PDF → Word (pdf2docx), with a clear message for scanned PDFs
 - [x] PDF → images (one file per page, or multi-page TIFF), PDF → text, images → PDF
@@ -130,7 +130,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Clean uninstall: one storage folder (no registry), file dialog history erased after use, crash leftovers cleaned at start; the uninstaller removes program folder, settings, temp leftovers and its own entries. The automatic build simulates leftovers and fails if anything remains.
 - [x] Inno Setup installer: per-user install without admin rights, Start menu entry, optional desktop icon, clean uninstall; tested automatically on every build (install → run → uninstall)
 - [x] App icon ("F1": document with a golden seal holding the convert arrows, indigo tile), About window with version, privacy promise, license and component licenses
-- [ ] **Release 0.1**, then make the repository public
+- [x] **Release 0.1.0** (18 Nov 2026), repository made public, `main` protected, security policy (`SECURITY.md`) and private vulnerability reporting
 
 ### Phase 2: PDF power tools and OCR (≈ 4–6 weeks)
 - [ ] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails
@@ -141,7 +141,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it.
 - [ ] **Release 0.2**
 
-### Design refresh (timing flexible, ideally before going public)
+### Design refresh (timing flexible)
 - [ ] Mockups first: agree on the look before changing code
 - [ ] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain
 - [ ] Modern Windows 11 look (Fluent style): rounded corners, accent colour, Mica-style background; follows Windows light/dark mode
@@ -180,7 +180,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 ### Phase 5: Production release 1.0 (≈ 3–4 weeks)
 - [ ] **Bundled "Office pack"** so users don't need to install LibreOffice separately (offline installer)
 - [ ] Smaller download: trim unused Qt and OpenCV parts, or try Nuitka
-- [ ] Code-signing certificate so Windows SmartScreen doesn't warn users
+- [ ] Code signing so Windows SmartScreen doesn't warn users: apply to the **SignPath Foundation** (free for public open-source projects; possible now that the repository is public)
 - [ ] SBOM (CycloneDX) and third-party license notices bundled in the app
 - [ ] Accessibility (keyboard navigation, screen readers, high contrast)
 - [ ] Translations of the app (e.g. German, French, Italian). **Each language added to the app must also be added to the installer** (`packaging/installer.iss`, `[Languages]`), and no installer language without the app: the two always match. Until then both are English only.
