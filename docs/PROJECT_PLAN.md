@@ -194,7 +194,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] SBOM (CycloneDX) and third-party license notices bundled in the app
 - [ ] Accessibility (keyboard navigation, screen readers, high contrast)
 - [ ] Translations of the app (e.g. German, French, Italian). **Each language added to the app must also be added to the installer** (`packaging/installer.iss`, `[Languages]`), and no installer language without the app: the two always match. Until then both are English only.
-- [ ] **"Check for updates" button** (owner asked, Nov 2026): only when the user clicks it, never automatic (see principle 2). Simplest safe version: the button opens the GitHub Releases page in the browser, and the app never goes online itself. A version that downloads and installs updates by itself should wait for code signing, so a download can be checked as really coming from us. Owner decides which version
+- [x] **"Check for updates" button** (owner asked, Nov 2026): Settings → About opens the GitHub Releases page in the browser; the app itself stays offline
+- [ ] **Version check inside the app** (owner's wish for later, Nov 2026): the app looks up the newest version itself and says "Update available", then later downloads and installs it. Needs a decision, because it means the app goes online: only when the user clicks (never automatic, see principle 2), ask once before the first check, and only after code signing so a download can be checked as really coming from us
 - [ ] Publish on winget and optionally the Microsoft Store (MSIX)
 
 ### Phase 6: Other platforms

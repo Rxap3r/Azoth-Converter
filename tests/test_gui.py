@@ -280,3 +280,13 @@ def test_show_metadata_text(window, sample_pdf, tmp_path):
     assert "Location (GPS): 47.36944° N, 8.53333° E" in text
     assert "Camera: SecretCamera" in text
     assert "photos and images" in window.file_list.metadata_text(1)
+
+
+def test_check_for_updates_only_opens_the_browser(window, monkeypatch):
+    from azoth.gui import settings_page
+
+    opened = []
+    monkeypatch.setattr(settings_page.QDesktopServices, "openUrl", opened.append)
+    window.settings_page.updates_btn.click()
+    assert [u.toString() for u in opened] == [settings_page.RELEASES_URL]
+    assert settings_page.RELEASES_URL.startswith("https://github.com/Rxap3r/Azoth-Converter/")

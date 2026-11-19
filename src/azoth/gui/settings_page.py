@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QFrame,
+    QHBoxLayout,
     QPushButton,
     QRadioButton,
     QVBoxLayout,
@@ -16,6 +18,8 @@ from PySide6.QtWidgets import (
 from .. import __version__
 from . import theme
 from .widgets import label
+
+RELEASES_URL = "https://github.com/Rxap3r/Azoth-Converter/releases"
 
 
 def _card(*widgets: QWidget) -> QFrame:
@@ -67,6 +71,15 @@ class SettingsPage(QWidget):
 
         self.about_btn = QPushButton("About Azoth Converter…")
         self.about_btn.clicked.connect(self.about_requested)
+        self.updates_btn = QPushButton("Check for updates…")
+        self.updates_btn.setToolTip(RELEASES_URL)
+        self.updates_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
+        buttons = QWidget()
+        row = QHBoxLayout(buttons)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(self.updates_btn)
+        row.addWidget(self.about_btn)
+        row.addStretch(1)
         about = [
             label("About", "h2"),
             label(
@@ -74,7 +87,13 @@ class SettingsPage(QWidget):
                 "small",
                 wrap=True,
             ),
-            self.about_btn,
+            buttons,
+            label(
+                "“Check for updates” opens the download page in your browser, where you can "
+                "compare the newest version with yours. The app itself never goes online.",
+                "small",
+                wrap=True,
+            ),
         ]
 
         layout = QVBoxLayout(self)

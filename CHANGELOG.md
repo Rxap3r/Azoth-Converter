@@ -26,6 +26,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - **Show metadata…** (right-click a file in the list) and `azoth clean --show` list what a
   photo contains, for example the place where it was taken.
 - Right-click a file in the list to remove it.
+- **Check for updates…** in Settings: opens the download page in your browser so you can compare
+  versions. The app itself never goes online.
 - **Choose the file name** of the result (Convert page, under "Save to"): starts as the original's
   name and can be changed when converting one file. With several files, each keeps its own name.
   Names that could reach another folder or that Windows doesn't allow are refused; an existing
