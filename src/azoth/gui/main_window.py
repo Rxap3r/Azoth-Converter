@@ -1,8 +1,10 @@
-"""Main window: drop files, choose a format, convert.
+"""Main window: a sidebar with Convert, Supported formats and Settings, and the pages.
 
 The window puts the parts together and runs a conversion. The parts live in their own
-modules: ``file_list`` (the files and their status), ``options_panel``, ``output_folder``,
-``targets`` (which formats are offered, without Qt) and ``worker`` (the background thread).
+modules: ``convert_page`` (layout of the Convert page), ``file_list``, ``target_picker``,
+``options_panel`` (quality), ``output_folder``, ``formats_panel``, ``settings_page``,
+``targets`` (which targets are offered, without Qt), ``worker`` (the background thread)
+and ``theme`` (light / dark / follow Windows).
 """
 
 from __future__ import annotations
@@ -11,16 +13,17 @@ import threading
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, QUrl, Slot
-from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QIcon
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QPixmap
 from PySide6.QtWidgets import (
-    QComboBox,
-    QFormLayout,
+    QApplication,
+    QButtonGroup,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
-    QProgressBar,
     QPushButton,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -29,19 +32,20 @@ from .. import __version__
 from ..converters import all_converters
 from ..converters.msword import word_installed
 from ..engine import Engine
-from . import targets
+from . import icons, targets, theme
 from .about import AboutDialog
-from .file_list import FileList
+from .convert_page import ConvertPage
+from .file_list import DONE, FAILED, WAITING
 from .formats_panel import FormatsPanel
-from .options_panel import OptionsPanel
-from .output_folder import OutputFolderRow
 from .resources import icon_path
 from .settings import Preferences
-from .targets import CLEAN_LABEL, CLEAN_TARGET
-from .widgets import CollapsibleSection
+from .settings_page import SettingsPage
+from .targets import CLEAN_TARGET, display_name
+from .widgets import label
 from .worker import ConversionWorker
 
-TAGLINE = "– File conversion"
+PAGES = [("convert", "Convert", "convert"), ("formats", "Supported formats", "formats"),
+         ("settings", "Settings", "settings")]  # fmt: skip
 
 
 class MainWindow(QMainWindow):
@@ -57,103 +61,144 @@ class MainWindow(QMainWindow):
         self._job_count = 0
 
         self.setWindowTitle(f"Azoth Converter {__version__}")
-        self.resize(820, 600)
+        self.resize(1120, 760)
+        self.setMinimumSize(960, 620)
         self.setAcceptDrops(True)
+        self.theme = theme.manager(QApplication.instance(), self.prefs.theme)
         self._build_ui()
+        self.theme.changed.connect(self._apply_colors)
+        self._apply_colors(self.theme.colors)
         self._load_preferences()
         self._refresh()
 
     # --- layout -------------------------------------------------------------
 
     def _build_ui(self) -> None:
-        root = QWidget()
-        layout = QVBoxLayout(root)
-        layout.addLayout(self._header())
-
-        for conv in self.engine.unavailable():
-            banner = QLabel(f"⚠ {conv.unavailable_reason()}")
-            banner.setWordWrap(True)
-            banner.setStyleSheet(
-                "background:#fff4ce; color:#5c4400; padding:8px; border-radius:4px;"
-            )
-            layout.addWidget(banner)
-
-        self.file_list = FileList()
+        banners = [c.unavailable_reason() for c in self.engine.unavailable()]
+        self.convert_page = ConvertPage(banners)
+        page = self.convert_page
+        self.file_list = page.file_list
+        self.target_picker = page.target_picker
+        self.quality = page.quality
+        self.output_row = page.output_row
+        self.notes_label = page.notes_label
+        self.status_label = page.status_label
+        self.progress = page.progress
+        self.open_btn = page.open_btn
+        self.convert_btn = page.convert_btn
+        self.cancel_btn = page.cancel_btn
         self.file_list.changed.connect(self._refresh)
-        layout.addWidget(self.file_list, 1)
-
-        form = QFormLayout()
-        self.target_combo = QComboBox()
-        self.target_combo.currentIndexChanged.connect(self._update_notes)
-        form.addRow("Convert to:", self.target_combo)
-        self.output_row = OutputFolderRow()
-        form.addRow("Save to:", self.output_row)
-        layout.addLayout(form)
-
-        self.options = OptionsPanel(
-            word_installed=word_installed(), use_word=self.engine.uses_word()
-        )
-        self.options.use_word_changed.connect(self._set_use_word)
-        self.options_section = CollapsibleSection("Options", self.options)
-        layout.addWidget(self.options_section)
+        self.target_picker.changed.connect(lambda _target: self._update_notes())
+        self.open_btn.clicked.connect(self._open_output_folder)
+        self.cancel_btn.clicked.connect(self._cancel_conversion)
+        self.convert_btn.clicked.connect(self.start_conversion)
 
         libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
         self.formats_panel = FormatsPanel(libreoffice_installed)
-        self.formats_section = CollapsibleSection("Supported formats", self.formats_panel)
-        layout.addWidget(self.formats_section)
+        self.settings_page = SettingsPage(
+            word_installed=word_installed(),
+            use_word=self.engine.uses_word(),
+            theme_choice=self.prefs.theme,
+        )
+        self.settings_page.theme_changed.connect(self.set_theme)
+        self.settings_page.use_word_changed.connect(self._set_use_word)
+        self.settings_page.about_requested.connect(self.show_about)
+        self.about_btn = self.settings_page.about_btn
 
-        self.notes_label = QLabel()
-        self.notes_label.setWordWrap(True)
-        self.notes_label.setStyleSheet("color: palette(placeholder-text);")
-        layout.addWidget(self.notes_label)
+        self.pages = QStackedWidget()
+        self._page_index = {}
+        for key, widget in (
+            ("convert", self.convert_page),
+            ("formats", self.formats_panel),
+            ("settings", self.settings_page),
+        ):
+            self._page_index[key] = self.pages.addWidget(widget)
+        content = QFrame()
+        content.setObjectName("Content")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.addWidget(self.pages)
 
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 1000)
-        self.progress.setTextVisible(False)
-        layout.addWidget(self.progress)
-        layout.addLayout(self._actions())
+        root = QWidget()
+        root.setFocusPolicy(Qt.FocusPolicy.ClickFocus)  # holds the focus at start, no ring shown
+        self._root = root
+        layout = QHBoxLayout(root)
+        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(self._sidebar())
+        layout.addWidget(content, 1)
         self.setCentralWidget(root)
 
-    def _header(self) -> QHBoxLayout:
-        header = QHBoxLayout()
-        logo = QLabel()
-        logo.setPixmap(QIcon(str(icon_path())).pixmap(40, 40))
-        header.addWidget(logo)
-        titles = QVBoxLayout()
-        titles.setSpacing(0)
-        # Name plus a short description, so it's clear at a glance what the app does.
-        title = QLabel(
-            "<h2 style='margin:0'>Azoth Converter "
-            f"<span style='font-weight:normal; color:#8a8aa0'>{TAGLINE}</span></h2>"
-        )
-        subtitle = QLabel("🔒 Works offline. Your files never leave this computer.")
-        subtitle.setStyleSheet("color: palette(placeholder-text);")
-        titles.addWidget(title)
-        titles.addWidget(subtitle)
-        header.addLayout(titles, 1)
-        self.about_btn = QPushButton("About")
-        self.about_btn.clicked.connect(self.show_about)
-        header.addWidget(self.about_btn, 0, Qt.AlignmentFlag.AlignTop)
-        return header
+    def _sidebar(self) -> QWidget:
+        sidebar = QWidget()
+        sidebar.setObjectName("Sidebar")
+        sidebar.setFixedWidth(224)
+        column = QVBoxLayout(sidebar)
+        column.setContentsMargins(10, 4, 10, 14)
+        column.setSpacing(4)
 
-    def _actions(self) -> QHBoxLayout:
-        actions = QHBoxLayout()
-        self.status_label = QLabel()
-        self.open_btn = QPushButton("Open output folder")
-        self.open_btn.clicked.connect(self._open_output_folder)
-        self.open_btn.setEnabled(False)
-        self.cancel_btn = QPushButton("Cancel")
-        self.cancel_btn.clicked.connect(self._cancel_conversion)
-        self.cancel_btn.setVisible(False)
-        self.convert_btn = QPushButton("Convert")
-        self.convert_btn.setDefault(True)
-        self.convert_btn.setMinimumWidth(120)
-        self.convert_btn.clicked.connect(self.start_conversion)
-        actions.addWidget(self.status_label, 1)
-        actions.addWidget(self.open_btn)
-        actions.addWidget(self.cancel_btn)
-        actions.addWidget(self.convert_btn)
-        return actions
+        brand = QHBoxLayout()
+        brand.setContentsMargins(8, 4, 0, 14)
+        brand.setSpacing(10)
+        logo = QLabel()
+        logo.setPixmap(QPixmap(str(icon_path())).scaled(
+            28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+        ))  # fmt: skip
+        brand.addWidget(logo)
+        brand.addWidget(label("Azoth Converter", "brand"), 1)
+        column.addLayout(brand)
+
+        self.nav_group = QButtonGroup(self)
+        self.nav_buttons: dict[str, QPushButton] = {}
+        for key, text, _icon in PAGES:
+            button = QPushButton(text)
+            button.setProperty("role", "nav")
+            button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setFocusPolicy(Qt.FocusPolicy.TabFocus)  # focus ring only from the keyboard
+            button.clicked.connect(lambda _=False, k=key: self.show_page(k))
+            self.nav_group.addButton(button)
+            self.nav_buttons[key] = button
+            column.addWidget(button)
+        self.nav_buttons["convert"].setChecked(True)
+        column.addStretch(1)
+
+        self.offline_label = label(
+            "Works offline. Your files never leave this computer.", "offline", wrap=True
+        )
+        column.addWidget(self.offline_label)
+        return sidebar
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if not getattr(self, "_shown", False):
+            self._shown = True
+            self._root.setFocus()
+
+    def show_page(self, key: str) -> None:
+        self.pages.setCurrentIndex(self._page_index[key])
+        self.nav_buttons[key].setChecked(True)
+        self._apply_colors(self.theme.colors)
+
+    def current_page(self) -> str:
+        index = self.pages.currentIndex()
+        return next(k for k, i in self._page_index.items() if i == index)
+
+    # --- look -------------------------------------------------------------------
+
+    def set_theme(self, choice: str) -> None:
+        """ "system" (follow Windows), "light" or "dark"; saved right away."""
+        self.theme.set_choice(choice)
+        self.settings_page.set_theme_choice(choice)
+        self.prefs.save_theme(choice)
+
+    def _apply_colors(self, colors: theme.Colors) -> None:
+        for key, _text, icon_name in PAGES:
+            button = self.nav_buttons[key]
+            button.setIcon(
+                icons.icon(icon_name, colors.accent if button.isChecked() else colors.muted)
+            )
+        self.convert_page.apply_colors(colors)
 
     # --- files ------------------------------------------------------------------
 
@@ -171,8 +216,14 @@ class MainWindow(QMainWindow):
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls() and self._thread is None:
             event.acceptProposedAction()
+            self.convert_page.set_drop_active(True)
+
+    def dragLeaveEvent(self, event) -> None:
+        self.convert_page.set_drop_active(False)
 
     def dropEvent(self, event: QDropEvent) -> None:
+        self.convert_page.set_drop_active(False)
+        self.show_page("convert")
         self.add_files(u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile())
 
     # --- target formats -------------------------------------------------------
@@ -180,52 +231,63 @@ class MainWindow(QMainWindow):
     def _refresh(self) -> None:
         file_formats = self.file_list.formats
         choices = targets.choices(self.engine, file_formats)
-        previous = self.target_combo.currentData()
-        self.target_combo.blockSignals(True)
-        self.target_combo.clear()
-        for fmt in choices.formats:
-            self.target_combo.addItem(f"{fmt.name} (.{fmt.extension})", fmt.id)
-        if choices.can_clean:
-            if self.target_combo.count():
-                self.target_combo.insertSeparator(self.target_combo.count())
-            self.target_combo.addItem(CLEAN_LABEL, CLEAN_TARGET)
-        # Keep the current choice or the remembered one; otherwise the list is ordered
-        # by usefulness, so its first entry (e.g. Word for a PDF) is the default.
-        self.target_combo.setCurrentIndex(0)
-        for wanted in (previous, self._remembered_target()):
-            index = self.target_combo.findData(wanted) if wanted else -1
-            if index >= 0:
-                self.target_combo.setCurrentIndex(index)
-                break
-        self.target_combo.blockSignals(False)
-
+        self.target_picker.set_choices(
+            choices, keep=[self.target_picker.current(), self._remembered_target()]
+        )
         if targets.source_formats(file_formats) and not choices:
             self.notes_label.setText(targets.NO_COMMON_TARGET)
+            self.notes_label.setVisible(True)
         else:
             self._update_notes()
         busy = self._thread is not None
-        self.convert_btn.setEnabled(bool(choices) and not busy)
         self.file_list.set_busy(busy)
         self.output_row.set_busy(busy)
-        self.target_combo.setEnabled(not busy)
+        self.target_picker.set_busy(busy)
+        self.quality.set_busy(busy)
+        count = self.file_list.count()
+        self.convert_page.subtitle.setText(
+            f"{count} file{'s' if count != 1 else ''} · drop more anywhere in this window"
+            if count
+            else "Add photos, PDFs or office files to get started."
+        )
+        self._update_action()
+
+    def _jobs_for(self, target: str | None) -> int:
+        return sum(1 for f in self.file_list.formats if f is not None and f.id != target)
+
+    def _update_action(self) -> None:
+        target = self.target_picker.current()
+        busy = self._thread is not None
+        count = self._jobs_for(target) if target else 0
+        files = f"{count} file{'s' if count != 1 else ''}"
+        if target == CLEAN_TARGET:
+            text = f"Remove metadata from {files}"
+        elif target:
+            text = f"Convert {files} to {display_name(target)}"
+        else:
+            text = "Convert"
+        self.convert_btn.setText(text)
+        self.convert_btn.setEnabled(bool(target) and count > 0 and not busy)
 
     def _update_notes(self) -> None:
-        target = self.target_combo.currentData()
-        self.options.metadata_check.setEnabled(target != CLEAN_TARGET)
+        target = self.target_picker.current()
+        self.settings_page.metadata_check.setEnabled(target != CLEAN_TARGET)
         notes = targets.notes(self.engine, self.file_list.formats, target)
-        self.notes_label.setText("\n".join(f"ℹ {n}" for n in notes))
+        self.notes_label.setText("\n".join(notes))
+        self.notes_label.setVisible(bool(notes))
+        self._update_action()
 
     def _set_use_word(self, use_word: bool) -> None:
         self.engine = Engine(all_converters(use_word=use_word))
         self._update_notes()
 
     def set_quality_level(self, level_id: str) -> None:
-        self.options.set_level(level_id)
+        self.quality.set_level(level_id)
 
     # --- conversion -----------------------------------------------------------
 
     def start_conversion(self) -> None:
-        target = self.target_combo.currentData()
+        target = self.target_picker.current()
         if not target or self._thread is not None:
             return
         jobs = []
@@ -237,7 +299,7 @@ class MainWindow(QMainWindow):
             elif fmt.id == target:
                 self.file_list.set_status(row, "Skipped: already this format")
             else:
-                self.file_list.set_status(row, "Waiting")
+                self.file_list.set_status(row, "Waiting", state=WAITING)
                 jobs.append((row, path))
         if not jobs:
             return
@@ -250,11 +312,15 @@ class MainWindow(QMainWindow):
         self._done_count = 0
         self._job_count = len(jobs)
         self.progress.setValue(0)
-        self.open_btn.setEnabled(False)
-
+        self.progress.setVisible(True)
+        self.open_btn.setVisible(False)
+        options = {
+            "level": self.quality.level(),
+            "keep_metadata": self.settings_page.metadata_check.isChecked(),
+        }
         self._thread = QThread(self)
         self._worker = ConversionWorker(
-            self.engine, jobs, target, self.output_dir, self.options.options(), self._cancel
+            self.engine, jobs, target, self.output_dir, options, self._cancel
         )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
@@ -282,12 +348,12 @@ class MainWindow(QMainWindow):
     def _on_started(self, row: int) -> None:
         cleaning = self._worker is not None and self._worker.target == CLEAN_TARGET
         verb = "Removing metadata from" if cleaning else "Converting"
-        self.file_list.set_status(row, "Working…")
+        self.file_list.set_progress(row, 0.0, "Working…")
         self.status_label.setText(f"{verb} {self.file_list.files[row].name}")
 
     @Slot(int, float, str)
     def _on_progress(self, row: int, fraction: float, message: str) -> None:
-        self.file_list.set_status(row, f"{int(fraction * 100)}% {message}")
+        self.file_list.set_progress(row, fraction, message)
         self._set_overall(fraction)
 
     @Slot(int, list, list)
@@ -300,6 +366,7 @@ class MainWindow(QMainWindow):
             text,
             tooltip="\n".join([*outputs, *notes]),
             output=outputs[0] if outputs else None,
+            state=DONE,
         )
         if outputs:
             self.last_output = Path(outputs[0]).parent
@@ -308,7 +375,7 @@ class MainWindow(QMainWindow):
     def _on_failed(self, row: int, message: str) -> None:
         self._done_count += 1
         self._set_overall(0)
-        self.file_list.set_status(row, f"✗ {message}", tooltip=message)
+        self.file_list.set_status(row, f"✗ {message}", tooltip=message, state=FAILED)
 
     @Slot(bool)
     def _on_finished(self, cancelled: bool) -> None:
@@ -320,7 +387,7 @@ class MainWindow(QMainWindow):
         self._worker = None
         self.convert_btn.setVisible(True)
         self.cancel_btn.setVisible(False)
-        self.open_btn.setEnabled(self.last_output is not None)
+        self.open_btn.setVisible(self.last_output is not None)
         self.status_label.setText("Cancelled" if cancelled else "Finished")
         if not cancelled:
             self.progress.setValue(1000)
@@ -333,7 +400,8 @@ class MainWindow(QMainWindow):
     # --- preferences and about ------------------------------------------------
 
     def _load_preferences(self) -> None:
-        self.options.load(self.prefs)
+        self.quality.set_level(self.prefs.level)
+        self.settings_page.metadata_check.setChecked(self.prefs.keep_metadata)
         if self.prefs.output_dir is not None:
             self.output_dir = self.prefs.output_dir
 
@@ -344,9 +412,9 @@ class MainWindow(QMainWindow):
     def save_preferences(self) -> None:
         self.prefs.save(
             output_dir=self.output_dir,
-            level=self.options.level(),
-            use_word=self.options.use_word(self.prefs.use_word),
-            keep_metadata=self.options.metadata_check.isChecked(),
+            level=self.quality.level(),
+            use_word=self.settings_page.use_word(self.prefs.use_word),
+            keep_metadata=self.settings_page.metadata_check.isChecked(),
         )
 
     def show_about(self) -> None:

@@ -1,30 +1,47 @@
-"""The "Save to" row: next to the original, or a folder the user picks."""
+"""The "Save to" choice: next to the originals, or a folder the user picks."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .settings import forget_file_dialog_history
+from .widgets import label
 
-SAME_FOLDER = "Same folder as the original"
+SAME_FOLDER = "Next to the originals"
 
 
 class OutputFolderRow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self._folder: Path | None = None
-        self.label = QLabel(SAME_FOLDER)
-        self.choose_btn = QPushButton("Choose folder…")
+        self.label = label(SAME_FOLDER)
+        self.label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.choose_btn = QPushButton("Change…")
+        self.choose_btn.setAccessibleName("Choose the folder to save to")
         self.choose_btn.clicked.connect(self._choose)
         self.reset_btn = QPushButton("Reset")
+        self.reset_btn.setAccessibleName("Save next to the originals again")
         self.reset_btn.clicked.connect(lambda: setattr(self, "folder", None))
-        layout = QHBoxLayout(self)
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        row.addWidget(self.label, 1)
+        row.addWidget(self.choose_btn)
+        row.addWidget(self.reset_btn)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.label, 1)
-        layout.addWidget(self.choose_btn)
-        layout.addWidget(self.reset_btn)
+        layout.setSpacing(6)
+        layout.addWidget(label("Save to", "caption"))
+        layout.addLayout(row)
+        self._update()
 
     @property
     def folder(self) -> Path | None:
@@ -34,11 +51,17 @@ class OutputFolderRow(QWidget):
     @folder.setter
     def folder(self, folder: Path | None) -> None:
         self._folder = Path(folder) if folder is not None else None
-        self.label.setText(str(self._folder) if self._folder is not None else SAME_FOLDER)
+        self._update()
 
     def set_busy(self, busy: bool) -> None:
         self.choose_btn.setEnabled(not busy)
         self.reset_btn.setEnabled(not busy)
+
+    def _update(self) -> None:
+        text = str(self._folder) if self._folder is not None else SAME_FOLDER
+        self.label.setText(text)
+        self.label.setToolTip(text)
+        self.reset_btn.setVisible(self._folder is not None)
 
     def _choose(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Save converted files to")

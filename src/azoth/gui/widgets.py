@@ -1,42 +1,91 @@
-"""Small reusable widgets."""
+"""Small reusable widgets and helpers."""
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QSizePolicy, QToolButton, QVBoxLayout, QWidget
+from PySide6.QtCore import QPoint, QRect, QSize, Qt
+from PySide6.QtWidgets import QFrame, QLabel, QLayout, QSizePolicy, QWidget, QWidgetItem
 
 
-class CollapsibleSection(QWidget):
-    """A heading with an arrow that shows or hides the content below it."""
+def label(text: str = "", role: str | None = None, *, wrap: bool = False) -> QLabel:
+    """A label styled by the theme: role "h1", "h2", "muted", "small", "caption", "note" …"""
+    widget = QLabel(text)
+    if role:
+        widget.setProperty("role", role)
+    widget.setWordWrap(wrap)
+    return widget
 
-    def __init__(self, title: str, content: QWidget, *, expanded: bool = False) -> None:
-        super().__init__()
-        self.content = content
-        self.toggle = QToolButton()
-        self.toggle.setText(title)
-        self.toggle.setCheckable(True)
-        self.toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.toggle.setAutoRaise(True)
-        self.toggle.setStyleSheet("QToolButton { font-weight: bold; border: none; }")
-        self.toggle.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.toggle.toggled.connect(self.set_expanded)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
-        layout.addWidget(self.toggle)
-        layout.addWidget(content)
-        self.set_expanded(expanded)
+def divider() -> QFrame:
+    line = QFrame()
+    line.setObjectName("Divider")
+    line.setFrameShape(QFrame.Shape.NoFrame)
+    return line
 
-    def is_expanded(self) -> bool:
-        return self.toggle.isChecked()
 
-    def set_expanded(self, expanded: bool) -> None:
-        if self.toggle.isChecked() != expanded:
-            self.toggle.setChecked(expanded)  # emits toggled → calls us again
-            return
-        self.toggle.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
-        self.content.setVisible(expanded)
-        # Closed sections take only the height of their heading.
-        vertical = QSizePolicy.Policy.Preferred if expanded else QSizePolicy.Policy.Maximum
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, vertical)
+class FlowLayout(QLayout):
+    """Lays out widgets left to right and wraps onto the next line, like words in text."""
+
+    def __init__(self, parent: QWidget | None = None, spacing: int = 6) -> None:
+        super().__init__(parent)
+        self._items: list[QWidgetItem] = []
+        self._spacing = spacing
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def addItem(self, item) -> None:
+        self._items.append(item)
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def itemAt(self, index: int):
+        return self._items[index] if 0 <= index < len(self._items) else None
+
+    def takeAt(self, index: int):
+        return self._items.pop(index) if 0 <= index < len(self._items) else None
+
+    def expandingDirections(self):
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return self._arrange(QRect(0, 0, width, 0), move=False)
+
+    def setGeometry(self, rect: QRect) -> None:
+        super().setGeometry(rect)
+        self._arrange(rect, move=True)
+
+    def sizeHint(self) -> QSize:
+        return self.minimumSize()
+
+    def minimumSize(self) -> QSize:
+        size = QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        return size
+
+    def _arrange(self, rect: QRect, *, move: bool) -> int:
+        x, y, line_height = rect.x(), rect.y(), 0
+        for item in self._items:
+            if item.widget() is not None and item.widget().isHidden():
+                continue
+            hint = item.sizeHint()
+            if x + hint.width() > rect.right() + 1 and line_height > 0:
+                x = rect.x()
+                y += line_height + self._spacing
+                line_height = 0
+            if move:
+                item.setGeometry(QRect(QPoint(x, y), hint))
+            x += hint.width() + self._spacing
+            line_height = max(line_height, hint.height())
+        return y + line_height - rect.y()
+
+
+def flow_container() -> tuple[QWidget, FlowLayout]:
+    widget = QWidget()
+    layout = FlowLayout(widget)
+    policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+    policy.setHeightForWidth(True)
+    widget.setSizePolicy(policy)
+    return widget, layout

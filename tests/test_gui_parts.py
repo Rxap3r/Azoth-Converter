@@ -82,24 +82,49 @@ def test_file_list_unknown_files_are_marked(file_list, tmp_path):
 
 def test_file_list_remove_and_clear(file_list, tmp_path, sample_png, sample_pdf):
     file_list.add_files([sample_png, sample_pdf])
-    assert file_list.drop_hint.isHidden() and not file_list.tree.isHidden()
-    file_list.remove_rows([0])
+    assert file_list.empty_label.isHidden()
+    file_list.cards[0].remove_btn.click()  # the bin button on the card
     assert [p.name for p in file_list.files] == ["letter.pdf"]
+    assert file_list.cards[0].remove_btn.accessibleName() == "Remove letter.pdf from the list"
     file_list.clear()
-    assert file_list.count() == 0
-    assert not file_list.drop_hint.isHidden() and file_list.tree.isHidden()
+    assert file_list.count() == 0 and file_list.cards == []
+    assert not file_list.empty_label.isHidden()
+    assert not file_list.clear_btn.isEnabled()  # nothing to clear
 
 
 def test_file_list_cannot_change_while_busy(file_list, sample_png):
     file_list.add_files([sample_png])
     file_list.set_busy(True)
-    assert not file_list.add_btn.isEnabled() and not file_list.remove_btn.isEnabled()
+    assert not file_list.add_btn.isEnabled()
+    assert not file_list.cards[0].remove_btn.isEnabled()
     file_list.remove_rows([0])
     file_list.clear()
     assert file_list.count() == 1
     file_list.set_busy(False)
     file_list.remove_rows([0])
     assert file_list.count() == 0
+
+
+def test_file_card_progress_and_done(file_list, sample_png, tmp_path):
+    file_list.add_files([sample_png])
+    card = file_list.cards[0]
+    assert card.size.text().endswith(("KB", "bytes"))
+    file_list.set_progress(0, 0.5, "Saving")
+    assert card.progress.isVisibleTo(card) and card.progress.value() == 500
+    assert file_list.status(0) == "50% Saving"
+    file_list.set_status(0, "✓ logo.jpg", output=str(tmp_path / "logo.jpg"), state="done")
+    assert not card.progress.isVisibleTo(card)
+    assert card.open_btn.isVisibleTo(card) and card.folder_btn.isVisibleTo(card)
+    file_list.set_status(0, "✗ broken", state="failed")
+    assert not card.open_btn.isVisibleTo(card)
+
+
+def test_human_size():
+    from azoth.gui.file_list import human_size
+
+    assert human_size(512) == "512 bytes"
+    assert human_size(2048) == "2.0 KB"
+    assert human_size(3 * 1024 * 1024) == "3.0 MB"
 
 
 def test_file_list_status(file_list, sample_png):
@@ -109,19 +134,57 @@ def test_file_list_status(file_list, sample_png):
     assert file_list.status_tooltip(0) == "/out/logo.jpg"
 
 
-def test_options_panel(qtbot):
-    from azoth.gui.options_panel import OptionsPanel
+def test_quality_selector(qtbot):
+    from azoth.gui.options_panel import QualitySelector
 
-    panel = OptionsPanel(word_installed=False, use_word=True)
-    qtbot.addWidget(panel)
-    assert panel.options() == {"level": "maximum", "keep_metadata": False}
-    panel.set_level("compact")
-    panel.set_level("no-such-level")  # ignored
-    panel.metadata_check.setChecked(True)
-    assert panel.options() == {"level": "compact", "keep_metadata": True}
-    assert "82" in panel.level_hint.text()  # photo quality of "Smaller files"
-    assert panel.word_check.isHidden()
-    assert panel.use_word(saved=True) is True  # Word not installed: keep the saved choice
+    selector = QualitySelector()
+    qtbot.addWidget(selector)
+    assert selector.level() == "maximum"
+    with qtbot.waitSignal(selector.level_changed):
+        selector.set_level("compact")
+    selector.set_level("no-such-level")  # ignored
+    selector.set_level(None)  # nothing saved yet: ignored
+    assert selector.level() == "compact"
+    assert "82" in selector.hint.text()  # photo quality of "Smaller files"
+    selector.set_busy(True)
+    assert not selector.buttons["high"].isEnabled()
+
+
+def test_target_picker(qtbot):
+    from azoth.gui.target_picker import TargetPicker
+
+    picker = TargetPicker()
+    qtbot.addWidget(picker)
+    choices = targets.choices(ENGINE, [F["jpg"]])
+    picker.set_choices(choices)
+    assert picker.ids()[0] == "png" and picker.ids()[-1] == targets.CLEAN_TARGET
+    assert picker.current() == "png"  # the most useful target is the default
+    picker.set_choices(choices, keep=[None, "pdf"])  # keep a remembered choice
+    assert picker.current() == "pdf"
+    with qtbot.waitSignal(picker.changed) as signal:
+        picker.tiles[2].click()
+    assert signal.args == [picker.tiles[2].target]
+    assert picker.select(targets.CLEAN_TARGET) and picker.current() == targets.CLEAN_TARGET
+    assert not picker.select("docx")  # not offered for photos
+    assert picker.tiles[0].accessibleName() == "PNG: Lossless"
+
+    picker.set_choices(targets.choices(ENGINE, [F["pdf"]]))
+    assert targets.CLEAN_TARGET not in picker.ids() and picker.current() == "docx"
+    picker.set_choices(targets.choices(ENGINE, []))
+    assert picker.ids() == [] and picker.current() is None
+
+
+def test_settings_page(qtbot):
+    from azoth.gui.settings_page import SettingsPage
+
+    page = SettingsPage(word_installed=False, use_word=True, theme_choice="dark")
+    qtbot.addWidget(page)
+    assert page.theme_choice() == "dark"
+    with qtbot.waitSignal(page.theme_changed) as signal:
+        page.theme_buttons["light"].click()
+    assert signal.args == ["light"]
+    assert page.word_check.isHidden()
+    assert page.use_word(saved=True) is True  # Word not installed: keep the saved choice
 
 
 def test_output_folder_row(qtbot, tmp_path):

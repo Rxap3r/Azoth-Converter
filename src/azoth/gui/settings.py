@@ -95,6 +95,16 @@ class Preferences:
         return self._get("use_word", True, bool)
 
     @property
+    def theme(self) -> str:
+        """ "system" (follow Windows), "light" or "dark"."""
+        value = self._get("theme", "system")
+        return value if value in ("system", "light", "dark") else "system"
+
+    def save_theme(self, theme: str) -> None:
+        self.store.setValue("theme", theme)
+        self.store.sync()
+
+    @property
     def keep_metadata(self) -> bool:
         return self._get("keep_metadata", False, bool)
 

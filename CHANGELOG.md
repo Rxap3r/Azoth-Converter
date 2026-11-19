@@ -8,9 +8,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ## [Unreleased]
 
 ### Added
+- **Light and dark look:** under **Settings → Appearance**, choose *Follow Windows* (the default),
+  *Light* or *Dark*. The window's title bar follows too.
+- Each file in the list has its own **remove** button, its own progress bar, and **Open** /
+  **Show in folder** once it's converted.
 - **Remove photo metadata** without changing the format or the picture: GPS location, camera,
   date, author, comments, preview pictures and other hidden data are removed from JPG, PNG,
-  WebP, GIF, TIFF, HEIC and AVIF files. In the app, choose **Same format, remove metadata**;
+  WebP, GIF, TIFF, HEIC and AVIF files. In the app, choose **Remove metadata only**;
   on the command line, use `azoth clean`. The copy is saved as "name (clean)" next to the
   original, or under the same name in another folder.
 - **Show metadata…** (right-click a file in the list) and `azoth clean --show` list what a
@@ -18,6 +22,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - Right-click a file in the list to remove it.
 - `SECURITY.md`: how to report security or privacy problems privately.
 - `CODE_SIGNING.md`: code signing policy, needed for free code signing through SignPath Foundation.
+
+### Changed
+- **New look** (design "A"): a sidebar with **Convert**, **Supported formats** and **Settings**;
+  files shown as cards; the target formats as tiles with a short note on what each is good for;
+  quality as three buttons (Maximum / High / Smaller) next to them; the Convert button says what
+  will happen ("Convert 3 files to JPG").
+- **Supported formats** is now its own page with search, filter buttons per kind of file, and
+  conversions that need LibreOffice marked with a dashed outline.
+- "Keep photo metadata" and "Use Microsoft Word" moved to **Settings**; the About window opens
+  from there.
 
 ### Quality
 - Removing metadata never re-compresses the picture: the picture data is copied byte for byte
@@ -30,6 +44,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   a "motion photo") and multi-picture indexes are no longer put into the PDF.
 
 ### Development
+- Every colour of the light and dark look is checked automatically for readable contrast
+  (WCAG: 4.5:1 for text).
 - The main window's code is split into parts (file list, options, output folder, target
   choice, background worker), to prepare the design refresh. The window looks and works the
   same; new tests cover each part on its own.

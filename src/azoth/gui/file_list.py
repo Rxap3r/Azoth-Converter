@@ -1,4 +1,4 @@
-"""The list of files to convert, with its buttons and the right-click menu."""
+"""The list of files to convert: one card per file, with its status and a remove button."""
 
 from __future__ import annotations
 
@@ -8,29 +8,138 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QMenu,
     QMessageBox,
+    QProgressBar,
     QPushButton,
-    QTreeWidget,
-    QTreeWidgetItem,
+    QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
 from .. import formats, metadata
 from ..converters import ConversionError
+from . import icons
 from .settings import forget_file_dialog_history
+from .theme import LIGHT_COLORS, Colors, repolish
+from .widgets import label
 
-COL_FILE, COL_TYPE, COL_STATUS = range(3)
+# Card states, used by the stylesheet to colour the status line.
+WAITING, WORKING, DONE, FAILED, INFO = "waiting", "working", "done", "failed", "info"
+
+
+def human_size(size: int) -> str:
+    for unit in ("bytes", "KB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{size:.0f} {unit}" if unit == "bytes" else f"{size:.1f} {unit}"
+        size /= 1024
+    return ""
+
+
+class FileCard(QFrame):
+    """One file: type badge, name, size, status line, progress bar, links, remove button."""
+
+    def __init__(self, path: Path, fmt: formats.Format | None, owner: FileList) -> None:
+        super().__init__()
+        self.path = path
+        self.output: str | None = None
+        self._owner = owner
+        self.setProperty("role", "card")
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(lambda pos: owner.show_menu(self, pos))
+
+        self.badge = QLabel(fmt.id.upper()[:4] if fmt else "?")
+        self.badge.setProperty("role", "badge")
+        self.badge.setProperty("category", fmt.category if fmt else "unknown")
+        self.badge.setFixedSize(40, 40)
+        self.badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.badge.setToolTip(fmt.name if fmt else "Unknown file type")
+
+        self.name = label(path.name)
+        self.name.setStyleSheet("font-weight: 600;")
+        self.name.setToolTip(str(path))
+        self.name.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        try:
+            size = human_size(path.stat().st_size)
+        except OSError:
+            size = ""
+        self.size = label(size, "small")
+
+        self.status = label("", "status")
+        self.status.setProperty("state", INFO)
+        self.status.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 1000)
+        self.progress.setTextVisible(False)
+        self.progress.setVisible(False)
+        self.progress.setAccessibleName(f"Progress of {path.name}")
+        self.open_btn = QPushButton("Open")
+        self.folder_btn = QPushButton("Show in folder")
+        for button in (self.open_btn, self.folder_btn):
+            button.setProperty("role", "link")
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setVisible(False)
+        self.open_btn.clicked.connect(self.open_output)
+        self.folder_btn.clicked.connect(self.open_folder)
+
+        self.remove_btn = QPushButton()
+        self.remove_btn.setProperty("role", "icon")
+        self.remove_btn.setToolTip("Remove from list")
+        self.remove_btn.setAccessibleName(f"Remove {path.name} from the list")
+        self.remove_btn.clicked.connect(lambda: owner.remove_card(self))
+
+        top = QHBoxLayout()
+        top.setSpacing(8)
+        top.addWidget(self.name, 1)
+        top.addWidget(self.size)
+        status_row = QHBoxLayout()
+        status_row.setSpacing(10)
+        status_row.addWidget(self.status, 1)
+        status_row.addWidget(self.progress, 2)
+        status_row.addWidget(self.open_btn)
+        status_row.addWidget(self.folder_btn)
+        text = QVBoxLayout()
+        text.setSpacing(3)
+        text.addLayout(top)
+        text.addLayout(status_row)
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(14, 10, 8, 10)
+        row.setSpacing(14)
+        row.addWidget(self.badge)
+        row.addLayout(text, 1)
+        row.addWidget(self.remove_btn)
+
+    def set_state(self, state: str, text: str, tooltip: str = "") -> None:
+        self.status.setText(text)
+        self.status.setToolTip(tooltip)
+        self.status.setProperty("state", state)
+        repolish(self.status)
+        self.progress.setVisible(state == WORKING)
+        has_output = state == DONE and bool(self.output)
+        self.open_btn.setVisible(has_output)
+        self.folder_btn.setVisible(has_output)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        self.open_output()
+        super().mouseDoubleClickEvent(event)
+
+    def open_output(self) -> None:
+        if self.output:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self.output))
+
+    def open_folder(self) -> None:
+        if self.output:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(self.output).parent)))
 
 
 class FileList(QWidget):
-    """Files and their status. Shows a drop hint while empty."""
+    """The files and their status. ``files`` and ``formats`` are in the order shown."""
 
     changed = Signal()  # files were added or removed
 
@@ -38,42 +147,31 @@ class FileList(QWidget):
         super().__init__()
         self.files: list[Path] = []
         self.formats: list[formats.Format | None] = []  # None: unknown file type
+        self.cards: list[FileCard] = []
         self._busy = False
-
-        self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["File", "Type", "Status"])
-        self.tree.setRootIsDecorated(False)
-        self.tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        header = self.tree.header()
-        header.setSectionResizeMode(COL_FILE, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(COL_TYPE, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(COL_STATUS, QHeaderView.ResizeMode.Stretch)
-        self.tree.itemDoubleClicked.connect(self._open_output)
-        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(self._menu)
-
-        self.drop_hint = QLabel("Drag files here, or click “Add files…”")
-        self.drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_hint.setStyleSheet(
-            "border: 2px dashed palette(mid); border-radius: 8px; padding: 40px; font-size: 14px;"
-        )
+        self._colors: Colors = LIGHT_COLORS
 
         self.add_btn = QPushButton("Add files…")
-        self.add_btn.clicked.connect(self._choose_files)
-        self.remove_btn = QPushButton("Remove selected")
-        self.remove_btn.clicked.connect(self.remove_selected)
+        self.add_btn.clicked.connect(self.choose_files)
         self.clear_btn = QPushButton("Clear list")
         self.clear_btn.clicked.connect(self.clear)
-        buttons = QHBoxLayout()
-        for button in (self.add_btn, self.remove_btn, self.clear_btn):
-            buttons.addWidget(button)
-        buttons.addStretch()
 
+        self._column = QWidget()
+        self._cards_layout = QVBoxLayout(self._column)
+        self._cards_layout.setContentsMargins(0, 0, 4, 0)
+        self._cards_layout.setSpacing(8)
+        self.empty_label = label("No files yet. Drag files into this window to start.", "muted")
+        self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._cards_layout.addWidget(self.empty_label)
+        self._cards_layout.addStretch(1)
+
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setWidget(self._column)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.drop_hint, 1)  # takes the free space while the list is empty
-        layout.addWidget(self.tree, 1)
-        layout.addLayout(buttons)
+        layout.addWidget(self.scroll)
         self._update()
 
     # --- contents -------------------------------------------------------------
@@ -89,16 +187,17 @@ class FileList(QWidget):
             if path.resolve() in known:
                 continue
             fmt = formats.detect(path)
-            item = QTreeWidgetItem([path.name, fmt.id.upper() if fmt else "?", ""])
-            item.setToolTip(COL_FILE, str(path))
+            card = FileCard(path, fmt, self)
             if fmt is None:
-                item.setText(COL_STATUS, "Unknown file type, will be skipped")
-            self.tree.addTopLevelItem(item)
+                card.set_state(INFO, "Unknown file type, will be skipped")
+            self._cards_layout.insertWidget(len(self.cards), card)
+            self.cards.append(card)
             self.files.append(path)
             self.formats.append(fmt)
             known.add(path.resolve())
             added = True
         if added:
+            self.apply_colors(self._colors)
             self._changed()
 
     @staticmethod
@@ -114,23 +213,21 @@ class FileList(QWidget):
         if self._busy:
             return
         for row in sorted(set(rows), reverse=True):
-            self.tree.takeTopLevelItem(row)
+            card = self.cards.pop(row)
+            card.setParent(None)
+            card.deleteLater()
             del self.files[row]
             del self.formats[row]
         self._changed()
 
-    def remove_selected(self) -> None:
-        self.remove_rows(self.tree.indexOfTopLevelItem(i) for i in self.tree.selectedItems())
+    def remove_card(self, card: FileCard) -> None:
+        if card in self.cards:
+            self.remove_rows([self.cards.index(card)])
 
     def clear(self) -> None:
-        if self._busy:
-            return
-        self.tree.clear()
-        self.files.clear()
-        self.formats.clear()
-        self._changed()
+        self.remove_rows(range(len(self.cards)))
 
-    def _choose_files(self) -> None:
+    def choose_files(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(self, "Choose files to convert")
         forget_file_dialog_history()
         self.add_files(paths)
@@ -138,39 +235,46 @@ class FileList(QWidget):
     # --- status -----------------------------------------------------------------
 
     def set_status(
-        self, row: int, text: str, *, tooltip: str = "", output: str | None = None
+        self,
+        row: int,
+        text: str,
+        *,
+        tooltip: str = "",
+        output: str | None = None,
+        state: str = INFO,
     ) -> None:
-        """Show ``text`` for a file; ``output`` is opened when the row is double-clicked."""
-        item = self.tree.topLevelItem(row)
-        item.setText(COL_STATUS, text)
-        item.setToolTip(COL_STATUS, tooltip)
+        """Show ``text`` for a file. ``output`` is the result that Open shows."""
+        card = self.cards[row]
         if output is not None:
-            item.setData(COL_STATUS, Qt.ItemDataRole.UserRole, output)
+            card.output = output
+        card.set_state(state, text, tooltip)
+
+    def set_progress(self, row: int, fraction: float, message: str) -> None:
+        card = self.cards[row]
+        card.progress.setValue(int(max(0.0, min(1.0, fraction)) * 1000))
+        card.set_state(WORKING, f"{int(fraction * 100)}% {message}".strip())
 
     def status(self, row: int) -> str:
-        return self.tree.topLevelItem(row).text(COL_STATUS)
+        return self.cards[row].status.text()
 
     def status_tooltip(self, row: int) -> str:
-        return self.tree.topLevelItem(row).toolTip(COL_STATUS)
+        return self.cards[row].status.toolTip()
 
     def set_busy(self, busy: bool) -> None:
         """While converting, the list can't be changed."""
         self._busy = busy
-        for button in (self.add_btn, self.remove_btn, self.clear_btn):
+        for button in (self.add_btn, self.clear_btn, *(c.remove_btn for c in self.cards)):
             button.setEnabled(not busy)
 
-    def _open_output(self, item: QTreeWidgetItem) -> None:
-        output = item.data(COL_STATUS, Qt.ItemDataRole.UserRole)
-        if output:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(output))
+    def apply_colors(self, colors: Colors) -> None:
+        self._colors = colors
+        for card in self.cards:
+            card.remove_btn.setIcon(icons.icon("trash", colors.muted))
 
     # --- right-click menu and metadata --------------------------------------------
 
-    def _menu(self, pos) -> None:
-        item = self.tree.itemAt(pos)
-        if item is None:
-            return
-        row = self.tree.indexOfTopLevelItem(item)
+    def show_menu(self, card: FileCard, pos) -> None:
+        row = self.cards.index(card)
         menu = QMenu(self)
         show = menu.addAction("Show metadata…")
         fmt = self.formats[row]
@@ -179,7 +283,7 @@ class FileList(QWidget):
         remove = menu.addAction("Remove from list")
         remove.setEnabled(not self._busy)
         remove.triggered.connect(lambda: self.remove_rows([row]))
-        menu.exec(self.tree.viewport().mapToGlobal(pos))
+        menu.exec(card.mapToGlobal(pos))
 
     def metadata_text(self, row: int) -> str:
         path = self.files[row]
@@ -200,6 +304,5 @@ class FileList(QWidget):
         self.changed.emit()
 
     def _update(self) -> None:
-        has_files = bool(self.files)
-        self.drop_hint.setVisible(not has_files)
-        self.tree.setVisible(has_files)
+        self.empty_label.setVisible(not self.cards)
+        self.clear_btn.setEnabled(bool(self.cards) and not self._busy)

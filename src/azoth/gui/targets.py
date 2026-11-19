@@ -12,12 +12,35 @@ from .. import formats, metadata, ranking
 from ..engine import Engine
 
 CLEAN_TARGET = "clean"  # not a format: same format, metadata removed (see metadata.py)
-CLEAN_LABEL = "Same format, remove metadata (location, camera, date)"
 CLEAN_NOTE = (
     "Saves a copy without the hidden information: GPS location, camera, date, author, "
     "comments and preview pictures. The picture itself stays exactly the same. "
     "Next to the original, the copy is called “name (clean)”."
 )
+CLEAN_TILE = ("Remove metadata only", "Same format, no location or camera data")
+
+# Short tile text: what each target is good for, in a word or two.
+_PURPOSE = {
+    "jpg": "Photos", "png": "Lossless", "webp": "Websites", "bmp": "Old apps",
+    "tiff": "Print", "gif": "Simple", "ico": "Icon", "heic": "iPhone",
+    "avif": "Small files", "pdf": "Document", "docx": "Word", "doc": "Old Word",
+    "odt": "OpenDocument", "rtf": "Rich text", "txt": "Plain text", "xlsx": "Excel",
+    "xls": "Old Excel", "ods": "OpenDocument", "csv": "Plain table",
+    "pptx": "PowerPoint", "ppt": "Old PowerPoint", "odp": "OpenDocument",
+}  # fmt: skip
+_DISPLAY = {"webp": "WebP", "docx": "DOCX"}
+
+
+def display_name(format_id: str) -> str:
+    """How a format is written in the app: "JPG", "WebP", "PDF" …"""
+    return _DISPLAY.get(format_id, format_id.upper())
+
+
+def tile_text(format_id: str) -> tuple[str, str]:
+    """(title, what it's good for) for a target tile."""
+    return display_name(format_id), _PURPOSE.get(format_id, formats.FORMATS[format_id].name)
+
+
 NO_COMMON_TARGET = "These files have no target format in common. Convert them in separate groups."
 
 FileFormats = Iterable[formats.Format | None]  # None: a file of unknown type

@@ -144,18 +144,19 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **Release 0.2**
 
 ### Design refresh (timing flexible)
-- [ ] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. Waiting for the owner's choice.*
-- [ ] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain
-- [ ] Modern Windows 11 look (Fluent style): rounded corners, accent colour, Mica-style background; follows Windows light/dark mode
-- [ ] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**
-- [ ] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
-- [ ] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
-- [ ] Target format picker as a grid of format tiles grouped by type, with the most used ones first
-- [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations
-- [ ] **Rework the app icon:** the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
-- [ ] Consistent icon set inside the app (bundled, no web fonts or online assets)
-- [ ] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)
-- [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %
+- [x] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. **Owner's choice (Nov 2026): style A.** Icon choice postponed.*
+- [x] **Light / dark mode setting** (owner's wish, Nov 2026): Settings offers *Follow Windows* (default), *Light* and *Dark*
+- [x] **Overall look much slicker and more modern** (owner's wish, Nov 2026): the current window is functional but plain. *Done with style A (Nov 2026); not yet seen on a real Windows PC.*
+- [x] Modern Windows 11 look (Fluent style): rounded corners, accent colour; follows Windows light/dark mode. *Own stylesheet on Qt's Fusion style (`gui/theme.py`); the Mica see-through background is not done.*
+- [x] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**. *PDF tools gets its sidebar entry when the tools are built.*
+- [x] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
+- [x] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
+- [x] Target format picker as a grid of format tiles, with the most used ones first
+- [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
+- [ ] **Rework the app icon** (ideas 1–3 on the design canvas; owner postponed the choice, Nov 2026): the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
+- [x] Consistent icon set inside the app (bundled, no web fonts or online assets): line icons drawn in `gui/icons.py`
+- [x] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)
+- [ ] Keep it accessible: keyboard navigation, screen readers, high contrast, scaling to 200 %. *Partly: all colours pass contrast checks (`tests/test_theme.py`), buttons have names for screen readers, focus rings for the keyboard; Windows high-contrast mode and 200 % scaling not yet tested.*
 - Options: Qt's built-in Windows 11 style plus our own stylesheet, or the GPL-licensed *PySide6-Fluent-Widgets* library (compatible with our license)
 
 ### Technical improvements (from the code review, Nov 2026; schedule as needed)

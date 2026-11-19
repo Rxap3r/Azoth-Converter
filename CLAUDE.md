@@ -22,15 +22,15 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
      approval per release in SignPath.
 - **Unreleased work on `dev`:** see `CHANGELOG.md` → Unreleased. First 0.2 feature done:
   **remove photo metadata** (`metadata.py`, `converters/strip.py`, `azoth clean`, the
-  "Same format, remove metadata" target and "Show metadata…" in the app); not yet tried on
+  "Remove metadata only" tile and "Show metadata…" in the app); not yet tried on
   Windows or with real phone photos.
 - **Next planned work (owner decides the order):**
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;
   - PDF tools and OCR (release 0.2; "remove photo metadata" is done);
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
-    mockups (made, waiting for the owner's choice of A/B/C and icon 1/2/3) → PDF tools in
-    the new design → OCR;
+    mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
+    real Windows PC; icon choice postponed by the owner) → PDF tools in the new design → OCR;
   - technical improvements: faster batches, smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
@@ -136,10 +136,13 @@ src/azoth/
   converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
   cli.py              `azoth` command line
   metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
-  gui/                PySide6 app: main_window.py puts the parts together; file_list.py,
-                      options_panel.py, output_folder.py, worker.py (background thread),
-                      targets.py (which targets are offered, no Qt), About dialog,
-                      saved preferences (settings.py, QSettings)
+  gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
+                      convert_page.py (layout), file_list.py (file cards), target_picker.py
+                      (format tiles), options_panel.py (quality), output_folder.py,
+                      formats_panel.py, settings_page.py, worker.py (background thread),
+                      targets.py (which targets are offered, no Qt), theme.py (light/dark
+                      colours + stylesheet; widgets only set a "role" property), icons.py
+                      (line icons drawn from SVG), About dialog, settings.py (QSettings)
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),
@@ -195,6 +198,12 @@ cd packaging && pyinstaller azoth.spec --noconfirm
 `python -m azoth` without arguments opens the GUI; with arguments it runs the CLI.
 GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftest.py`).
 Office tests are skipped when LibreOffice isn't installed. Install it to run them.
+
+## Look and feel
+
+All colours are in `gui/theme.py` (one set for light, one for dark); widgets never hard-code
+colours, they set a `role` property that the stylesheet styles. `tests/test_theme.py` checks
+every colour pair for readable contrast: keep it passing when colours change.
 
 ## Languages
 
