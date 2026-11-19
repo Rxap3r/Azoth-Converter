@@ -10,8 +10,14 @@ import threading
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QIcon, QImage, QPixmap, QTransform
+from PySide6.QtCore import QEvent, QObject, QRect, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import (
+    QDesktopServices,
+    QIcon,
+    QImage,
+    QPixmap,
+    QTransform,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -32,10 +38,11 @@ from PySide6.QtWidgets import (
 
 from .. import formats, pdf_tools
 from ..converters import ConversionError
+from . import icons
 from .file_list import DONE, FAILED, INFO, WORKING
 from .output_folder import OutputFolderRow
 from .settings import forget_file_dialog_history
-from .theme import repolish
+from .theme import Colors, repolish
 from .widgets import label
 
 TOOLS = [("merge", "Merge"), ("split", "Split"), ("edit", "Edit pages")]
@@ -133,6 +140,39 @@ class PageDelegate(QStyledItemDelegate):
         option.displayAlignment = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
 
 
+class RemovableDelegate(QStyledItemDelegate):
+    """Draws a trash button at the right end of each row; clicking it removes that row."""
+
+    SIZE = 18
+
+    def __init__(self, view: QListWidget, on_remove: Callable[[int], None]) -> None:
+        super().__init__(view)
+        self.icon = QIcon()
+        self._on_remove = on_remove
+
+    def button_rect(self, option_rect: QRect) -> QRect:
+        s = self.SIZE
+        return QRect(option_rect.right() - s - 8, option_rect.center().y() - s // 2 + 1, s, s)
+
+    def sizeHint(self, option, index) -> QSize:
+        hint = super().sizeHint(option, index)
+        return QSize(hint.width() + self.SIZE + 16, max(hint.height(), self.SIZE + 10))
+
+    def paint(self, painter, option, index) -> None:
+        super().paint(painter, option, index)
+        self.icon.paint(painter, self.button_rect(option.rect))
+
+    def editorEvent(self, event, model, option, index) -> bool:
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and event.button() == Qt.MouseButton.LeftButton
+            and self.button_rect(option.rect).contains(event.position().toPoint())
+        ):
+            self._on_remove(index.row())
+            return True
+        return super().editorEvent(event, model, option, index)
+
+
 def _list(view: QListWidget) -> QListWidget:
     view.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
     view.setDefaultDropAction(Qt.DropAction.MoveAction)
@@ -172,6 +212,10 @@ class MergeTool(QWidget):
         self.list = _list(QListWidget())
         self.list.setAccessibleName("PDFs to merge, in order")
         self.list.model().rowsMoved.connect(lambda *_: self.changed.emit())
+        self.remover = RemovableDelegate(self.list, self.remove_row)
+        self.list.setItemDelegate(self.remover)
+        self.list.setToolTip("Drag to change the order. Click the bin to remove a PDF.")
+        self.list.installEventFilter(self)  # Delete key removes the selected PDFs
         self.add_btn = QPushButton("Add PDFs…")
         self.add_btn.clicked.connect(lambda: self.add_files(choose_pdfs(self, many=True)))
         self.up_btn = QPushButton("Move up")
@@ -219,6 +263,24 @@ class MergeTool(QWidget):
             self.list.addItem(item)
             known.add(path.resolve())
         self.changed.emit()
+
+    def eventFilter(self, watched, event) -> bool:
+        if (
+            watched is self.list
+            and event.type() == QEvent.Type.KeyPress
+            and event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace)
+        ):
+            self.remove_selected()
+            return True
+        return super().eventFilter(watched, event)
+
+    def remove_row(self, row: int) -> None:
+        self.list.takeItem(row)
+        self.changed.emit()
+
+    def apply_colors(self, colors: Colors) -> None:
+        self.remover.icon = icons.icon("trash", colors.muted)
+        self.list.viewport().update()
 
     def remove_selected(self) -> None:
         for item in self.list.selectedItems():
@@ -578,6 +640,9 @@ class PdfToolsPage(QWidget):
         self._set_busy(True)
         self.result.show_state(WORKING, "Working…")
         self.task.start(job)
+
+    def apply_colors(self, colors: Colors) -> None:
+        self.merge.apply_colors(colors)
 
     def _set_busy(self, busy: bool) -> None:
         self.busy = busy

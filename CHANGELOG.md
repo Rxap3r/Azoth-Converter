@@ -39,6 +39,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - "Keep photo metadata" and "Use Microsoft Word" moved to **Settings**; the About window opens
   from there.
 
+- PDF tools → Merge: every PDF in the list has its own bin button to remove it (the Delete key
+  works too); "Remove" below the list still removes the selected ones.
+- Quality: the texts under Maximum / High / Smaller now say in plain words what you get
+  (e.g. "Looks the same as the original. Biggest files."); the technical numbers moved to the
+  tooltip.
+
 ### Quality
 - Removing metadata never re-compresses the picture: the picture data is copied byte for byte
   (TIFF is rewritten with the same lossless compression). Before saving, the app compares the

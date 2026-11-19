@@ -206,6 +206,7 @@ class MainWindow(QMainWindow):
                 icons.icon(icon_name, colors.accent if button.isChecked() else colors.muted)
             )
         self.convert_page.apply_colors(colors)
+        self.pdf_page.apply_colors(colors)
 
     # --- files ------------------------------------------------------------------
 

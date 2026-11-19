@@ -65,6 +65,24 @@ def test_merge_in_chosen_order(window, qtbot, tmp_path):
     assert page.result.open_btn.isVisibleTo(page) and page.result.folder_btn.isVisibleTo(page)
 
 
+def test_merge_bin_button_removes_one_row(window, qtbot, tmp_path):
+    from PySide6.QtTest import QTest
+
+    files = [make_pdf(tmp_path / f"{n}.pdf", [n]) for n in "abc"]
+    merge = window.pdf_page.merge
+    window.pdf_page.add_files(files)
+    window.resize(1200, 800)
+    view = merge.list
+    rect = merge.remover.button_rect(view.visualItemRect(view.item(1)))
+    QTest.mouseClick(view.viewport(), Qt.MouseButton.LeftButton, pos=rect.center())
+    assert [p.name for p in merge.files()] == ["a.pdf", "c.pdf"]
+    view.item(0).setSelected(True)
+    view.setFocus()
+    QTest.keyClick(view, Qt.Key.Key_Delete)  # the keyboard way
+    assert [p.name for p in merge.files()] == ["c.pdf"]
+    assert not merge.remover.icon.isNull()  # drawn in the theme's colour
+
+
 def test_merge_refuses_unreadable_pdfs(window, tmp_path):
     a = make_pdf(tmp_path / "a.pdf", ["A"])
     locked = tmp_path / "locked.pdf"

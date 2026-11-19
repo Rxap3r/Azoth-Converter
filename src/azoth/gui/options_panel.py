@@ -62,6 +62,10 @@ class QualitySelector(QWidget):
     def _update_hint(self) -> None:
         level = quality.BY_ID[self.level()]
         self.hint.setText(
-            f"{level.description} Photos: quality {level.image_quality} · PDF pages as "
-            f"images: {level.dpi} DPI. Documents → PDF always keep full quality."
+            f"{level.description} Only affects photos and PDF pages saved as pictures; "
+            "documents → PDF always keep full quality."
+        )
+        self.hint.setToolTip(
+            f"Details: photo quality {level.image_quality} of 100 (JPG, WebP, HEIC, AVIF) · "
+            f"PDF pages as pictures at {level.dpi} DPI (dots per inch, higher is sharper)."
         )

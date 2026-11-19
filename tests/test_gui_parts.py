@@ -145,7 +145,9 @@ def test_quality_selector(qtbot):
     selector.set_level("no-such-level")  # ignored
     selector.set_level(None)  # nothing saved yet: ignored
     assert selector.level() == "compact"
-    assert "82" in selector.hint.text()  # photo quality of "Smaller files"
+    assert "Smallest files" in selector.hint.text()
+    assert "82" not in selector.hint.text()  # plain words; the numbers are in the tooltip
+    assert "82" in selector.hint.toolTip()  # photo quality of "Smaller files"
     selector.set_busy(True)
     assert not selector.buttons["high"].isEnabled()
 

@@ -151,6 +151,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Clear layout: sidebar with **Convert**, **PDF tools**, **Supported formats**, **Settings**. *All four entries exist (PDF tools since Nov 2026).*
 - [x] Bigger, friendlier drop zone with an icon; files shown as cards with file-type icons, size and their own progress bar
 - [x] **Remove button on every file in the list**: a small bin icon (or a "⋯" menu) at the right end of each row, next to the status, instead of "select, then click Remove selected". Keep "Clear list" for removing everything
+- [x] **Bin button on every PDF in the Merge list** (owner's wish, Nov 2026), like on the Convert page; "Remove" below the list and the Delete key still work
+- [x] **Plain-language quality texts** (owner's wish, Nov 2026): "quality 95 / 300 DPI" replaced by what it means for the user; the numbers are in the tooltip
 - [x] Target format picker as a grid of format tiles, with the most used ones first
 - [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
 - [ ] **Rework the app icon** (ideas 1–3 on the design canvas; owner postponed the choice, Nov 2026): the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
@@ -191,6 +193,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] SBOM (CycloneDX) and third-party license notices bundled in the app
 - [ ] Accessibility (keyboard navigation, screen readers, high contrast)
 - [ ] Translations of the app (e.g. German, French, Italian). **Each language added to the app must also be added to the installer** (`packaging/installer.iss`, `[Languages]`), and no installer language without the app: the two always match. Until then both are English only.
+- [ ] **"Check for updates" button** (owner asked, Nov 2026): only when the user clicks it, never automatic (see principle 2). Simplest safe version: the button opens the GitHub Releases page in the browser, and the app never goes online itself. A version that downloads and installs updates by itself should wait for code signing, so a download can be checked as really coming from us. Owner decides which version
 - [ ] Publish on winget and optionally the Microsoft Store (MSIX)
 
 ### Phase 6: Other platforms
