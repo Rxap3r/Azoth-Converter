@@ -75,7 +75,7 @@ Rules:
   work seems ready, you may ask whether they want a pull request, but wait for the go-ahead;
   a request for a release or a build is not a go-ahead for a pull request on its own.
 - Never force-push `main` or `dev`.
-- The **Build and test** workflow (`.github/workflows/ci.yml`): every push to `dev` runs only the fast Linux tests; pull
+- The **Build and test** workflow (`.github/workflows/build-and-test.yml`): every push to `dev` runs only the fast Linux tests; pull
   requests into `main`, pushes to `main` and manual runs also run the Windows tests and build
   and test the ~190 MB installer. Doc-only pushes (`docs/**`, `*.md`) start no run, but pull
   requests into `main` always get the full check, because the three checks (Tests (Linux),
@@ -156,7 +156,7 @@ src/azoth/
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),
                       make_icon.py; the automatic build creates and tests the installer
-.github/workflows/    only two workflows: ci.yml and release.yml (shown in the Actions tab)
+.github/workflows/    only two workflows: build-and-test.yml and release.yml (shown in the Actions tab)
 .github/actions/      their shared steps: run-tests, build-windows (composite actions, not listed)
 samples/              test files (Word, PDF, Excel, PowerPoint, images, problem files);
                       recreate with `python samples/generate.py`, see samples/README.md
