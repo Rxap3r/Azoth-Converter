@@ -44,7 +44,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   (TIFF is rewritten with the same lossless compression). Before saving, the app compares the
   cleaned copy with the original pixel by pixel and checks it again for leftover metadata; if
   either check fails, nothing is saved. Colour profile, orientation and animation are kept.
-
 - PDF tools copy pages exactly as they are (text, pictures, fonts, links, form fields): nothing
   is redrawn or re-compressed. Bookmarks are kept when merging and editing.
 
