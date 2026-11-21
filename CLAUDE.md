@@ -28,13 +28,15 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Next planned work (owner decides the order):**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
-  - OCR (next feature release; PDF compress and passwords are done on `dev`);
+  - **next release (0.3.0 suggested):** compress PDF, passwords and OCR are all done on `dev`
+    (OCR: full Build and test incl. Windows app passed 21 Nov 2026, not yet tried by the owner
+    on a real PC); ask the owner whether to release;
   - later: a version check inside the app (only on click, after code signing; owner decides),
     see Phase 5 in `docs/PROJECT_PLAN.md`;
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
     real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
-    edit pages, compress, passwords ✓ on `dev`, not released yet) → OCR;
+    edit pages, compress, passwords ✓ on `dev`, not released yet) → **OCR** ✓ (on `dev`);
   - technical improvements: faster batches, smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
