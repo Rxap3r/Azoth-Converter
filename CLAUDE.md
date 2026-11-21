@@ -86,6 +86,17 @@ Rules:
   requests into `main` always get the full check, because the three checks (Tests (Linux),
   Tests (Windows), Windows app) are required before merging. Don't change this without asking.
 
+### Time limits (watch these as the project grows)
+
+Every test and build job has a time limit (`timeout-minutes` in `build-and-test.yml` and
+`release.yml`): **30 min** for Tests (Linux) and Tests (Windows), **45 min** for the Windows
+app / installer build. A job that runs longer is stopped and fails, so a stuck test can't run
+for 6 hours. Normal times (Nov 2026): Linux ~1–2 min, Windows tests ~3–5 min, installer
+~4–15 min; one Linux run took 20 min because installing LibreOffice was slow. **When adding
+many or slow tests, check the run times in the Actions tab; if a job regularly needs more
+than about half its limit, raise the limit (ask the owner, it's a workflow change)** rather
+than letting good runs fail.
+
 ## Releasing (only when the owner asks)
 
 1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py`; in

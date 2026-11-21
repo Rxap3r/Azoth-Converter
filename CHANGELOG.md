@@ -22,6 +22,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - Installing a new version over an old one first removes the old program libraries, so no
   outdated files are left behind. Your settings are kept. The automatic build tests this.
 
+### Development
+- Test and build jobs have a time limit (30 min for tests, 45 min for the installer), so a
+  stuck run stops instead of running for hours.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added

@@ -15,6 +15,8 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+# Time limit: normally ~1-5 min (Linux) / ~5-15 min (Windows); the rest is room for slow downloads.
+# If the tests or the build really get slower, raise it (see CLAUDE.md → "Time limits").
 jobs:
   preflight:
     name: Check version and release notes
@@ -49,6 +51,7 @@ jobs:
     name: Tests (Linux)
     needs: preflight
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/run-tests
@@ -57,6 +60,7 @@ jobs:
     name: Tests (Windows)
     needs: preflight
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/run-tests
@@ -66,6 +70,7 @@ jobs:
     name: Build and test installer
     needs: preflight
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-windows

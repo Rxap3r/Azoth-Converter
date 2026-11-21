@@ -34,10 +34,13 @@ concurrency:
   group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
+# Time limit: normally ~1-5 min (Linux) / ~5-15 min (Windows); the rest is room for slow downloads.
+# If the tests or the build really get slower, raise it (see CLAUDE.md → "Time limits").
 jobs:
   tests-linux:
     name: Tests (Linux)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/run-tests
@@ -48,6 +51,7 @@ jobs:
       github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
       github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/run-tests
@@ -60,6 +64,7 @@ jobs:
       github.ref == 'refs/heads/main' || github.event_name == 'pull_request' ||
       github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-windows
