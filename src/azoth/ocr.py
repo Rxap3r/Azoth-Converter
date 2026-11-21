@@ -107,6 +107,7 @@ def needs_ocr(src: Path) -> bool:
 
 
 _FONT: pymupdf.Font | None = None
+MIN_STRETCH, MAX_STRETCH = 0.5, 2.0  # how much a line of hidden text may be squeezed or widened
 
 
 def _font() -> pymupdf.Font:
@@ -124,9 +125,12 @@ def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
     the words in the picture, in every PDF viewer.
 
     MuPDF's own OCR text uses a font without real height measurements, and viewers guess
-    them differently (Edge put the selection below the words). Here every line gets a font
-    size and baseline from its box and is stretched to the line's width. (Stretching single
-    words would squeeze short ones like "1" so much that viewers split the line.)"""
+    them differently (Edge put the selection below the words). Here all words of a line get
+    the same font size and baseline from the line's box. Each word starts exactly where it
+    is in the picture (programs that swap the font, like LibreOffice Draw, then can't drift
+    along the line). The words of a line are stretched together, by the same amount, to
+    their width in the picture: different amounts per word make viewers think the size
+    changes and split the line."""
     font = _font()
     ascender, descender = font.ascender, font.descender
     source = layer[0]
@@ -138,19 +142,25 @@ def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
     page.insert_font(fontname="ocr", fontbuffer=font.buffer)
     shape = page.new_shape()
     for words in lines.values():
-        box = pymupdf.Rect(words[0][0])
-        for rect, _ in words[1:]:
-            box |= rect
-        text = " ".join(word for _, word in words)
-        size = box.height / (ascender - descender)
-        width = font.text_length(text, fontsize=size) if size > 0 else 0
-        if width <= 0 or box.width <= 0:
+        top = min(rect.y0 for rect, _ in words)
+        bottom = max(rect.y1 for rect, _ in words)
+        size = (bottom - top) / (ascender - descender)
+        natural = sum(font.text_length(word, fontsize=size) for _, word in words)
+        if size <= 0 or natural <= 0:
             continue
-        baseline = pymupdf.Point(box.x0, box.y1 + descender * size)
-        stretch = pymupdf.Matrix(box.width / width, 1)
-        shape.insert_text(
-            baseline, text, fontsize=size, fontname="ocr", render_mode=3, morph=(baseline, stretch)
-        )
+        wide = sum(rect.width for rect, _ in words)
+        stretch = min(max(wide / natural, MIN_STRETCH), MAX_STRETCH)
+        for i, (rect, word) in enumerate(words):
+            text = word if i == len(words) - 1 else word + " "  # spaces for copy and paste
+            baseline = pymupdf.Point(rect.x0, bottom + descender * size)
+            shape.insert_text(
+                baseline,
+                text,
+                fontsize=size,
+                fontname="ocr",
+                render_mode=3,
+                morph=(baseline, pymupdf.Matrix(stretch, 1)),
+            )
     shape.commit()
     out.subset_fonts()  # only the letters used: a few KB instead of the whole font
     return pymupdf.open("pdf", out.tobytes(garbage=3, deflate=True))
