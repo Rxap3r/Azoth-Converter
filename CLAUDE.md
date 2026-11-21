@@ -6,8 +6,8 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.1.0** (18 Nov 2026) on GitHub Releases (installer + portable
-  ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
+- **Released:** Azoth Converter **0.2.0** (19 Nov 2026; 0.1.0 on 18 Nov) on GitHub Releases
+  (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
   (Linux), Tests (Windows) and Windows app required). `dev` accepts direct pushes. Dependabot
@@ -20,10 +20,11 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
-- **Version 0.2.0** prepared (19 Nov 2026): new look, PDF tools, remove photo metadata. The owner
-  publishes it with the Release workflow after the pull request is merged. Later work goes
-  under `CHANGELOG.md` → Unreleased. Not yet tried on a real Windows PC: the new look, and
-  metadata removal with real phone photos.
+- **Version 0.2.1** prepared (21 Nov 2026): error log, Uninstall button, clean updates,
+  open-folder fix. The owner publishes it with the Release workflow after the pull request is
+  merged. Later work goes under `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
+  0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
+  should show it next time. Not yet tried with real phone photos: metadata removal.
 - **Next planned work (owner decides the order):**
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;

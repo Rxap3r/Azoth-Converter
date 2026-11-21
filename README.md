@@ -144,7 +144,7 @@ The result is in `packaging/dist/AzothConverter/`: `AzothConverter.exe` (the app
 The installer is made from that folder with [Inno Setup](https://jrsoftware.org/isinfo.php):
 
 ```bash
-iscc /DAppVersion=0.2.0 installer.iss
+iscc /DAppVersion=0.2.1 installer.iss
 ```
 
 The app icon is drawn by `python packaging/make_icon.py`.

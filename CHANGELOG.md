@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-21
+
 ### Added
 - **Error log:** if something goes wrong, the details are saved in a file on your computer
   (Settings → **Error log…**) and a short message is shown instead of the app just closing.
@@ -144,6 +146,7 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Rxap3r/Azoth-Converter/releases/tag/v0.1.0
