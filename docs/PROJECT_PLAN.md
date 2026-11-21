@@ -163,7 +163,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Bin button on every PDF in the Merge list** (owner's wish, Nov 2026), like on the Convert page; "Remove" below the list and the Delete key still work
 - [x] **Plain-language quality texts** (owner's wish, Nov 2026): "quality 95 / 300 DPI" replaced by what it means for the user; the numbers are in the tooltip
 - [x] Target format picker as a grid of format tiles, with the most used ones first
-- [ ] **Next (agreed Nov 2026):** "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
+- [x] "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Done (Nov 2026): a "Done" card that fades in on the Convert page, plus a Windows notification when the app is in the background (Settings can turn it off). Not yet seen on a real Windows PC.* *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
 - [ ] **Rework the app icon** (ideas 1–3 on the design canvas; owner postponed the choice, Nov 2026): the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
 - [x] Consistent icon set inside the app (bundled, no web fonts or online assets): line icons drawn in `gui/icons.py`
 - [x] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)

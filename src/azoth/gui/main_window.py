@@ -12,8 +12,8 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, QUrl, Slot
-from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent
+from PySide6.QtCore import Qt, QThread, Slot
+from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -34,6 +34,7 @@ from ..engine import Engine
 from . import icons, targets, theme
 from .about import AboutDialog
 from .convert_page import ConvertPage
+from .done_card import Notifier, done_message
 from .file_list import DONE, FAILED, WAITING
 from .formats_panel import FormatsPanel
 from .pdf_tools_page import PdfToolsPage
@@ -63,12 +64,15 @@ class MainWindow(QMainWindow):
         self._cancel = threading.Event()
         self._done_count = 0
         self._job_count = 0
+        self._outputs: list[Path] = []
+        self._failed = 0
 
         self.setWindowTitle(f"Azoth Converter {__version__}")
         self.resize(1120, 760)
         self.setMinimumSize(960, 620)
         self.setAcceptDrops(True)
         self.theme = theme.manager(QApplication.instance(), self.prefs.theme)
+        self.notifier = Notifier(self)
         self._build_ui()
         self.theme.changed.connect(self._apply_colors)
         self._apply_colors(self.theme.colors)
@@ -90,12 +94,11 @@ class MainWindow(QMainWindow):
         self.notes_label = page.notes_label
         self.status_label = page.status_label
         self.progress = page.progress
-        self.open_btn = page.open_btn
+        self.done_card = page.done_card
         self.convert_btn = page.convert_btn
         self.cancel_btn = page.cancel_btn
         self.file_list.changed.connect(self._files_changed)
         self.target_picker.changed.connect(lambda _target: self._update_notes())
-        self.open_btn.clicked.connect(self._open_output_folder)
         self.cancel_btn.clicked.connect(self._cancel_conversion)
         self.convert_btn.clicked.connect(self.start_conversion)
 
@@ -109,6 +112,14 @@ class MainWindow(QMainWindow):
         )
         self.settings_page.theme_changed.connect(self.set_theme)
         self.settings_page.use_word_changed.connect(self._set_use_word)
+        self.settings_page.notify_check.toggled.connect(self._set_notify)
+        self.pdf_page.task.done.connect(
+            lambda outputs: (
+                self.notifier.notify(f"Done! {Path(outputs[0]).name} is ready.")
+                if len(outputs) == 1
+                else self.notifier.notify(f"Done! {len(outputs)} PDFs saved.")
+            )
+        )
         self.settings_page.about_requested.connect(self.show_about)
         self.about_btn = self.settings_page.about_btn
 
@@ -241,7 +252,7 @@ class MainWindow(QMainWindow):
         if self._thread is None:
             self.status_label.setText("")
             self.progress.setVisible(False)
-            self.open_btn.setVisible(False)
+            self.done_card.clear()
         self._refresh()
 
     def _refresh(self) -> None:
@@ -340,7 +351,9 @@ class MainWindow(QMainWindow):
         self._job_count = len(jobs)
         self.progress.setValue(0)
         self.progress.setVisible(True)
-        self.open_btn.setVisible(False)
+        self.done_card.clear()
+        self._outputs = []
+        self._failed = 0
         self._output_folders.clear()
         self.last_output = None
         options = {
@@ -405,15 +418,18 @@ class MainWindow(QMainWindow):
             state=DONE,
         )
         self._output_folders.update(Path(p).parent for p in outputs)
+        self._outputs.extend(Path(p) for p in outputs)
 
     @Slot(int, str)
     def _on_failed(self, row: int, message: str) -> None:
         self._done_count += 1
+        self._failed += 1
         self._set_overall(0)
         self.file_list.set_status(row, f"✗ {message}", tooltip=message, state=FAILED)
 
     @Slot(bool)
     def _on_finished(self, cancelled: bool) -> None:
+        cleaning = self._worker is not None and self._worker.target == CLEAN_TARGET
         if self._thread is not None:
             self._thread.quit()
             self._thread.wait()
@@ -427,19 +443,30 @@ class MainWindow(QMainWindow):
         self.last_output = (
             next(iter(self._output_folders)) if len(self._output_folders) == 1 else None
         )
-        self.open_btn.setVisible(self.last_output is not None)
-        self.status_label.setText("Cancelled" if cancelled else "Finished")
+        converted = self._done_count - self._failed
+        text = done_message(converted, self._failed, cancelled, cleaning)
+        self.status_label.setText("")
+        self.done_card.show_result(
+            text,
+            ok=not self._failed and not cancelled,
+            file=self._outputs[0] if len(self._outputs) == 1 else None,
+            folder=self.last_output,
+        )
+        if not cancelled:
+            self.notifier.notify(text)
         if not cancelled:
             self.progress.setValue(1000)
         self._refresh()
 
-    def _open_output_folder(self) -> None:
-        if self.last_output is not None:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.last_output)))
-
     # --- preferences and about ------------------------------------------------
 
+    def _set_notify(self, on: bool) -> None:
+        self.notifier.enabled = on
+        self.prefs.save_notify(on)
+
     def _load_preferences(self) -> None:
+        self.settings_page.notify_check.setChecked(self.prefs.notify)
+        self.notifier.enabled = self.prefs.notify
         self.quality.set_level(self.prefs.level)
         self.settings_page.metadata_check.setChecked(self.prefs.keep_metadata)
         if self.prefs.output_dir is not None:

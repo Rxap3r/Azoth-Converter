@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import icons
+from .done_card import DoneCard
 from .file_list import FileList
 from .options_panel import OcrOptions, QualitySelector
 from .output_folder import FileNameRow, OutputFolderRow
@@ -82,9 +83,7 @@ class ConvertPage(QWidget):
         self.progress.setRange(0, 1000)
         self.progress.setTextVisible(False)
         self.progress.setAccessibleName("Overall progress")
-        self.open_btn = QPushButton("Open output folder")
-        self.open_btn.setProperty("role", "link")
-        self.open_btn.setVisible(False)  # shown once something was saved
+        self.done_card = DoneCard()  # shown when a run has finished
         self.progress.setVisible(False)  # shown while converting
         self.convert_btn = QPushButton("Convert")
         self.convert_btn.setProperty("role", "primary")
@@ -127,7 +126,7 @@ class ConvertPage(QWidget):
         right = bottom
         right.addWidget(self.status_label)
         right.addWidget(self.progress)
-        right.addWidget(self.open_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        right.addWidget(self.done_card)
         right.addWidget(self.convert_btn)
         right.addWidget(self.cancel_btn)
 
@@ -145,3 +144,4 @@ class ConvertPage(QWidget):
         self.drop_icon.setPixmap(icons.pixmap("upload", colors.accent, 24))
         self.file_list.apply_colors(colors)
         self.target_picker.apply_colors(colors)
+        self.done_card.apply_colors(colors)

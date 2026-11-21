@@ -33,6 +33,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
     cancelled).
   The language is chosen next to the format tiles and remembered; the first time it follows the
   computer's language.
+- **"Done" card** on the Convert page when a conversion finishes: "Done! 4 files converted"
+  (or how many failed), with **Open file** (one result) and **Open folder** buttons. It fades in
+  gently.
+- **Windows notification** when a conversion or a PDF tool finishes while the app is in the
+  background. Can be turned off in Settings. Shown by Windows itself; nothing is sent anywhere.
 - PDF tools warn when a PDF is digitally signed, because a new copy can't keep the signature valid.
 
 ### Changed

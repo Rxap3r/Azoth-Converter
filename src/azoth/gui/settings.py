@@ -109,6 +109,15 @@ class Preferences:
         return self._get("keep_metadata", False, bool)
 
     @property
+    def notify(self) -> bool:
+        """Windows notification when work finishes in the background (on by default)."""
+        return self._get("notify_when_done", True, bool)
+
+    def save_notify(self, on: bool) -> None:
+        self.store.setValue("notify_when_done", on)
+        self.store.sync()
+
+    @property
     def ocr_language(self) -> str | None:
         return self._get("ocr_language", "") or None
 

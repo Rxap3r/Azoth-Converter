@@ -316,18 +316,22 @@ def test_open_folder_only_for_one_folder_and_result_clears(window, qtbot, sample
 
     window.add_files([one])
     convert()
-    assert window.open_btn.isVisibleTo(window) and window.last_output == a
+    card = window.done_card
+    assert card.isVisibleTo(window) and card.message.text() == "Done! 1 file converted."
+    assert card.folder_btn.isVisibleTo(window) and window.last_output == a
+    assert card.file_btn.isVisibleTo(window) and card.file == a / "one.webp"
 
     window.add_files([two])  # list changed: the old result is cleared
-    assert not window.open_btn.isVisibleTo(window)
+    assert not card.isVisibleTo(window)
     assert not window.progress.isVisibleTo(window) and window.status_label.text() == ""
 
     convert()  # results in two folders: each file has its own "Show in folder" instead
-    assert window.status_label.text() == "Finished"
-    assert not window.open_btn.isVisibleTo(window) and window.last_output is None
+    assert card.message.text() == "Done! 2 files converted."
+    assert not card.folder_btn.isVisibleTo(window) and window.last_output is None
+    assert not card.file_btn.isVisibleTo(window)  # several results: no single file to open
 
     window.file_list.remove_rows(range(window.file_list.count()))  # empty list
-    assert window.status_label.text() == "" and not window.progress.isVisibleTo(window)
+    assert not card.isVisibleTo(window) and not window.progress.isVisibleTo(window)
 
 
 def test_uninstall_button_only_in_installed_app(qtbot, monkeypatch, tmp_path):
@@ -369,3 +373,32 @@ def test_uninstall_button_only_in_installed_app(qtbot, monkeypatch, tmp_path):
 
 def test_no_uninstall_button_when_run_from_source(window):
     assert not window.settings_page.uninstall_btn.isVisibleTo(window.settings_page)
+
+
+def test_done_messages():
+    from azoth.gui.done_card import done_message
+
+    assert done_message(1, 0, False) == "Done! 1 file converted."
+    assert done_message(3, 0, False, cleaning=True) == "Done! Metadata removed from 3 files."
+    assert done_message(2, 1, False).startswith("2 done, 1 failed.")
+    assert done_message(0, 2, False).startswith("Nothing was saved: 2 files failed.")
+    assert done_message(2, 0, True) == "Cancelled after 2 files."
+    assert done_message(0, 0, True) == "Cancelled."
+
+
+def test_notification_only_in_the_background(window, monkeypatch):
+    from PySide6.QtWidgets import QSystemTrayIcon
+
+    shown = []
+    monkeypatch.setattr(QSystemTrayIcon, "isSystemTrayAvailable", staticmethod(lambda: True))
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", lambda self, *a: shown.append(a[1]))
+    notifier = window.notifier
+    monkeypatch.setattr(window, "isActiveWindow", lambda: True)
+    assert not notifier.notify("Done!") and not shown  # the user is looking at the app
+    monkeypatch.setattr(window, "isActiveWindow", lambda: False)
+    assert notifier.notify("Done! 2 files converted.") and shown == ["Done! 2 files converted."]
+    window.settings_page.notify_check.setChecked(False)  # turned off in Settings
+    assert not notifier.notify("Done!") and len(shown) == 1
+    from azoth.gui.settings import Preferences
+
+    assert Preferences().notify is False

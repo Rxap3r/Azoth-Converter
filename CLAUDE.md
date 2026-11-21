@@ -28,9 +28,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Next planned work (owner decides the order):**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
-  - **agreed next (owner, 21 Nov 2026):** (1) OCR polish: turn sideways/upside-down scans
-    automatically, progress bar + Cancel for Make searchable; (2) "Done" notification with
-    Open file / Open folder. The owner tests these together with today's changes, then release;
+  - **done on `dev` (21 Nov 2026), waiting for the owner's test:** OCR polish (sideways pages,
+    progress + Cancel for Make searchable), "Done" card + Windows notification, file names in
+    every PDF tool. After the owner's test: release;
   - **next release (0.3.0 suggested):** compress PDF, passwords and OCR are all done on `dev`
     (OCR: full Build and test incl. Windows app passed 21 Nov 2026, not yet tried by the owner
     on a real PC); ask the owner whether to release;
@@ -173,7 +173,8 @@ src/azoth/
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py
                       (format tiles), options_panel.py (quality), output_folder.py,
-                      formats_panel.py, settings_page.py, pdf_tools_page.py (Merge / Split /
+                      formats_panel.py, settings_page.py, done_card.py ("Done" card +
+                      Windows notification), pdf_tools_page.py (Merge / Split /
                       Edit pages / Compress / Password), worker.py (background thread),
                       targets.py (which targets are offered, no Qt), theme.py (light/dark
                       colours + stylesheet; widgets only set a "role" property), icons.py

@@ -90,10 +90,15 @@ class SettingsPage(QWidget):
         self.word_check.setChecked(use_word)
         self.word_check.setVisible(word_installed)  # only when Word is installed
         self.word_check.toggled.connect(self.use_word_changed)
+        self.notify_check = QCheckBox(
+            "Show a Windows notification when work finishes while the app is in the background"
+        )
+        self.notify_check.setChecked(True)
         conversion = [
             label("Converting", "h2"),
             self.metadata_check,
             self.word_check,
+            self.notify_check,
         ]
 
         self.about_btn = QPushButton("About Azoth Converter…")
