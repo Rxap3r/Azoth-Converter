@@ -172,7 +172,8 @@ def page_texts(
     def collect(page: pymupdf.Page, layer: pymupdf.Document) -> None:
         scanned[page.number] = _paragraphs(layer[0])
 
-    _run_pages(doc, language, collect, progress, cancel, only_scans=True)
+    if any(page_needs_ocr(page) for page in doc):
+        _run_pages(doc, language, collect, progress, cancel, only_scans=True)
     for page in doc:
         result[page.number] = scanned.get(page.number) or _paragraphs(page)
     return result

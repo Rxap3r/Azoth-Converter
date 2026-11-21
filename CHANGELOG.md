@@ -25,9 +25,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
     or `azoth convert --ocr`);
   - **Make searchable** in PDF tools (or `azoth pdf ocr`): adds the recognised text to a scanned
     PDF invisibly, so you can search, select and copy it.
+  - a searchable scan (picture with invisible text) → Word now gives the text, not one big
+    picture.
   The language is chosen next to the format tiles and remembered; the first time it follows the
   computer's language.
 - PDF tools warn when a PDF is digitally signed, because a new copy can't keep the signature valid.
+
+### Changed
+
+- Edit pages: the buttons "Move earlier" and "Move later" are now "◀ Move" and "Move ▶", the
+  direction the page moves in the page grid.
 
 ### Quality
 

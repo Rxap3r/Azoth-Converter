@@ -52,6 +52,16 @@ def is_probably_scanned(src: Path, sample_pages: int = 5) -> bool:
     return text < 20 and images > 0
 
 
+def is_searchable_scan(src: Path, sample_pages: int = 5) -> bool:
+    """True for a scan with an invisible text layer (made by text recognition): the pages
+    are pictures and all their text is hidden. pdf2docx can't see hidden text."""
+    with open_pdf(src) as doc:
+        pages = [doc[i] for i in range(min(sample_pages, doc.page_count))]
+        spans = [span for p in pages for span in p.get_texttrace()]
+        images = sum(len(p.get_images()) for p in pages)
+    return bool(spans) and images > 0 and all(span["type"] == 3 for span in spans)
+
+
 class PdfToImageConverter(Converter):
     id = "pdf-images"
     label = "PyMuPDF"
@@ -168,12 +178,13 @@ class PdfToWordConverter(Converter):
             from pdf2docx import Converter as Pdf2Docx
 
         # A scan has no text for pdf2docx to work with (it would give an empty
-        # document), so its text is recognised (OCR) instead.
-        if is_probably_scanned(src):
+        # document), so its text is recognised (OCR) instead. A searchable scan already
+        # has its text, but hidden, which pdf2docx ignores: that text is used.
+        if is_probably_scanned(src) or is_searchable_scan(src):
             from .. import ocr
             from .ocr import check_found, recognise, write_docx
 
-            if not ocr.is_available():
+            if not ocr.is_available() and is_probably_scanned(src):
                 raise ConversionError(
                     "This PDF looks like a scan (pictures of pages, no selectable text). "
                     "Converting it to Word needs text recognition (OCR), which isn't "

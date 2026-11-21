@@ -255,3 +255,17 @@ def test_cli_convert_with_ocr(tmp_path):
     assert cli([*args, "-o", str(tmp_path / "o")]) == 0
     with pymupdf.open(tmp_path / "o" / "letter.pdf") as doc:
         assert "Thank you for your order" in doc[0].get_text()
+
+
+def test_searchable_pdf_to_word_uses_its_hidden_text(tmp_path, monkeypatch):
+    """A searchable scan (picture + invisible text) becomes a Word file with that text,
+    not a picture: pdf2docx can't see hidden text, so the text layer is used."""
+    photo = make_text_scan(tmp_path / "letter.png", LETTER)
+    [pdf] = Engine().convert(photo, "pdf", tmp_path / "a", options={"ocr": True}).outputs
+    # Its text is read from the PDF, not recognised again.
+    monkeypatch.setattr(ocr, "_text_layer", lambda *a: pytest.fail("recognised again"))
+    for target in ("docx", "txt"):
+        [out] = Engine().convert(pdf, target, tmp_path / "b").outputs
+        text = out.read_text(encoding="utf-8") if target == "txt" else docx_text(out)
+        for line in LETTER:
+            assert line in text
