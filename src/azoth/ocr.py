@@ -106,6 +106,56 @@ def needs_ocr(src: Path) -> bool:
         return any(page_needs_ocr(page) for page in doc)
 
 
+_FONT: pymupdf.Font | None = None
+
+
+def _font() -> pymupdf.Font:
+    """A Unicode font built into PyMuPDF (Droid Sans Fallback: Latin, accents, œ, ’, € …).
+    Its height measurements are the same inside the font and in the PDF, so every viewer
+    puts the selection box in the same place."""
+    global _FONT
+    if _FONT is None:
+        _FONT = pymupdf.Font("cjk")
+    return _FONT
+
+
+def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
+    """The recognised text again, as invisible text sized so that the selection box covers
+    the words in the picture, in every PDF viewer.
+
+    MuPDF's own OCR text uses a font without real height measurements, and viewers guess
+    them differently (Edge put the selection below the words). Here every line gets a font
+    size and baseline from its box and is stretched to the line's width. (Stretching single
+    words would squeeze short ones like "1" so much that viewers split the line.)"""
+    font = _font()
+    ascender, descender = font.ascender, font.descender
+    source = layer[0]
+    lines: dict[tuple[int, int], list] = {}
+    for x0, y0, x1, y1, word, block, line, _ in source.get_text("words"):
+        lines.setdefault((block, line), []).append((pymupdf.Rect(x0, y0, x1, y1), word))
+    out = pymupdf.open()
+    page = out.new_page(width=source.rect.width, height=source.rect.height)
+    page.insert_font(fontname="ocr", fontbuffer=font.buffer)
+    shape = page.new_shape()
+    for words in lines.values():
+        box = pymupdf.Rect(words[0][0])
+        for rect, _ in words[1:]:
+            box |= rect
+        text = " ".join(word for _, word in words)
+        size = box.height / (ascender - descender)
+        width = font.text_length(text, fontsize=size) if size > 0 else 0
+        if width <= 0 or box.width <= 0:
+            continue
+        baseline = pymupdf.Point(box.x0, box.y1 + descender * size)
+        stretch = pymupdf.Matrix(box.width / width, 1)
+        shape.insert_text(
+            baseline, text, fontsize=size, fontname="ocr", render_mode=3, morph=(baseline, stretch)
+        )
+    shape.commit()
+    out.subset_fonts()  # only the letters used: a few KB instead of the whole font
+    return pymupdf.open("pdf", out.tobytes(garbage=3, deflate=True))
+
+
 def _text_layer(page: pymupdf.Page, language: str, dpi: int) -> pymupdf.Document:
     """A one-page PDF the size of ``page`` holding only the recognised text (invisible)."""
     pix = page.get_pixmap(dpi=dpi, alpha=False, annots=False)
@@ -210,7 +260,8 @@ def add_text_layer(
         # unturned layout, so place the layer there and turn it the same way as the page;
         # otherwise the hidden text runs sideways on turned pages.
         unturned = page.rect * page.derotation_matrix
-        page.show_pdf_page(unturned, layer, 0, overlay=True, rotate=page.rotation)
+        with _selectable_layer(layer) as text:
+            page.show_pdf_page(unturned, text, 0, overlay=True, rotate=page.rotation)
 
     return _run_pages(
         doc, language, overlay, progress, cancel, only_scans=True, keep_turn=turn_pages

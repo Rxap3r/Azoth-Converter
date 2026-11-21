@@ -381,3 +381,51 @@ def test_turning_pages_can_be_switched_off(tmp_path):
     )
     with pymupdf.open(tmp_path / "c.pdf") as result:
         assert result[0].rotation == 180
+
+
+def test_selection_box_covers_the_letters(tmp_path):
+    """The hidden word's box (what PDF viewers highlight when you select it) sits on the
+    letters in the picture: not lower, not higher."""
+    from PIL import Image, ImageOps
+
+    photo = make_text_scan(tmp_path / "line.png", ["Invoice number 4711 Typography"])
+    [out] = Engine().convert(photo, "pdf", tmp_path / "o", options={"ocr": True}).outputs
+    with pymupdf.open(out) as doc:
+        page = doc[0]
+        box = next(pymupdf.Rect(w[:4]) for w in page.get_text("words") if w[4] == "Invoice")
+        # Where the letters really are: the dark rows of the picture, in page units.
+        image = ImageOps.invert(Image.open(photo).convert("L"))
+        ink = image.getbbox()
+        scale = page.rect.height / image.height
+        top, bottom = ink[1] * scale, ink[3] * scale
+        height = bottom - top
+        assert abs(box.y0 - top) < 0.25 * height, (box, top, bottom)
+        assert abs(box.y1 - bottom) < 0.25 * height, (box, top, bottom)
+
+
+def test_hidden_text_font_has_one_set_of_measurements(tmp_path):
+    """Viewers read a font's height either from the PDF or from the font file. Both must
+    agree, or the selection box moves (Edge put it below the words with MuPDF's font)."""
+    photo = make_text_scan(tmp_path / "line.png", ["Cœur, l’été: 5 € – Grüße"])
+    [out] = (
+        Engine()
+        .convert(photo, "pdf", tmp_path / "o", options={"ocr": True, "ocr_language": "fra"})
+        .outputs
+    )
+    with pymupdf.open(out) as doc:
+        fonts = doc[0].get_fonts(full=True)
+        assert fonts and all("GlyphLess" not in f[3] for f in fonts)
+        for xref, *_ in fonts:
+            name, ext, _type, data = doc.extract_font(xref)
+            font = pymupdf.Font(fontbuffer=data)
+            descriptor = next(
+                x
+                for x in range(1, doc.xref_length())
+                if "/FontDescriptor" in doc.xref_object(x) and "/Ascent" in doc.xref_object(x)
+            )
+            ascent = float(doc.xref_get_key(descriptor, "Ascent")[1])
+            descent = float(doc.xref_get_key(descriptor, "Descent")[1])
+            assert abs(ascent / 1000 - font.ascender) < 0.01
+            assert abs(descent / 1000 - font.descender) < 0.01
+        text = doc[0].get_text()
+        assert "€" in text or "Gr" in text  # accents and symbols survive in the hidden text
