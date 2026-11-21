@@ -180,8 +180,6 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
 - [ ] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
-- [ ] **Owner's question (Nov 2026): a PDF reader?** Recommendation: no full reader (inside or as a separate app) for now; instead a **built-in preview** in Azoth: look at a PDF or the result before/after converting (pages, zoom, select and copy text to check OCR), drawn with PyMuPDF like the Edit pages thumbnails. A full reader (search, print, forms, notes, bookmarks) is a large, security-sensitive product of its own that free offline readers already cover; reconsider later as a separate app sharing the code. Owner decides.
-
 ### Phase 3: Audio and video (≈ 4 weeks)
 - [ ] FFmpeg plugin with progress parsed from FFmpeg's output
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
