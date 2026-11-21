@@ -48,6 +48,32 @@ def docx_text(path: Path) -> str:
     return "\n".join(p.text for p in docx.Document(str(path)).paragraphs)
 
 
+def visible_letters(page: pymupdf.Page) -> list[tuple[str, float, float]]:
+    """Each hidden letter with where it is on the page as you see it (rotation applied)."""
+    letters = []
+    for block in page.get_text("rawdict")["blocks"]:
+        for line in block.get("lines", []):
+            for span in line["spans"]:
+                for char in span["chars"]:
+                    at = pymupdf.Point(char["origin"]) * page.rotation_matrix
+                    letters.append((char["c"], at.x, at.y))
+    return letters
+
+
+def assert_text_upright(page: pymupdf.Page, word: str = "Invoice") -> None:
+    """The hidden text runs left to right on the visible page, starting at the top left,
+    as in the picture. (Sideways hidden text would select wrongly in PDF viewers.)"""
+    letters = visible_letters(page)
+    text = "".join(c for c, _, _ in letters)
+    start = text.index(word)
+    run = letters[start : start + len(word)]
+    xs = [x for _, x, _ in run]
+    ys = [y for _, _, y in run]
+    assert all(a < b for a, b in zip(xs, xs[1:], strict=False)), run  # left to right
+    assert max(ys) - min(ys) < 2, run  # on one line
+    assert xs[0] < page.rect.width / 4 and ys[0] < page.rect.height / 4, run  # top left
+
+
 # --- languages ------------------------------------------------------------------------
 
 
@@ -206,9 +232,7 @@ def test_rotated_scan_pages(tmp_path, rotation):
     with pymupdf.open(out) as result:
         text = result[0].get_text()
         assert "Invoice number 4711" in text
-        # The word sits at the top left of the visible page, as in the upright picture.
-        word = next(w for w in result[0].get_text("words") if w[4] == "Invoice")
-        assert word[0] < 100 and word[1] < 100  # words are in visible-page coordinates
+        assert_text_upright(result[0])
 
 
 def test_photo_to_searchable_pdf(tmp_path):
@@ -290,8 +314,7 @@ def test_sideways_or_upside_down_scan_is_read(tmp_path, rotation):
         text = result[0].get_text()
         for line in LETTER:
             assert line in text
-        word = next(w for w in result[0].get_text("words") if w[4] == "Invoice")
-        assert word[0] < 100 and word[1] < 100  # where it is in the picture
+        assert_text_upright(result[0])
 
 
 def test_sideways_photo_to_text(tmp_path):
@@ -326,8 +349,7 @@ def test_sideways_photo_to_searchable_pdf_is_turned_upright(tmp_path):
         assert page.rotation == 90  # shown turned back to the right
         assert page.rect.width > page.rect.height  # landscape, like the upright text
         assert "Invoice number 4711" in page.get_text()
-        word = next(w for w in page.get_text("words") if w[4] == "Invoice")
-        assert word[0] < 100 and word[1] < 150  # top left of what you see
+        assert_text_upright(page)
 
 
 def test_turning_pages_can_be_switched_off(tmp_path):

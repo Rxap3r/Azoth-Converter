@@ -206,8 +206,11 @@ def add_text_layer(
     Returns how many pages were recognised."""
 
     def overlay(page: pymupdf.Page, layer: pymupdf.Document) -> None:
-        # show_pdf_page fits the layer to the visible page and takes care of rotation.
-        page.show_pdf_page(page.rect, layer, 0, overlay=True)
+        # The layer is the page as you see it (turned). show_pdf_page works on the page's
+        # unturned layout, so place the layer there and turn it the same way as the page;
+        # otherwise the hidden text runs sideways on turned pages.
+        unturned = page.rect * page.derotation_matrix
+        page.show_pdf_page(unturned, layer, 0, overlay=True, rotate=page.rotation)
 
     return _run_pages(
         doc, language, overlay, progress, cancel, only_scans=True, keep_turn=turn_pages
