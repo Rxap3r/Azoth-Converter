@@ -20,16 +20,18 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
-- **Version 0.2.1** prepared (21 Nov 2026): error log, Uninstall button, clean updates,
-  open-folder fix. The owner publishes it with the Release workflow after the pull request is
-  merged. Later work goes under `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
+- **Version 0.2.1** (error log, Uninstall button, clean updates, open-folder fix) is on `main`
+  (pull request #7, merged 21 Nov 2026). **Next step for the owner:** Actions → Release → Run
+  workflow on `main` (not run yet when this was written). Later work goes under
+  `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
   should show it next time. Not yet tried with real phone photos: metadata removal.
 - **Next planned work (owner decides the order):**
-  - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
-    smiley from afar), a cleaner "Supported formats" section;
-  - PDF compress and passwords, then OCR (release 0.2; metadata tool and the first PDF tools
-    are done);
+  - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
+    choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
+  - PDF compress and passwords, then OCR (next feature release);
+  - later: a version check inside the app (only on click, after code signing; owner decides),
+    see Phase 5 in `docs/PROJECT_PLAN.md`;
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
     real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
