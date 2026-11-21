@@ -13,7 +13,8 @@ from __future__ import annotations
 import locale
 import re
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pymupdf
@@ -38,6 +39,12 @@ _BY_WINDOWS_NAME = {"english": "eng", "german": "deu", "french": "fra", "italian
 
 MIN_TEXT_CHARS = 20
 """A page with fewer characters of real text than this (and with pictures) is a scan."""
+
+GOOD_READING = 0.6
+"""Share of the recognised characters that form real words (3+ letters). Below this the
+page may be sideways or upside down, so the other directions are tried."""
+QUICK_DPI = 100  # only to find out which way up a page is
+_WORD = re.compile(r"[^\W\d_]{3,}[.,:;!?]?")
 
 _TEXT_OBJECT = re.compile(rb"BT\b.*\bET\b", re.S)
 
@@ -116,6 +123,43 @@ def _text_layer(page: pymupdf.Page, language: str, dpi: int) -> pymupdf.Document
     return layer
 
 
+def reading_score(text: str) -> float:
+    """How much of ``text`` looks like real words (0 to 1). Text read from a sideways or
+    upside-down page is mostly short scraps and symbols."""
+    words = text.split()
+    total = sum(len(w) for w in words)
+    return sum(len(w) for w in words if _WORD.fullmatch(w)) / total if total else 0.0
+
+
+@contextmanager
+def _read_page(page: pymupdf.Page, language: str) -> Iterator[pymupdf.Document]:
+    """The page's text layer (see ``_text_layer``). A page that reads badly is tried the
+    other three ways up, and read that way if it's clearly better: inside the ``with``
+    block the page is turned so the layer fits it; afterwards it is turned back, so the
+    page itself never changes."""
+    original = page.rotation
+    layer = _text_layer(page, language, quality.OCR_DPI)
+    try:
+        text = layer[0].get_text()
+        score = reading_score(text)
+        if text.strip() and score < GOOD_READING:
+            tries = {}
+            for turn in (90, 180, 270):
+                page.set_rotation((original + turn) % 360)
+                with _text_layer(page, language, QUICK_DPI) as quick:
+                    tries[turn] = reading_score(quick[0].get_text())
+            page.set_rotation(original)
+            best = max(tries, key=tries.__getitem__)
+            if tries[best] >= max(score + 0.2, 0.4):
+                page.set_rotation((original + best) % 360)
+                layer.close()
+                layer = _text_layer(page, language, quality.OCR_DPI)
+        yield layer
+    finally:
+        page.set_rotation(original)
+        layer.close()
+
+
 def _run_pages(
     doc: pymupdf.Document,
     language: str,
@@ -134,7 +178,7 @@ def _run_pages(
         if only_scans and not page_needs_ocr(page):
             continue
         report(i / max(total, 1), f"Reading text on page {i + 1}/{total}")
-        with _text_layer(page, language, quality.OCR_DPI) as layer:
+        with _read_page(page, language) as layer:
             each(page, layer)
         done += 1
     return done

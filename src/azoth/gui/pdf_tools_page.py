@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QListView,
     QListWidget,
     QListWidgetItem,
+    QProgressBar,
     QPushButton,
     QRadioButton,
     QStackedWidget,
@@ -40,7 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import formats, ocr, pdf_tools, quality
-from ..converters import ConversionError
+from ..converters import ConversionCancelled, ConversionError
 from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
 from .options_panel import LanguageBox
@@ -85,12 +86,14 @@ class Task(QObject):
     done = Signal(object)  # list[Path]
     failed = Signal(str)
     nothing = Signal(str)  # nothing to do (e.g. the PDF can't get smaller)
-    progress = Signal(str)  # a status text while the job runs
+    progress = Signal(float, str)  # how far (0 to 1) and a status text while the job runs
 
     def start(self, job: Callable[[], list[Path]]) -> None:
         def run() -> None:
             try:
                 result = job()
+            except ConversionCancelled:
+                self.nothing.emit("Cancelled. Nothing was saved.")
             except pdf_tools.NotSmaller as exc:
                 self.nothing.emit(str(exc))
             except ConversionError as exc:
@@ -805,7 +808,8 @@ class SearchableTool(_SinglePdfTool):
             "select and copy it. The pages look exactly the same. Pages that already "
             "have text are left as they are."
         )
-        self.report: Callable[[str], None] = lambda text: None
+        self.report: Callable[[float, str], None] = lambda fraction, text: None
+        self.cancel = threading.Event()
         self.language = LanguageBox()
         self.body.addWidget(label("Language of the text", "caption"))
         self.body.addWidget(self.language, 0, Qt.AlignmentFlag.AlignLeft)
@@ -827,14 +831,23 @@ class SearchableTool(_SinglePdfTool):
     def result_name(self) -> str | None:
         return ocr.searchable_path(self.source).stem if self.source else None
 
+    cancellable = True
+
     def job(self, folder: Path | None, name: str):
-        src, language, report = self.source, self.language.language(), self.report
+        src, language, report, cancel = (
+            self.source,
+            self.language.language(),
+            self.report,
+            self.cancel,
+        )
         target = (folder or src.parent) / f"{name}.pdf"
 
-        def progress(_fraction: float, message: str) -> None:
-            report(f"{message}…")
+        def progress(fraction: float, message: str) -> None:
+            report(fraction, f"{message}…")
 
-        return lambda: [ocr.make_searchable(src, target, language, progress=progress)]
+        return lambda: [
+            ocr.make_searchable(src, target, language, progress=progress, cancel=cancel)
+        ]
 
 
 OCR_MISSING = "Text recognition is missing its language files. Reinstall Azoth Converter to use it."
@@ -857,7 +870,7 @@ class PdfToolsPage(QWidget):
         self.password.submit.connect(self.run)
         self.searchable = SearchableTool()
         self.searchable.report = self.task.progress.emit
-        self.task.progress.connect(lambda text: self.result.show_state(WORKING, text))
+        self.task.progress.connect(self._progress)
         self.tools = {
             "merge": self.merge,
             "split": self.split,
@@ -890,6 +903,16 @@ class PdfToolsPage(QWidget):
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()
         self.result = ResultBar()
+        self.progress = QProgressBar()
+        self.progress.setProperty("role", "overall")
+        self.progress.setRange(0, 1000)
+        self.progress.setTextVisible(False)
+        self.progress.setAccessibleName("Progress")
+        self.progress.setVisible(False)
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setMinimumHeight(44)
+        self.cancel_btn.setVisible(False)
+        self.cancel_btn.clicked.connect(self.cancel)
         self.action_btn = QPushButton("Merge")
         self.action_btn.setProperty("role", "primary")
         self.action_btn.setMinimumWidth(240)
@@ -898,6 +921,7 @@ class PdfToolsPage(QWidget):
         bottom.setSpacing(16)
         bottom.addWidget(self.output_row, 1)
         bottom.addWidget(self.name_row, 1)
+        bottom.addWidget(self.cancel_btn, 0, Qt.AlignmentFlag.AlignBottom)
         bottom.addWidget(self.action_btn, 0, Qt.AlignmentFlag.AlignBottom)
 
         titles = QVBoxLayout()
@@ -918,6 +942,7 @@ class PdfToolsPage(QWidget):
         layout.addLayout(switcher)
         layout.addWidget(self.stack, 1)
         layout.addWidget(self.result)
+        layout.addWidget(self.progress)
         layout.addLayout(bottom)
         self._update()
 
@@ -957,9 +982,25 @@ class PdfToolsPage(QWidget):
         except ConversionError as exc:
             self.result.show_state(FAILED, f"✗ {exc}")
             return
+        if hasattr(tool, "cancel"):
+            tool.cancel.clear()
         self._set_busy(True)
         self.result.show_state(WORKING, "Working…")
         self.task.start(job)
+
+    def cancel(self) -> None:
+        tool = self.tools[self.current_tool()]
+        if self.busy and hasattr(tool, "cancel"):
+            tool.cancel.set()
+            self.cancel_btn.setEnabled(False)
+            self.result.show_state(WORKING, "Cancelling after this page…")
+
+    def _progress(self, fraction: float, text: str) -> None:
+        if self.busy:
+            self.progress.setVisible(True)
+            self.progress.setValue(int(fraction * 1000))
+            if self.cancel_btn.isEnabled():  # keep "Cancelling…" once asked
+                self.result.show_state(WORKING, text)
 
     def apply_colors(self, colors: Colors) -> None:
         self.merge.apply_colors(colors)
@@ -972,6 +1013,12 @@ class PdfToolsPage(QWidget):
             tool.setEnabled(not busy)
         self.output_row.set_busy(busy)
         self.name_row.set_busy(busy)
+        tool = self.tools[self.current_tool()]
+        self.cancel_btn.setVisible(busy and getattr(tool, "cancellable", False))
+        self.cancel_btn.setEnabled(True)
+        if not busy:
+            self.progress.setVisible(False)
+            self.progress.setValue(0)
         self._update()
 
     def _done(self, outputs: list[Path]) -> None:

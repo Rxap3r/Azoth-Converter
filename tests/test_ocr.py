@@ -269,3 +269,44 @@ def test_searchable_pdf_to_word_uses_its_hidden_text(tmp_path, monkeypatch):
         text = out.read_text(encoding="utf-8") if target == "txt" else docx_text(out)
         for line in LETTER:
             assert line in text
+
+
+@pytest.mark.parametrize("rotation", [90, 180, 270])
+def test_sideways_or_upside_down_scan_is_read(tmp_path, rotation):
+    """A page shown the wrong way up is read the right way up. The page itself stays as it
+    is (same picture, same rotation); the hidden text sits on the words."""
+    picture = make_text_scan(tmp_path / "p.png", LETTER)
+    doc = pymupdf.open()
+    page = doc.new_page(width=500, height=300)
+    page.insert_image(page.rect, filename=str(picture))
+    page.set_rotation(rotation)  # shown sideways or upside down
+    doc.save(tmp_path / "turned.pdf")
+    doc.close()
+    out = ocr.make_searchable(tmp_path / "turned.pdf", tmp_path / "out.pdf", "eng")
+    with pymupdf.open(out) as result:
+        assert result[0].rotation == rotation
+        text = result[0].get_text()
+        for line in LETTER:
+            assert line in text
+        word = next(w for w in result[0].get_text("words") if w[4] == "Invoice")
+        assert word[0] < 100 and word[1] < 100  # where it is in the picture
+
+
+def test_sideways_photo_to_text(tmp_path):
+    from PIL import Image
+
+    upright = make_text_scan(tmp_path / "upright.png", LETTER)
+    sideways = tmp_path / "sideways.png"
+    Image.open(upright).rotate(90, expand=True).save(sideways)  # no rotation info in the file
+    [out] = (
+        Engine().convert(sideways, "txt", tmp_path / "o", options={"ocr_language": "eng"}).outputs
+    )
+    text = out.read_text(encoding="utf-8")
+    for line in LETTER:
+        assert line in text
+
+
+def test_reading_score():
+    assert ocr.reading_score("Thank you for your order.") > 0.8
+    assert ocr.reading_score("By) e) — QD ® Q > < o. Q® 2 ja") < 0.3
+    assert ocr.reading_score("") == 0

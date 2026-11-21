@@ -340,3 +340,53 @@ def test_every_tool_lets_you_name_the_result(window, qtbot, tmp_path):
     row.edit.setText("bad:name")
     page.action_btn.click()
     assert "can't contain" in page.result.text() and not page.busy
+
+
+def test_make_searchable_shows_progress_and_can_be_cancelled(
+    window, qtbot, tmp_path, ocr_ready, monkeypatch
+):
+    import time
+
+    from conftest import make_text_scan
+
+    from azoth import ocr
+
+    real = ocr._text_layer
+
+    def slow(*args):  # long enough per page to watch the progress and press Cancel
+        time.sleep(0.3)
+        return real(*args)
+
+    monkeypatch.setattr(ocr, "_text_layer", slow)
+
+    picture = make_text_scan(tmp_path / "page.png", ["Scanned contract text"])
+    scan = tmp_path / "long.pdf"
+    doc = pymupdf.open()
+    for _ in range(6):
+        doc.new_page(width=500, height=300).insert_image(
+            pymupdf.Rect(0, 0, 500, 300), filename=str(picture)
+        )
+    doc.save(scan)
+    doc.close()
+    page = window.pdf_page
+    page.show_tool("ocr")
+    page.add_files([scan])
+    page.action_btn.click()
+    assert page.cancel_btn.isVisibleTo(page)
+    qtbot.waitUntil(lambda: page.progress.isVisibleTo(page), timeout=30000)
+    assert "Reading text on page" in page.result.text()
+    page.cancel_btn.click()
+    qtbot.waitUntil(lambda: not page.busy, timeout=60000)
+    assert page.result.text() == "Cancelled. Nothing was saved."
+    assert not (tmp_path / "long (searchable).pdf").exists()
+    assert not page.cancel_btn.isVisibleTo(page) and not page.progress.isVisibleTo(page)
+
+
+def test_other_tools_have_no_cancel_button(window, qtbot, tmp_path):
+    src = make_pdf(tmp_path / "a.pdf", ["A"])
+    page = window.pdf_page
+    page.show_tool("split")
+    page.add_files([src])
+    page.action_btn.click()
+    assert not page.cancel_btn.isVisibleTo(page)
+    qtbot.waitUntil(lambda: not page.busy, timeout=30000)
