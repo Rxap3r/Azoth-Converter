@@ -29,7 +29,9 @@ def open_pdf(src: Path) -> pymupdf.Document:
         ) from exc
     if doc.needs_pass:
         doc.close()
-        raise ConversionError("This PDF is password-protected. Remove the password first.")
+        raise ConversionError(
+            "This PDF is password-protected. Remove the password first (PDF tools → Password)."
+        )
     return doc
 
 

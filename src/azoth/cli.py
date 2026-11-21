@@ -12,6 +12,8 @@ Examples::
     azoth pdf split big.pdf -o pages
     azoth pdf split big.pdf --ranges "1-3, 4-"
     azoth pdf edit scan.pdf --delete 2 --rotate 1=90
+    azoth pdf compress big.pdf --level strong
+    azoth pdf password add contract.pdf
 """
 
 from __future__ import annotations
@@ -193,6 +195,61 @@ def cmd_pdf_edit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_pdf_compress(args: argparse.Namespace) -> int:
+    from . import pdf_tools
+
+    src = Path(args.file)
+    out = Path(args.output) if args.output else pdf_tools.compressed_path(src)
+    try:
+        before = src.stat().st_size
+        result = pdf_tools.compress(src, out, args.level, overwrite=args.overwrite)
+    except OSError as exc:
+        print(f"✗ Could not read {src.name}: {exc.strerror or exc}", file=sys.stderr)
+        return 1
+    except ConversionError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
+    after = result.stat().st_size
+    saved = round(100 * (1 - after / before))
+    size = pdf_tools.size_text
+    print(f"✓ {size(before)} → {size(after)} ({saved}% smaller) → {result}")
+    return 0
+
+
+def cmd_pdf_password(args: argparse.Namespace) -> int:
+    import getpass
+
+    from . import pdf_tools
+
+    src = Path(args.file)
+    try:
+        password = getpass.getpass("Password: ")
+        if args.action == "add":
+            problem = pdf_tools.password_problem(password)
+            if problem:
+                raise ConversionError(problem)
+            warning = pdf_tools.password_warning(password)
+            if warning:
+                print(f"! {warning}", file=sys.stderr)
+            if getpass.getpass("Repeat password: ") != password:
+                raise ConversionError("The passwords don't match. Nothing was saved.")
+            out = Path(args.output) if args.output else pdf_tools.protected_path(src)
+            result = pdf_tools.add_password(src, out, password, overwrite=args.overwrite)
+            note = " Keep the password safe: without it, nobody can open the file."
+        else:
+            out = Path(args.output) if args.output else pdf_tools.unlocked_path(src)
+            result = pdf_tools.remove_password(src, out, password, overwrite=args.overwrite)
+            note = ""
+    except ConversionError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
+    except (EOFError, KeyboardInterrupt):
+        print("\n✗ Cancelled. Nothing was saved.", file=sys.stderr)
+        return 1
+    print(f"✓ Saved {result}.{note}")
+    return 0
+
+
 def _bounded(low: int, high: int):
     def parse(text: str) -> int:
         try:
@@ -299,6 +356,29 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output", "-o", help="output file (default: 'name (edited).pdf')")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_edit)
+    p = pdf.add_parser("compress", help="save a smaller copy (shrinks very sharp pictures)")
+    p.add_argument("file")
+    p.add_argument(
+        "--level",
+        "-l",
+        choices=[level.id for level in quality.COMPRESS_LEVELS],
+        default=quality.DEFAULT_COMPRESS.id,
+        help="light: no quality loss; balanced (default): pictures to 200 dpi; "
+        "strong: pictures to 150 dpi JPG",
+    )
+    p.add_argument("--output", "-o", help="output file (default: 'name (compressed).pdf')")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_pdf_compress)
+    p = pdf.add_parser(
+        "password", help="add or remove a password (asks for it; it is never stored)"
+    )
+    p.add_argument("action", choices=["add", "remove"])
+    p.add_argument("file")
+    p.add_argument(
+        "--output", "-o", help="output file (default: 'name (protected).pdf' / '(unlocked)')"
+    )
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_pdf_password)
 
     p = sub.add_parser("gui", help="open the graphical app")
     p.set_defaults(func=lambda a: __import__("azoth.gui.app", fromlist=["main"]).main())

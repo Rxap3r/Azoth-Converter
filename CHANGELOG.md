@@ -7,6 +7,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+
+- **Compress PDF** (PDF tools → Compress, or `azoth pdf compress`): saves a smaller copy. Three
+  levels: *Light* (no quality loss, only tidies up the file), *Balanced* (very sharp pictures
+  reduced to 200 dpi) and *Strong* (pictures at 150 dpi as JPG). Text, links, bookmarks and form
+  fields stay as they are. Shows how much smaller the file got; if it can't get smaller,
+  nothing is saved.
+- **Password** (PDF tools → Password, or `azoth pdf password add/remove`): lock a copy of a PDF
+  with a password (AES-256, the strongest encryption in the PDF standard), or save an unlocked
+  copy of your own PDF with its password. The password is never saved, the fields are cleared
+  right after use, and the app warns about passwords that are easy to guess.
+- PDF tools warn when a PDF is digitally signed, because a new copy can't keep the signature valid.
+
+### Quality
+
+- Compress never shrinks pictures below 150 dpi or saves them below JPG quality 75, and photos
+  that don't need shrinking keep their original data byte for byte (no second JPG loss).
+
+### Privacy and safety
+
+- Removing a password needs the PDF's own password; restrictions set with an owner password
+  (no printing or copying) need the owner password. Compress keeps such restrictions.
+
 ## [0.2.1] - 2026-11-21
 
 ### Added

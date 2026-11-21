@@ -1,4 +1,5 @@
-"""The "PDF tools" page: Merge, Split and Edit pages (rotate, delete, reorder).
+"""The "PDF tools" page: Merge, Split, Edit pages (rotate, delete, reorder), Compress and
+Password.
 
 The work itself is in ``azoth.pdf_tools`` (lossless, no Qt). This page only collects the
 choices, runs the job in a background thread and shows the result.
@@ -22,6 +23,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
+    QCheckBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -37,7 +39,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import formats, pdf_tools
+from .. import formats, pdf_tools, quality
 from ..converters import ConversionError
 from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
@@ -46,7 +48,13 @@ from .settings import forget_file_dialog_history
 from .theme import Colors, repolish
 from .widgets import label
 
-TOOLS = [("merge", "Merge"), ("split", "Split"), ("edit", "Edit pages")]
+TOOLS = [
+    ("merge", "Merge"),
+    ("split", "Split"),
+    ("edit", "Edit pages"),
+    ("compress", "Compress"),
+    ("password", "Password"),
+]
 THUMB_WIDTH = 110
 ROLE_PATH = Qt.ItemDataRole.UserRole
 ROLE_PAGE = Qt.ItemDataRole.UserRole + 1  # original page index
@@ -74,11 +82,14 @@ class Task(QObject):
 
     done = Signal(object)  # list[Path]
     failed = Signal(str)
+    nothing = Signal(str)  # nothing to do (e.g. the PDF can't get smaller)
 
     def start(self, job: Callable[[], list[Path]]) -> None:
         def run() -> None:
             try:
                 result = job()
+            except pdf_tools.NotSmaller as exc:
+                self.nothing.emit(str(exc))
             except ConversionError as exc:
                 self.failed.emit(str(exc))
             except Exception as exc:  # never let a bad file kill the app
@@ -547,18 +558,250 @@ class EditTool(QWidget):
         return lambda: [pdf_tools.edit_pages(src, target, edits)]
 
 
+SIGNED_WARNING = (
+    "⚠ This PDF is digitally signed. The new copy can't keep a valid signature; "
+    "keep the original for that."
+)
+
+
+class _SinglePdfTool(QWidget):
+    """A tool that works on one PDF: shows its name and size, warns about signatures."""
+
+    changed = Signal()
+
+    def __init__(self, intro: str) -> None:
+        super().__init__()
+        self.source: Path | None = None
+        self.size = 0
+        row, self.file_label, self.choose_btn = _single_pdf_row(self)
+        self.choose_btn.clicked.connect(lambda: self.add_files(choose_pdfs(self, many=False)))
+        self.signed = label(SIGNED_WARNING, "banner", wrap=True)
+        self.signed.setVisible(False)
+        self.body = QVBoxLayout(self)
+        self.body.setContentsMargins(0, 0, 0, 0)
+        self.body.setSpacing(10)
+        self.body.addWidget(label(intro, "muted", wrap=True))
+        self.body.addWidget(row)
+
+    def check(self, pdf: Path) -> str | None:
+        """Why this PDF can't be used here, or None. Raises ConversionError."""
+        return None
+
+    def add_files(self, paths: Iterable[Path]) -> None:
+        pdf = next((p for p in paths if is_pdf(p)), None)
+        if pdf is None:
+            return
+        self.source = None
+        try:
+            problem = self.check(pdf)
+            if problem:
+                raise ConversionError(problem)
+            self.size = pdf.stat().st_size
+        except (ConversionError, OSError) as exc:
+            if isinstance(exc, OSError):
+                exc = ConversionError(f"Could not read {pdf.name}: {exc.strerror or exc}")
+            self.file_label.setText(str(exc))
+            self.file_label.setProperty("role", "muted")
+            self.signed.setVisible(False)
+        else:
+            self.source = pdf
+            self.file_label.setText(f"{pdf.name}   ·   {pdf_tools.size_text(self.size)}")
+            self.file_label.setProperty("role", "")
+            self.signed.setVisible(pdf_tools.is_signed(pdf))
+        repolish(self.file_label)
+        self.loaded()
+        self.changed.emit()
+
+    def loaded(self) -> None:
+        """Called after a new PDF was chosen (or refused)."""
+
+
+class CompressTool(_SinglePdfTool):
+    def __init__(self) -> None:
+        super().__init__(
+            "Saves a smaller copy. Text, links and form fields stay exactly as they are; "
+            "only pictures can get smaller."
+        )
+        self.levels = QButtonGroup(self)
+        self.level_buttons: dict[str, QRadioButton] = {}
+        for level in quality.COMPRESS_LEVELS:
+            button = QRadioButton(level.label)
+            button.setChecked(level is quality.DEFAULT_COMPRESS)
+            self.levels.addButton(button)
+            self.level_buttons[level.id] = button
+            about = label(level.description, "small", wrap=True)
+            about.setContentsMargins(26, 0, 0, 4)
+            self.body.addWidget(button)
+            self.body.addWidget(about)
+        self.body.addWidget(self.signed)
+        self.body.addStretch(1)
+        self.before = 0
+
+    def check(self, pdf: Path) -> str | None:
+        if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
+            return "This PDF is password-protected. Remove the password first (Password)."
+        return None
+
+    def level(self) -> str:
+        return next(k for k, b in self.level_buttons.items() if b.isChecked())
+
+    def action(self) -> str | None:
+        return "Compress" if self.source else None
+
+    def job(self, folder: Path | None):
+        src, level, self.before = self.source, self.level(), self.size
+        target = pdf_tools.compressed_path(src, folder)
+        return lambda: [pdf_tools.compress(src, target, level)]
+
+    def done_text(self, outputs: list[Path]) -> str:
+        after = outputs[0].stat().st_size
+        saved = round(100 * (1 - after / self.before)) if self.before else 0
+        size = pdf_tools.size_text
+        return f"✓ Saved {outputs[0].name}: {size(self.before)} → {size(after)} ({saved}% smaller)"
+
+
+FORGET_WARNING = (
+    "⚠ Keep the password safe. If you forget it, nobody can open the copy, "
+    "not even with this app. Your original stays as it is, without a password."
+)
+
+
+class PasswordTool(_SinglePdfTool):
+    submit = Signal()  # Enter pressed in a password field
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Lock a PDF with a password (AES-256 encryption), or remove the password "
+            "from your own PDF. The password is never saved."
+        )
+        self.state: str | None = None
+        self.mode = label("", "", wrap=True)
+        self.password = QLineEdit()
+        self.repeat = QLineEdit()
+        for field, name in ((self.password, "Password"), (self.repeat, "Repeat password")):
+            field.setEchoMode(QLineEdit.EchoMode.Password)
+            field.setPlaceholderText(name)
+            field.setAccessibleName(name)
+            field.setMaximumWidth(360)
+            field.textChanged.connect(self._update_hint)
+            field.returnPressed.connect(self.submit.emit)
+        self.show_check = QCheckBox("Show password")
+        self.show_check.toggled.connect(self._show)
+        self.hint = label("", "small", wrap=True)
+        self.forget = label(FORGET_WARNING, "banner", wrap=True)
+        for widget in (self.mode, self.password, self.repeat, self.show_check, self.hint):
+            self.body.addWidget(widget)
+        self.body.addWidget(self.forget)
+        self.body.addWidget(self.signed)
+        self.body.addStretch(1)
+        self.loaded()
+
+    def check(self, pdf: Path) -> str | None:
+        self.state = pdf_tools.lock_state(pdf)
+        return None
+
+    def adding(self) -> bool:
+        return self.state == pdf_tools.UNLOCKED
+
+    def loaded(self) -> None:
+        ready = self.source is not None
+        self.clear()
+        if not ready:
+            self.state = None
+        texts = {
+            pdf_tools.UNLOCKED: "Choose a password for the copy:",
+            pdf_tools.NEEDS_PASSWORD: "This PDF is locked. Enter its password to save an "
+            "unlocked copy:",
+            pdf_tools.RESTRICTED: "This PDF opens without a password, but an owner password "
+            "limits printing, copying or changes. Enter the owner password to remove it:",
+        }
+        self.mode.setText(texts.get(self.state, ""))
+        for widget in (self.mode, self.password, self.show_check, self.hint):
+            widget.setVisible(ready)
+        self.repeat.setVisible(ready and self.adding())
+        self.forget.setVisible(ready and self.adding())
+        self.signed.setVisible(ready and not self.signed.isHidden())
+
+    def clear(self) -> None:
+        """Forget the typed passwords."""
+        self.password.clear()
+        self.repeat.clear()
+        self.show_check.setChecked(False)
+
+    def _show(self, visible: bool) -> None:
+        mode = QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password
+        self.password.setEchoMode(mode)
+        self.repeat.setEchoMode(mode)
+
+    def _update_hint(self) -> None:
+        self.hint.setText(self._hint())
+        self.changed.emit()
+
+    def _hint(self) -> str:
+        password = self.password.text()
+        if not self.adding() or not password:
+            return ""
+        problem = pdf_tools.password_problem(password)
+        if problem:
+            return problem
+        warning = pdf_tools.password_warning(password) or ""
+        if self.repeat.text() and self.repeat.text() != password:
+            return ("The passwords don't match. " + warning).strip()
+        return warning
+
+    def action(self) -> str | None:
+        if self.source is None:
+            return None
+        password = self.password.text()
+        if not self.adding():
+            return "Remove password" if password else None
+        if pdf_tools.password_problem(password) or self.repeat.text() != password:
+            return None
+        return "Add password"
+
+    def idle_text(self) -> str | None:
+        if self.source is None:
+            return None
+        return "Add password" if self.adding() else "Remove password"
+
+    def job(self, folder: Path | None):
+        src, password, adding = self.source, self.password.text(), self.adding()
+        self.clear()
+        if adding:
+            target = pdf_tools.protected_path(src, folder)
+            return lambda: [pdf_tools.add_password(src, target, password)]
+        target = pdf_tools.unlocked_path(src, folder)
+        return lambda: [pdf_tools.remove_password(src, target, password)]
+
+    def done_text(self, outputs: list[Path]) -> str:
+        name = outputs[0].name
+        if pdf_tools.lock_state(outputs[0]) == pdf_tools.UNLOCKED:
+            return f"✓ Saved {name} without a password"
+        return f"✓ Saved {name}. It now needs the password to open."
+
+
 class PdfToolsPage(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.task = Task()
         self.task.done.connect(self._done)
         self.task.failed.connect(self._failed)
+        self.task.nothing.connect(self._nothing)
         self.busy = False
 
         self.merge = MergeTool()
         self.split = SplitTool()
         self.edit = EditTool()
-        self.tools = {"merge": self.merge, "split": self.split, "edit": self.edit}
+        self.compress = CompressTool()
+        self.password = PasswordTool()
+        self.password.submit.connect(self.run)
+        self.tools = {
+            "merge": self.merge,
+            "split": self.split,
+            "edit": self.edit,
+            "compress": self.compress,
+            "password": self.password,
+        }
         self.stack = QStackedWidget()
         for tool in self.tools.values():
             self.stack.addWidget(tool)
@@ -596,8 +839,10 @@ class PdfToolsPage(QWidget):
         titles.addWidget(label("PDF tools", "h1"))
         titles.addWidget(
             label(
-                "Merge, split and edit PDFs. Pages are copied as they are: no quality loss.",
+                "Merge, split, edit, compress and lock PDFs. Only Compress changes pictures; "
+                "everything else copies pages as they are.",
                 "muted",
+                wrap=True,
             )
         )
         layout = QVBoxLayout(self)
@@ -627,7 +872,8 @@ class PdfToolsPage(QWidget):
     def _update(self) -> None:
         tool = self.tools[self.current_tool()]
         text = tool.action()
-        self.action_btn.setText(text or dict(TOOLS)[self.current_tool()])
+        idle = getattr(tool, "idle_text", lambda: None)()
+        self.action_btn.setText(text or idle or dict(TOOLS)[self.current_tool()])
         self.action_btn.setEnabled(bool(text) and not self.busy)
 
     def run(self) -> None:
@@ -657,11 +903,18 @@ class PdfToolsPage(QWidget):
 
     def _done(self, outputs: list[Path]) -> None:
         self._set_busy(False)
-        if len(outputs) == 1:
+        tool = self.tools[self.current_tool()]
+        if hasattr(tool, "done_text"):
+            text = tool.done_text(outputs)
+        elif len(outputs) == 1:
             text = f"✓ Saved {outputs[0].name}"
         else:
             text = f"✓ Saved {len(outputs)} PDFs in {outputs[0].parent.name}"
         self.result.show_state(DONE, text, outputs)
+
+    def _nothing(self, message: str) -> None:
+        self._set_busy(False)
+        self.result.show_state(INFO, message)
 
     def _failed(self, message: str) -> None:
         self._set_busy(False)

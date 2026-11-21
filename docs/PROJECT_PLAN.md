@@ -87,7 +87,7 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | **PDF → images / text** | PDF → PNG, JPG, WebP, BMP, multi-page TIFF; PDF → TXT | PyMuPDF | ✅ |
 | **Images → PDF** | any image → PDF | Pillow | ✅ |
 | PDF tools | merge, split (by page or range), rotate, delete, reorder pages; in the app and the command line | PyMuPDF | ✅ |
-| PDF tools | compress, password | PyMuPDF | 🔜 |
+| PDF tools | compress (3 levels), add or remove a password (AES-256) | PyMuPDF | ✅ |
 | Scanned PDFs | OCR → searchable PDF, then Word | Tesseract | 🔜 |
 | Spreadsheets | XLSX, XLS, ODS, CSV ↔ each other, → PDF | LibreOffice | ✅ |
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
@@ -134,8 +134,9 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 
 ### Phase 2: PDF power tools and OCR (≈ 4–6 weeks)
 - [x] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails. *Done (Nov 2026): lossless (pages copied, not redrawn), bookmarks kept; `pdf_tools.py`, `gui/pdf_tools_page.py`, `azoth pdf split --ranges`, `azoth pdf edit`.*
-- [ ] Compress PDF (downsample images)
-- [ ] Add or remove a password (only with the user's own password)
+- [x] Compress PDF (downsample images). *Done (Nov 2026): Light / Balanced / Strong, never below `MIN_DPI` and `MIN_IMAGE_QUALITY`, nothing saved unless at least 1 % smaller; `azoth pdf compress`.*
+- [x] Add or remove a password (only with the user's own password). *Done (Nov 2026): AES-256, password never stored, weak-password warning; `azoth pdf password add/remove`.*
+  - [ ] Later: Merge, Split and Edit pages drop an owner's "no printing / no copying" restrictions in the copy; keep them like Compress does.
 - [ ] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs)
 - [ ] PDF → Excel for tables
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*

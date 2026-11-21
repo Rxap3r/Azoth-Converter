@@ -166,3 +166,103 @@ def test_dropped_pdfs_go_to_the_open_tool(window, tmp_path):
     window.show_page("convert")
     window.dropEvent(event)
     assert window.file_list.count() == 1
+
+
+# --- Compress and Password ----------------------------------------------------------
+
+
+def make_photo_pdf(path):
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.effect_noise((3000, 2000), 60).convert("RGB").save(buf, "JPEG", quality=95)
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text((72, 60), "Holiday", fontsize=18)
+    page.insert_image(pymupdf.Rect(72, 80, 272, 213), stream=buf.getvalue())
+    doc.save(path)
+    doc.close()
+    return path
+
+
+def test_compress_from_the_window(window, qtbot, tmp_path):
+    from azoth import pdf_tools
+
+    src = make_photo_pdf(tmp_path / "photos.pdf")
+    page = window.pdf_page
+    page.show_tool("compress")
+    assert not page.action_btn.isEnabled()
+    page.add_files([src])
+    tool = page.compress
+    assert tool.level() == "balanced" and "MB" in tool.file_label.text()
+    tool.level_buttons["strong"].setChecked(True)
+    assert page.action_btn.text() == "Compress"
+    text = run(window, qtbot)
+    out = tmp_path / "photos (compressed).pdf"
+    assert out.exists() and "% smaller" in text and "→" in text
+    assert page.result.open_btn.isVisible() or not window.isVisible()
+
+    page.add_files([out])  # again: nothing to gain, shown as information, not an error
+    text = run(window, qtbot)
+    assert "Nothing was saved" in text and page.result.status.property("state") == "info"
+    assert not (tmp_path / "photos (compressed) (compressed).pdf").exists()
+
+    locked = pdf_tools.add_password(src, tmp_path / "locked.pdf", "Long enough 123!")
+    page.add_files([locked])
+    assert "password-protected" in tool.file_label.text() and not page.action_btn.isEnabled()
+
+
+def test_add_and_remove_password_from_the_window(window, qtbot, tmp_path):
+    from azoth import pdf_tools
+
+    src = make_pdf(tmp_path / "contract.pdf", ["Page 1", "Page 2"])
+    page = window.pdf_page
+    page.show_tool("password")
+    tool = page.password
+    page.add_files([src])
+    assert tool.adding() and not tool.repeat.isHidden() and not tool.forget.isHidden()
+    assert tool.password.echoMode() == tool.password.EchoMode.Password
+    tool.password.setText("short")
+    assert "easy to guess" in tool.hint.text() and not page.action_btn.isEnabled()
+    assert page.action_btn.text() == "Add password"
+    tool.password.setText("Grüezi Welt 2026!")
+    tool.repeat.setText("Grüezi Welt 2026")
+    assert "don't match" in tool.hint.text() and not page.action_btn.isEnabled()
+    tool.repeat.setText("Grüezi Welt 2026!")
+    assert page.action_btn.text() == "Add password"
+    text = run(window, qtbot)
+    locked = tmp_path / "contract (protected).pdf"
+    assert "needs the password" in text
+    assert pdf_tools.lock_state(locked) == pdf_tools.NEEDS_PASSWORD
+    assert tool.password.text() == "" and tool.repeat.text() == ""  # forgotten right away
+
+    page.add_files([locked])
+    assert not tool.adding() and tool.repeat.isHidden() and tool.forget.isHidden()
+    tool.password.setText("wrong")
+    assert page.action_btn.text() == "Remove password"
+    text = run(window, qtbot)
+    assert "isn't right" in text and page.result.status.property("state") == "failed"
+    assert tool.password.text() == ""
+    tool.password.setText("Grüezi Welt 2026!")
+    tool.password.returnPressed.emit()  # Enter works like the button
+    qtbot.waitUntil(lambda: not page.busy, timeout=30000)
+    unlocked = tmp_path / "contract (protected) (unlocked).pdf"
+    assert "without a password" in page.result.text()
+    assert texts(unlocked) == ["Page 1", "Page 2"]
+    assert pdf_tools.lock_state(unlocked) == pdf_tools.UNLOCKED
+
+
+def test_signed_pdfs_get_a_warning(window, tmp_path):
+    src = make_pdf(tmp_path / "signed.pdf", ["Signed"])
+    with pymupdf.open(src) as doc:
+        doc.xref_set_key(doc.pdf_catalog(), "AcroForm", "<< /Fields [] /SigFlags 3 >>")
+        doc.save(tmp_path / "s.pdf")
+    page = window.pdf_page
+    for key in ("compress", "password"):
+        page.show_tool(key)
+        page.add_files([tmp_path / "s.pdf"])
+        assert not page.tools[key].signed.isHidden()
+        page.add_files([src])
+        assert page.tools[key].signed.isHidden()

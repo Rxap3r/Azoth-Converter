@@ -19,7 +19,10 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 
 **PDF tools:** merge PDFs, split them (every page, or ranges like 1-3, 5), and turn, delete or
 reorder pages with page previews. Pages are copied as they are, so there's no quality loss and
-the original is never changed. In the app under **PDF tools**, or `azoth pdf` on the command line.
+the original is never changed. **Compress** saves a smaller copy (three levels, from "no quality
+loss" to "smallest file"; only pictures get smaller, text stays sharp). **Password** locks a copy
+with AES-256 encryption, or removes the password from your own PDF. In the app under
+**PDF tools**, or `azoth pdf` on the command line.
 
 **Remove photo metadata:** save a copy of your photos without the hidden information
 (GPS location, camera, date, author, comments, preview pictures) before you share them. The
@@ -89,6 +92,14 @@ azoth pdf split contract.pdf --ranges "1-3, 4-"
 
 ```bash
 azoth pdf edit scan.pdf --delete 2 --rotate 1=90
+```
+
+```bash
+azoth pdf compress big.pdf --level strong
+```
+
+```bash
+azoth pdf password add contract.pdf
 ```
 
 ## Development
