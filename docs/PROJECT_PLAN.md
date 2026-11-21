@@ -193,6 +193,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Watch folders (files dropped in a folder are converted automatically)
 - [ ] Data formats (CSV/JSON/XML/YAML/XLSX), Markdown/HTML/EPUB, archives, Camera RAW, SVG
 - [ ] Saved presets, optional local conversion history (can be cleared or turned off)
+- [ ] **Much later (only when everything else works well):** a preview window: look at a file's pages before converting and the result afterwards (side by side, zoom, select text to check OCR). Viewing only
 
 ### Phase 5: Production release 1.0 (≈ 3–4 weeks)
 - [ ] **Bundled "Office pack"** so users don't need to install LibreOffice separately (offline installer)
