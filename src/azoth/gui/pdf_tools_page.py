@@ -44,7 +44,7 @@ from ..converters import ConversionError
 from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
 from .options_panel import LanguageBox
-from .output_folder import OutputFolderRow
+from .output_folder import FileNameRow, OutputFolderRow
 from .settings import forget_file_dialog_history
 from .theme import Colors, repolish
 from .widgets import label
@@ -240,16 +240,10 @@ class MergeTool(QWidget):
         self.down_btn.clicked.connect(lambda: _move_selected(self.list, 1) or self.changed.emit())
         self.remove_btn = QPushButton("Remove")
         self.remove_btn.clicked.connect(self.remove_selected)
-        self.name = QLineEdit("Merged.pdf")
-        self.name.setAccessibleName("Name of the merged PDF")
-        self.name.textChanged.connect(lambda _: self.changed.emit())
         buttons = QHBoxLayout()
         for button in (self.add_btn, self.up_btn, self.down_btn, self.remove_btn):
             buttons.addWidget(button)
         buttons.addStretch(1)
-        name_row = QHBoxLayout()
-        name_row.addWidget(label("Name of the new PDF", "caption"))
-        name_row.addWidget(self.name, 1)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
@@ -258,7 +252,6 @@ class MergeTool(QWidget):
         )
         layout.addWidget(self.list, 1)
         layout.addLayout(buttons)
-        layout.addLayout(name_row)
 
     def files(self) -> list[Path]:
         return [Path(self.list.item(i).data(ROLE_PATH)) for i in range(self.list.count())]
@@ -303,18 +296,16 @@ class MergeTool(QWidget):
             self.list.takeItem(self.list.row(item))
         self.changed.emit()
 
-    def target_name(self) -> str:
-        name = self.name.text().strip() or "Merged"
-        name = "".join("_" if c in '<>:"/\\|?*' else c for c in name)
-        return name if name.lower().endswith(".pdf") else f"{name}.pdf"
-
     def action(self) -> str | None:
         n = len(self.files())
         return f"Merge {n} PDFs" if n >= 2 else None
 
-    def job(self, folder: Path | None):
+    def result_name(self) -> str | None:
+        return "Merged" if len(self.files()) >= 2 else None
+
+    def job(self, folder: Path | None, name: str):
         sources = self.files()
-        target = (folder or sources[0].parent) / self.target_name()
+        target = (folder or sources[0].parent) / f"{name}.pdf"
         return lambda: [pdf_tools.merge(sources, target)]
 
 
@@ -389,9 +380,15 @@ class SplitTool(QWidget):
         self.hint.setText("Each part keeps the pages exactly as they are.")
         return f"Split into {count} PDF{'s' if count != 1 else ''}"
 
-    def job(self, folder: Path | None):
+    name_caption = "Folder name"
+    name_extension = ""
+
+    def result_name(self) -> str | None:
+        return pdf_tools.split_folder(self.source).name if self.source else None
+
+    def job(self, folder: Path | None, name: str):
         src, groups = self.source, self.groups()
-        out_dir = pdf_tools.split_folder(src, folder)
+        out_dir = (folder or src.parent) / name
         return lambda: pdf_tools.split(src, out_dir, groups)
 
 
@@ -560,9 +557,12 @@ class EditTool(QWidget):
         changed = self.edits() != [pdf_tools.PageEdit(i) for i in range(self.pages.count())]
         return "Save as new PDF" if changed else None
 
-    def job(self, folder: Path | None):
+    def result_name(self) -> str | None:
+        return pdf_tools.edited_path(self.source).stem if self.source else None
+
+    def job(self, folder: Path | None, name: str):
         src, edits = self.source, self.edits()
-        target = pdf_tools.edited_path(src, folder)
+        target = (folder or src.parent) / f"{name}.pdf"
         return lambda: [pdf_tools.edit_pages(src, target, edits)]
 
 
@@ -656,9 +656,12 @@ class CompressTool(_SinglePdfTool):
     def action(self) -> str | None:
         return "Compress" if self.source else None
 
-    def job(self, folder: Path | None):
+    def result_name(self) -> str | None:
+        return pdf_tools.compressed_path(self.source).stem if self.source else None
+
+    def job(self, folder: Path | None, name: str):
         src, level, self.before = self.source, self.level(), self.size
-        target = pdf_tools.compressed_path(src, folder)
+        target = (folder or src.parent) / f"{name}.pdf"
         return lambda: [pdf_tools.compress(src, target, level)]
 
     def done_text(self, outputs: list[Path]) -> str:
@@ -772,13 +775,18 @@ class PasswordTool(_SinglePdfTool):
             return None
         return "Add password" if self.adding() else "Remove password"
 
-    def job(self, folder: Path | None):
+    def result_name(self) -> str | None:
+        if not self.source:
+            return None
+        made = pdf_tools.protected_path if self.adding() else pdf_tools.unlocked_path
+        return made(self.source).stem
+
+    def job(self, folder: Path | None, name: str):
         src, password, adding = self.source, self.password.text(), self.adding()
+        target = (folder or src.parent) / f"{name}.pdf"
         self.clear()
         if adding:
-            target = pdf_tools.protected_path(src, folder)
             return lambda: [pdf_tools.add_password(src, target, password)]
-        target = pdf_tools.unlocked_path(src, folder)
         return lambda: [pdf_tools.remove_password(src, target, password)]
 
     def done_text(self, outputs: list[Path]) -> str:
@@ -816,9 +824,12 @@ class SearchableTool(_SinglePdfTool):
     def action(self) -> str | None:
         return "Make searchable" if self.source and ocr.is_available() else None
 
-    def job(self, folder: Path | None):
+    def result_name(self) -> str | None:
+        return ocr.searchable_path(self.source).stem if self.source else None
+
+    def job(self, folder: Path | None, name: str):
         src, language, report = self.source, self.language.language(), self.report
-        target = ocr.searchable_path(src, folder)
+        target = (folder or src.parent) / f"{name}.pdf"
 
         def progress(_fraction: float, message: str) -> None:
             report(f"{message}…")
@@ -877,6 +888,7 @@ class PdfToolsPage(QWidget):
         self.tool_buttons["merge"].setChecked(True)
 
         self.output_row = OutputFolderRow()
+        self.name_row = FileNameRow()
         self.result = ResultBar()
         self.action_btn = QPushButton("Merge")
         self.action_btn.setProperty("role", "primary")
@@ -885,6 +897,7 @@ class PdfToolsPage(QWidget):
         bottom = QHBoxLayout()
         bottom.setSpacing(16)
         bottom.addWidget(self.output_row, 1)
+        bottom.addWidget(self.name_row, 1)
         bottom.addWidget(self.action_btn, 0, Qt.AlignmentFlag.AlignBottom)
 
         titles = QVBoxLayout()
@@ -924,6 +937,11 @@ class PdfToolsPage(QWidget):
 
     def _update(self) -> None:
         tool = self.tools[self.current_tool()]
+        self.name_row.set_name(
+            tool.result_name(),
+            getattr(tool, "name_extension", "pdf"),
+            getattr(tool, "name_caption", "File name"),
+        )
         text = tool.action()
         idle = getattr(tool, "idle_text", lambda: None)()
         self.action_btn.setText(text or idle or dict(TOOLS)[self.current_tool()])
@@ -934,7 +952,8 @@ class PdfToolsPage(QWidget):
         if self.busy or not tool.action():
             return
         try:
-            job = tool.job(self.output_row.folder)
+            name = self.name_row.name(getattr(tool, "name_extension", "pdf"))
+            job = tool.job(self.output_row.folder, name)
         except ConversionError as exc:
             self.result.show_state(FAILED, f"✗ {exc}")
             return
@@ -952,6 +971,7 @@ class PdfToolsPage(QWidget):
         for tool in self.tools.values():
             tool.setEnabled(not busy)
         self.output_row.set_busy(busy)
+        self.name_row.set_busy(busy)
         self._update()
 
     def _done(self, outputs: list[Path]) -> None:

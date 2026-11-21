@@ -59,7 +59,7 @@ def test_merge_in_chosen_order(window, qtbot, tmp_path):
     assert page.action_btn.text() == "Merge 2 PDFs"
     merge.list.item(1).setSelected(True)
     merge.up_btn.click()  # b first
-    merge.name.setText("Both")
+    page.name_row.edit.setText("Both")
     assert "✓ Saved Both.pdf" == run(window, qtbot)
     assert texts(tmp_path / "Both.pdf") == ["B1", "B2", "A1"]
     assert page.result.open_btn.isVisibleTo(page) and page.result.folder_btn.isVisibleTo(page)
@@ -286,6 +286,7 @@ def test_make_searchable_from_the_window(window, qtbot, tmp_path, ocr_ready):
     tool.language.set_language("eng")
     page.add_files([scan])
     assert page.action_btn.text() == "Make searchable"
+    assert page.name_row.edit.text() == "scan (searchable)"
     text = run(window, qtbot)
     out = tmp_path / "scan (searchable).pdf"
     assert text == f"✓ Saved {out.name}"
@@ -294,3 +295,48 @@ def test_make_searchable_from_the_window(window, qtbot, tmp_path, ocr_ready):
     page.add_files([out])  # already has text: explained, nothing to do
     assert "already has selectable text" in tool.file_label.text()
     assert not page.action_btn.isEnabled()
+
+
+def test_every_tool_lets_you_name_the_result(window, qtbot, tmp_path):
+    src = make_pdf(tmp_path / "report.pdf", ["P1", "P2"])
+    page = window.pdf_page
+    row = page.name_row
+    expected = {
+        "split": ("report_pages", "Folder name"),
+        "edit": ("report (edited)", "File name"),
+        "compress": ("report (compressed)", "File name"),
+        "password": ("report (protected)", "File name"),
+    }
+    for tool, (name, caption) in expected.items():
+        page.show_tool(tool)
+        assert not row.edit.isEnabled()  # no PDF yet: nothing to name
+        page.add_files([src])
+        assert row.edit.text() == name and row.caption.text() == caption
+        assert row.edit.isEnabled()
+
+    page.show_tool("split")
+    row.edit.setText("Chapters")
+    run(window, qtbot)
+    assert sorted(p.name for p in (tmp_path / "Chapters").iterdir()) == [
+        "report_page001.pdf",
+        "report_page002.pdf",
+    ]
+
+    page.show_tool("edit")
+    page.edit.pages.item(0).setSelected(True)
+    page.edit.delete_selected()
+    row.edit.setText("Only page two.pdf")  # a typed ".pdf" is not doubled
+    assert run(window, qtbot) == "✓ Saved Only page two.pdf"
+    assert texts(tmp_path / "Only page two.pdf") == ["P2"]
+
+    page.edit.pages.item(0).setSelected(True)
+    page.edit.delete_selected()
+    row.edit.setText("report")  # the original's name: never overwritten
+    run(window, qtbot)
+    assert texts(src) == ["P1", "P2"] and (tmp_path / "report (1).pdf").exists()
+
+    page.edit.pages.item(0).setSelected(True)
+    page.edit.delete_selected()
+    row.edit.setText("bad:name")
+    page.action_btn.click()
+    assert "can't contain" in page.result.text() and not page.busy

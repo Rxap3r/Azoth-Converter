@@ -33,6 +33,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Changed
 
+- **Choose the result's name in every PDF tool** (owner's wish): Merge, Split (folder name),
+  Edit pages, Compress, Password and Make searchable now have a *File name* field next to
+  *Save to*, filled in with the suggested name. Existing files are still never overwritten.
 - Edit pages: the buttons "Move earlier" and "Move later" are now "◀ Move" and "Move ▶", the
   direction the page moves in the page grid.
 

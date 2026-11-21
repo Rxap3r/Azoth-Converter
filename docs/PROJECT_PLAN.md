@@ -142,6 +142,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] Later: Word from scans with layout and pictures (now: the text as plain paragraphs)
   - [ ] Later: several languages in one document (e.g. German + English), more languages
   - [ ] Later: a Cancel button and page progress bar for Make searchable on long PDFs
+  - [ ] **Owner's wish (Nov 2026):** OCR → a "real" text PDF like one made from Word (visible, selectable text with exact selection boxes, editable in Word with formatting), as an option next to the 1:1 searchable PDF (picture + invisible text). Needs layout rebuilding (fonts, sizes, columns); the picture would no longer be kept 1:1
+- [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
 - [ ] PDF → Excel for tables
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
