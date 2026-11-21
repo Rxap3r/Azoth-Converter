@@ -21,8 +21,7 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
 - **Version 0.2.1** (error log, Uninstall button, clean updates, open-folder fix) is on `main`
-  (pull request #7, merged 21 Nov 2026). **Next step for the owner:** Actions → Release → Run
-  workflow on `main` (not run yet when this was written). Later work goes under
+  (pull request #7, merged 21 Nov 2026) and **released** as v0.2.1 on GitHub Releases. Later work goes under
   `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
   should show it next time. Not yet tried with real phone photos: metadata removal.
