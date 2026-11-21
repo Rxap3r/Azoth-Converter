@@ -80,15 +80,15 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 
 | From | Works right away | Also with LibreOffice installed |
 |------|------------------|--------------------------------|
-| **JPG** | PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO | – |
-| **PNG** | JPG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO | – |
-| **WEBP** | JPG, PNG, PDF, HEIC, AVIF, TIFF, GIF, BMP, ICO | – |
-| **BMP** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, ICO | – |
-| **TIFF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, GIF, BMP, ICO | – |
-| **GIF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, BMP, ICO | – |
-| **ICO** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP | – |
-| **HEIC** | JPG, PNG, PDF, WEBP, AVIF, TIFF, GIF, BMP, ICO | – |
-| **AVIF** | JPG, PNG, PDF, WEBP, HEIC, TIFF, GIF, BMP, ICO | – |
+| **JPG** | PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
+| **PNG** | JPG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
+| **WEBP** | JPG, PNG, PDF, HEIC, AVIF, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
+| **BMP** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, ICO, DOCX, TXT | – |
+| **TIFF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, GIF, BMP, ICO, DOCX, TXT | – |
+| **GIF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, BMP, ICO, DOCX, TXT | – |
+| **ICO** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, DOCX, TXT | – |
+| **HEIC** | JPG, PNG, PDF, WEBP, AVIF, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
+| **AVIF** | JPG, PNG, PDF, WEBP, HEIC, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
 
 - Photo metadata (camera, date, GPS location) is removed by default.
 - Formats without transparency (JPG, BMP) get a white background.

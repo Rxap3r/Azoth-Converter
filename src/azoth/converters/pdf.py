@@ -124,6 +124,16 @@ class PdfToTextConverter(Converter):
         return "Only the text is kept; images and layout are dropped."
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
+        from .. import ocr
+
+        if ocr.is_available() and ocr.needs_ocr(src):
+            from .ocr import check_found, recognise, write_text
+
+            with open_pdf(src) as doc:
+                pages = recognise(doc, ctx)  # scanned pages are read, the others kept
+            check_found(pages)
+            write_text(pages, dst)
+            return [dst]
         parts: list[str] = []
         with open_pdf(src) as doc:
             total = doc.page_count
@@ -157,13 +167,23 @@ class PdfToWordConverter(Converter):
             warnings.simplefilter("ignore", FutureWarning)  # pdf2docx imports old "fitz" name
             from pdf2docx import Converter as Pdf2Docx
 
-        # Check early so the user gets a clear message instead of an empty document.
+        # A scan has no text for pdf2docx to work with (it would give an empty
+        # document), so its text is recognised (OCR) instead.
         if is_probably_scanned(src):
-            raise ConversionError(
-                "This PDF looks like a scan (pictures of pages, no selectable text). "
-                "Converting it to Word needs text recognition (OCR), which is planned "
-                "for a later version."
-            )
+            from .. import ocr
+            from .ocr import check_found, recognise, write_docx
+
+            if not ocr.is_available():
+                raise ConversionError(
+                    "This PDF looks like a scan (pictures of pages, no selectable text). "
+                    "Converting it to Word needs text recognition (OCR), which isn't "
+                    "installed with this copy of Azoth Converter."
+                )
+            with open_pdf(src) as doc:
+                pages = recognise(doc, ctx)
+            check_found(pages)
+            write_docx(pages, dst)
+            return [dst]
         with open_pdf(src) as doc:
             total = doc.page_count
 

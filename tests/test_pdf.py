@@ -45,9 +45,9 @@ def test_pdf_to_word(tmp_path, sample_docx):
     assert "Thank you" in text
 
 
-def test_scanned_pdf_to_word_gives_clear_error(tmp_path, sample_png):
-    pdf = make_scanned_pdf(tmp_path / "scan.pdf", sample_png)
-    with pytest.raises(ConversionError, match="scan"):
+def test_scan_without_any_text_gives_clear_error(tmp_path, sample_png, ocr_ready):
+    pdf = make_scanned_pdf(tmp_path / "scan.pdf", sample_png)  # a logo: nothing to read
+    with pytest.raises(ConversionError, match="No text was found"):
         Engine().convert(pdf, "docx", tmp_path / "o")
 
 

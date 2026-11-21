@@ -84,6 +84,7 @@ class MainWindow(QMainWindow):
         self.file_list = page.file_list
         self.target_picker = page.target_picker
         self.quality = page.quality
+        self.ocr_options = page.ocr
         self.output_row = page.output_row
         self.name_row = page.name_row
         self.notes_label = page.notes_label
@@ -261,6 +262,7 @@ class MainWindow(QMainWindow):
         self.name_row.set_busy(busy)
         self.target_picker.set_busy(busy)
         self.quality.set_busy(busy)
+        self.ocr_options.set_busy(busy)
         count = self.file_list.count()
         self.convert_page.subtitle.setText(
             f"{count} file{'s' if count != 1 else ''} · drop more anywhere in this window"
@@ -290,6 +292,7 @@ class MainWindow(QMainWindow):
         target = self.target_picker.current()
         self.name_row.set_extension(self._result_extension(target))
         self.settings_page.metadata_check.setEnabled(target != CLEAN_TARGET)
+        self.ocr_options.set_mode(targets.ocr_mode(self.file_list.formats, target))
         notes = targets.notes(self.engine, self.file_list.formats, target)
         self.notes_label.setText("\n".join(notes))
         self.notes_label.setVisible(bool(notes))
@@ -343,6 +346,7 @@ class MainWindow(QMainWindow):
         options = {
             "level": self.quality.level(),
             "keep_metadata": self.settings_page.metadata_check.isChecked(),
+            **self.ocr_options.options(),
         }
         self._thread = QThread(self)
         self._worker = ConversionWorker(

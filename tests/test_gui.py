@@ -22,7 +22,7 @@ def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_pa
     # Only targets that work for both a PNG and a PDF are offered.
     targets = window.target_picker.ids()
     assert "jpg" in targets and "pdf" in targets
-    assert "docx" not in targets  # PNG can't become Word
+    assert "xlsx" not in targets  # neither can become Excel
 
     window.output_dir = tmp_path / "out"
     window.set_quality_level("compact")

@@ -14,6 +14,7 @@ MIN_IMAGE_QUALITY = 75  # below this, compression artefacts become clearly visib
 MAX_IMAGE_QUALITY = 100
 MIN_DPI = 150  # below this, text in PDF page images gets blurry
 MAX_DPI = 600
+OCR_DPI = 300  # pages are read (not saved) at this sharpness; less makes small print unreadable
 
 
 @dataclass(frozen=True)

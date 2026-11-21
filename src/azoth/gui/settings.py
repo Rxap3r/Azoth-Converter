@@ -108,6 +108,22 @@ class Preferences:
     def keep_metadata(self) -> bool:
         return self._get("keep_metadata", False, bool)
 
+    @property
+    def ocr_language(self) -> str | None:
+        return self._get("ocr_language", "") or None
+
+    @property
+    def ocr_searchable(self) -> bool:
+        """Images → PDF: also recognise the text (off by default: it takes longer)."""
+        return self._get("ocr_searchable", False, bool)
+
+    def save_ocr(self, *, language: str | None = None, searchable: bool | None = None) -> None:
+        if language is not None:
+            self.store.setValue("ocr_language", language)
+        if searchable is not None:
+            self.store.setValue("ocr_searchable", searchable)
+        self.store.sync()
+
     def save(
         self,
         *,

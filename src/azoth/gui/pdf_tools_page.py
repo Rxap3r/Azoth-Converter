@@ -1,5 +1,5 @@
-"""The "PDF tools" page: Merge, Split, Edit pages (rotate, delete, reorder), Compress and
-Password.
+"""The "PDF tools" page: Merge, Split, Edit pages (rotate, delete, reorder), Compress,
+Password and Make searchable (text recognition).
 
 The work itself is in ``azoth.pdf_tools`` (lossless, no Qt). This page only collects the
 choices, runs the job in a background thread and shows the result.
@@ -39,10 +39,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import formats, pdf_tools, quality
+from .. import formats, ocr, pdf_tools, quality
 from ..converters import ConversionError
 from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
+from .options_panel import LanguageBox
 from .output_folder import OutputFolderRow
 from .settings import forget_file_dialog_history
 from .theme import Colors, repolish
@@ -54,6 +55,7 @@ TOOLS = [
     ("edit", "Edit pages"),
     ("compress", "Compress"),
     ("password", "Password"),
+    ("ocr", "Make searchable"),
 ]
 THUMB_WIDTH = 110
 ROLE_PATH = Qt.ItemDataRole.UserRole
@@ -83,6 +85,7 @@ class Task(QObject):
     done = Signal(object)  # list[Path]
     failed = Signal(str)
     nothing = Signal(str)  # nothing to do (e.g. the PDF can't get smaller)
+    progress = Signal(str)  # a status text while the job runs
 
     def start(self, job: Callable[[], list[Path]]) -> None:
         def run() -> None:
@@ -780,6 +783,47 @@ class PasswordTool(_SinglePdfTool):
         return f"✓ Saved {name}. It now needs the password to open."
 
 
+class SearchableTool(_SinglePdfTool):
+    """Make searchable: recognise the text of scanned pages (OCR)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Reads the text in scanned pages and adds it invisibly, so you can search, "
+            "select and copy it. The pages look exactly the same. Pages that already "
+            "have text are left as they are."
+        )
+        self.report: Callable[[str], None] = lambda text: None
+        self.language = LanguageBox()
+        self.body.addWidget(label("Language of the text", "caption"))
+        self.body.addWidget(self.language, 0, Qt.AlignmentFlag.AlignLeft)
+        self.body.addWidget(self.signed)
+        if not ocr.is_available():
+            self.body.addWidget(label(f"⚠ {OCR_MISSING}", "banner", wrap=True))
+        self.body.addStretch(1)
+
+    def check(self, pdf: Path) -> str | None:
+        if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
+            return "This PDF is password-protected. Remove the password first (Password)."
+        if not ocr.needs_ocr(pdf):
+            return f"{pdf.name} already has selectable text, so there is nothing to recognise."
+        return None
+
+    def action(self) -> str | None:
+        return "Make searchable" if self.source and ocr.is_available() else None
+
+    def job(self, folder: Path | None):
+        src, language, report = self.source, self.language.language(), self.report
+        target = ocr.searchable_path(src, folder)
+
+        def progress(_fraction: float, message: str) -> None:
+            report(f"{message}…")
+
+        return lambda: [ocr.make_searchable(src, target, language, progress=progress)]
+
+
+OCR_MISSING = "Text recognition is missing its language files. Reinstall Azoth Converter to use it."
+
+
 class PdfToolsPage(QWidget):
     def __init__(self) -> None:
         super().__init__()
@@ -795,12 +839,16 @@ class PdfToolsPage(QWidget):
         self.compress = CompressTool()
         self.password = PasswordTool()
         self.password.submit.connect(self.run)
+        self.searchable = SearchableTool()
+        self.searchable.report = self.task.progress.emit
+        self.task.progress.connect(lambda text: self.result.show_state(WORKING, text))
         self.tools = {
             "merge": self.merge,
             "split": self.split,
             "edit": self.edit,
             "compress": self.compress,
             "password": self.password,
+            "ocr": self.searchable,
         }
         self.stack = QStackedWidget()
         for tool in self.tools.values():
@@ -839,8 +887,8 @@ class PdfToolsPage(QWidget):
         titles.addWidget(label("PDF tools", "h1"))
         titles.addWidget(
             label(
-                "Merge, split, edit, compress and lock PDFs. Only Compress changes pictures; "
-                "everything else copies pages as they are.",
+                "Merge, split, edit, compress, lock and make PDFs searchable. Only Compress "
+                "changes pictures; everything else copies pages as they are.",
                 "muted",
                 wrap=True,
             )

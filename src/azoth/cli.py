@@ -14,6 +14,8 @@ Examples::
     azoth pdf edit scan.pdf --delete 2 --rotate 1=90
     azoth pdf compress big.pdf --level strong
     azoth pdf password add contract.pdf
+    azoth pdf ocr scan.pdf --language deu
+    azoth convert photo.jpg --to docx --language fra
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from pathlib import Path
 from . import __version__, formats, quality
 from .converters import ConversionError
 from .engine import Engine, unique_path
+from .ocr import LANGUAGES
 
 
 def _progress_printer(name: str):
@@ -48,6 +51,8 @@ def cmd_convert(args: argparse.Namespace) -> int:
         "quality": args.quality,
         "dpi": args.dpi,
         "keep_metadata": args.keep_metadata,
+        "ocr": args.ocr,
+        "ocr_language": args.language,
     }
     failures = 0
     for file in args.files:
@@ -216,6 +221,26 @@ def cmd_pdf_compress(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_pdf_ocr(args: argparse.Namespace) -> int:
+    from . import ocr
+
+    src = Path(args.file)
+    out = Path(args.output) if args.output else ocr.searchable_path(src)
+    try:
+        result = ocr.make_searchable(
+            src,
+            out,
+            args.language or ocr.default_language(),
+            overwrite=args.overwrite,
+            progress=_progress_printer(src.name),
+        )
+    except ConversionError as exc:
+        print(f"\n✗ {exc}", file=sys.stderr)
+        return 1
+    print(f"\n✓ {src.name} → {result}")
+    return 0
+
+
 def cmd_pdf_password(args: argparse.Namespace) -> int:
     import getpass
 
@@ -302,6 +327,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="keep photo EXIF data (removed by default for privacy)",
     )
     p.add_argument(
+        "--ocr",
+        action="store_true",
+        help="images → PDF: recognise the text so the PDF is searchable",
+    )
+    p.add_argument(
+        "--language",
+        choices=list(LANGUAGES),
+        default=None,
+        help="language of the text for text recognition (default: the computer's language)",
+    )
+    p.add_argument(
         "--no-word",
         action="store_true",
         help="use LibreOffice even if Microsoft Word is installed (Word → PDF)",
@@ -369,6 +405,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output", "-o", help="output file (default: 'name (compressed).pdf')")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_compress)
+    p = pdf.add_parser("ocr", help="make a scanned PDF searchable (text recognition)")
+    p.add_argument("file")
+    p.add_argument(
+        "--language",
+        choices=list(LANGUAGES),
+        default=None,
+        help="language of the text for text recognition (default: the computer's language)",
+    )
+    p.add_argument("--output", "-o", help="output file (default: 'name (searchable).pdf')")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_pdf_ocr)
     p = pdf.add_parser(
         "password", help="add or remove a password (asks for it; it is never stored)"
     )

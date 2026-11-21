@@ -18,17 +18,35 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   with a password (AES-256, the strongest encryption in the PDF standard), or save an unlocked
   copy of your own PDF with its password. The password is never saved, the fields are cleared
   right after use, and the app warns about passwords that are easy to guess.
+- **Text recognition (OCR), fully offline**, in English, German, French and Italian:
+  - scanned PDFs → Word or text (before, a scan gave an error);
+  - photos and scans (JPG, PNG, TIFF, HEIC …) → Word or text;
+  - photos → PDF can now make the text searchable (*Make the text searchable* on the Convert page,
+    or `azoth convert --ocr`);
+  - **Make searchable** in PDF tools (or `azoth pdf ocr`): adds the recognised text to a scanned
+    PDF invisibly, so you can search, select and copy it.
+  The language is chosen next to the format tiles and remembered; the first time it follows the
+  computer's language.
 - PDF tools warn when a PDF is digitally signed, because a new copy can't keep the signature valid.
 
 ### Quality
 
 - Compress never shrinks pictures below 150 dpi or saves them below JPG quality 75, and photos
   that don't need shrinking keep their original data byte for byte (no second JPG loss).
+- Text recognition never changes the pages: the text is added as an invisible layer, the
+  pictures stay byte for byte the same, and pages that already have text are left alone. Pages
+  are read at 300 dpi with the most accurate ("best") language models.
 
 ### Privacy and safety
 
 - Removing a password needs the PDF's own password; restrictions set with an owner password
   (no printing or copying) need the owner password. Compress keeps such restrictions.
+
+### Development
+
+- The OCR language files are not in git: `packaging/fetch_tessdata.py` downloads them (pinned
+  version, SHA-256 checked) for development, tests and the build. The build stops if they are
+  missing.
 
 ## [0.2.1] - 2026-11-21
 

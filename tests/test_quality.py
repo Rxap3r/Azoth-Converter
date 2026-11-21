@@ -307,3 +307,31 @@ def test_compress_keeps_small_jpg_photos_byte_for_byte(tmp_path):
         with pymupdf.open(out) as result:
             first = result[0].get_image_info(xrefs=True)[0]
             assert result.extract_image(first["xref"])["image"] == small.getvalue()
+
+
+def test_ocr_reads_pages_sharp_enough():
+    from azoth import quality
+
+    assert quality.OCR_DPI >= 300  # small print becomes unreadable below this
+
+
+def test_searchable_pdf_keeps_jpg_scans_byte_for_byte(tmp_path, ocr_ready):
+    """Text recognition only adds invisible text: scanned JPG pages are never re-saved."""
+    from conftest import make_text_scan
+
+    from azoth import ocr
+
+    scan = make_text_scan(tmp_path / "page.png", ["Searchable but unchanged"])
+    jpg = io.BytesIO()
+    Image.open(scan).convert("RGB").save(jpg, "JPEG", quality=85)
+    src = tmp_path / "scan.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=500, height=300)
+    page.insert_image(page.rect, stream=jpg.getvalue())
+    doc.save(src)
+    doc.close()
+    out = ocr.make_searchable(src, tmp_path / "out.pdf", "eng")
+    with pymupdf.open(out) as result:
+        [image] = result[0].get_images()
+        assert result.extract_image(image[0])["image"] == jpg.getvalue()
+        assert "Searchable but unchanged" in result[0].get_text()

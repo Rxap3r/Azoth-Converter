@@ -7,15 +7,17 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
 from . import icons
 from .file_list import FileList
-from .options_panel import QualitySelector
+from .options_panel import OcrOptions, QualitySelector
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .theme import Colors, repolish
@@ -28,6 +30,8 @@ class ConvertPage(QWidget):
         self.file_list = FileList()
         self.target_picker = TargetPicker()
         self.quality = QualitySelector()
+        self.ocr = OcrOptions()
+        self.ocr.set_mode(None)
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()
 
@@ -92,16 +96,35 @@ class ConvertPage(QWidget):
         self.right = QFrame()
         self.right.setObjectName("RightPanel")
         self.right.setFixedWidth(350)
+        # The choices scroll when the window is too low for all of them, so nothing is
+        # squeezed; the button stays at the bottom.
+        choices = QWidget()
+        column = QVBoxLayout(choices)
+        column.setContentsMargins(22, 24, 22, 0)
+        column.setSpacing(14)
+        column.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)  # scroll, never squeeze
+        column.addWidget(label("Convert to", "h2"))
+        column.addWidget(self.target_picker)
+        column.addWidget(self.notes_label)
+        column.addWidget(self.ocr)
+        column.addWidget(self.quality)
+        column.addWidget(self.output_row)
+        column.addWidget(self.name_row)
+        column.addStretch(1)
+        self.choices_scroll = QScrollArea()
+        self.choices_scroll.setWidgetResizable(True)
+        self.choices_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.choices_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.choices_scroll.setWidget(choices)
         right = QVBoxLayout(self.right)
-        right.setContentsMargins(22, 24, 22, 20)
+        right.setContentsMargins(0, 0, 0, 20)
         right.setSpacing(14)
-        right.addWidget(label("Convert to", "h2"))
-        right.addWidget(self.target_picker)
-        right.addWidget(self.notes_label)
-        right.addWidget(self.quality)
-        right.addWidget(self.output_row)
-        right.addWidget(self.name_row)
-        right.addStretch(1)
+        right.addWidget(self.choices_scroll, 1)
+        bottom = QVBoxLayout()
+        bottom.setContentsMargins(22, 0, 22, 0)
+        bottom.setSpacing(14)
+        right.addLayout(bottom)
+        right = bottom
         right.addWidget(self.status_label)
         right.addWidget(self.progress)
         right.addWidget(self.open_btn, 0, Qt.AlignmentFlag.AlignLeft)

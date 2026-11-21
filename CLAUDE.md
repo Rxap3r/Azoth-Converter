@@ -161,6 +161,9 @@ src/azoth/
   converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
   cli.py              `azoth` command line
   pdf_tools.py        merge, split, edit pages, compress, passwords (used by the app and `azoth pdf`)
+  ocr.py              text recognition (Tesseract inside PyMuPDF): searchable PDF, page texts;
+                      converters/ocr.py = images → TXT/DOCX; language files in
+                      resources/tessdata (not in git: `python packaging/fetch_tessdata.py`)
   metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py
@@ -192,6 +195,10 @@ pip install --require-hashes -r requirements-dev.lock
 
 ```bash
 pip install --no-deps -e .
+```
+
+```bash
+python packaging/fetch_tessdata.py
 ```
 
 Library versions are locked (with hashes) in `requirements.lock` (app) and

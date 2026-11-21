@@ -93,6 +93,18 @@ def choices(engine: Engine, file_formats: FileFormats) -> Choices:
     )
 
 
+def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
+    """Whether the "Text recognition" choices apply: "always" when photos (or scans in
+    PDFs) become text or Word, "optional" when photos become a PDF, else None."""
+    sources = source_formats(file_formats)
+    images = any(formats.FORMATS[s].category == formats.IMAGE for s in sources)
+    if target in ("docx", "txt") and (images or "pdf" in sources):
+        return "always"
+    if target == "pdf" and images:
+        return "optional"
+    return None
+
+
 def notes(engine: Engine, file_formats: FileFormats, target: str | None) -> list[str]:
     """Quality notes for converting the files to ``target`` (e.g. "GIF has 256 colours")."""
     if target == CLEAN_TARGET:

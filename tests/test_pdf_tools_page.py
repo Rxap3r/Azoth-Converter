@@ -266,3 +266,31 @@ def test_signed_pdfs_get_a_warning(window, tmp_path):
         assert not page.tools[key].signed.isHidden()
         page.add_files([src])
         assert page.tools[key].signed.isHidden()
+
+
+def test_make_searchable_from_the_window(window, qtbot, tmp_path, ocr_ready):
+    from conftest import make_text_scan
+
+    picture = make_text_scan(tmp_path / "page.png", ["Scanned contract text"])
+    scan = tmp_path / "scan.pdf"
+    doc = pymupdf.open()
+    doc.new_page(width=500, height=300).insert_image(
+        pymupdf.Rect(0, 0, 500, 300), filename=str(picture)
+    )
+    doc.save(scan)
+    doc.close()
+    page = window.pdf_page
+    page.show_tool("ocr")
+    assert not page.action_btn.isEnabled()
+    tool = page.searchable
+    tool.language.set_language("eng")
+    page.add_files([scan])
+    assert page.action_btn.text() == "Make searchable"
+    text = run(window, qtbot)
+    out = tmp_path / "scan (searchable).pdf"
+    assert text == f"✓ Saved {out.name}"
+    assert "Scanned contract text" in texts(out)[0]
+
+    page.add_files([out])  # already has text: explained, nothing to do
+    assert "already has selectable text" in tool.file_label.text()
+    assert not page.action_btn.isEnabled()
