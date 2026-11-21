@@ -3,9 +3,11 @@
 Uses the Tesseract engine built into PyMuPDF with the language files in
 ``resources/tessdata`` (fetched by ``packaging/fetch_tessdata.py`` and shipped with the app).
 
-A searchable PDF keeps every page exactly as it is: the recognised text is laid on top as
-an invisible layer (like the text layer of a scanner's "searchable PDF"), so pictures are
-never re-drawn or re-compressed. Pages that already have text are left alone.
+A searchable PDF keeps every picture exactly as it is: the recognised text is laid on top
+as an invisible layer (like the text layer of a scanner's "searchable PDF"), so pictures are
+never re-drawn or re-compressed. Pages that are sideways or upside down are turned the
+right way up (only the page's rotation setting changes). Pages that already have text are
+left alone.
 """
 
 from __future__ import annotations
@@ -132,12 +134,16 @@ def reading_score(text: str) -> float:
 
 
 @contextmanager
-def _read_page(page: pymupdf.Page, language: str) -> Iterator[pymupdf.Document]:
+def _read_page(
+    page: pymupdf.Page, language: str, keep_turn: bool = False
+) -> Iterator[pymupdf.Document]:
     """The page's text layer (see ``_text_layer``). A page that reads badly is tried the
     other three ways up, and read that way if it's clearly better: inside the ``with``
-    block the page is turned so the layer fits it; afterwards it is turned back, so the
-    page itself never changes."""
+    block the page is turned so the layer fits it. Afterwards it is turned back, unless
+    ``keep_turn``: then the page stays the right way up (only its rotation setting
+    changes; the picture itself is not touched)."""
     original = page.rotation
+    keep = False
     layer = _text_layer(page, language, quality.OCR_DPI)
     try:
         text = layer[0].get_text()
@@ -155,8 +161,10 @@ def _read_page(page: pymupdf.Page, language: str) -> Iterator[pymupdf.Document]:
                 layer.close()
                 layer = _text_layer(page, language, quality.OCR_DPI)
         yield layer
+        keep = keep_turn
     finally:
-        page.set_rotation(original)
+        if not keep:
+            page.set_rotation(original)
         layer.close()
 
 
@@ -167,6 +175,7 @@ def _run_pages(
     progress: Progress | None,
     cancel: threading.Event | None,
     only_scans: bool,
+    keep_turn: bool = False,
 ) -> int:
     check_language(language)
     report = progress or (lambda f, m: None)
@@ -178,7 +187,7 @@ def _run_pages(
         if only_scans and not page_needs_ocr(page):
             continue
         report(i / max(total, 1), f"Reading text on page {i + 1}/{total}")
-        with _read_page(page, language) as layer:
+        with _read_page(page, language, keep_turn) as layer:
             each(page, layer)
         done += 1
     return done
@@ -190,15 +199,19 @@ def add_text_layer(
     *,
     progress: Progress | None = None,
     cancel: threading.Event | None = None,
+    turn_pages: bool = True,
 ) -> int:
-    """Add invisible recognised text to every scanned page of ``doc`` (in memory).
+    """Add invisible recognised text to every scanned page of ``doc`` (in memory). With
+    ``turn_pages``, sideways or upside-down scanned pages are turned the right way up.
     Returns how many pages were recognised."""
 
     def overlay(page: pymupdf.Page, layer: pymupdf.Document) -> None:
         # show_pdf_page fits the layer to the visible page and takes care of rotation.
         page.show_pdf_page(page.rect, layer, 0, overlay=True)
 
-    return _run_pages(doc, language, overlay, progress, cancel, only_scans=True)
+    return _run_pages(
+        doc, language, overlay, progress, cancel, only_scans=True, keep_turn=turn_pages
+    )
 
 
 def page_texts(
@@ -247,6 +260,7 @@ def make_searchable(
     overwrite: bool = False,
     progress: Progress | None = None,
     cancel: threading.Event | None = None,
+    turn_pages: bool = True,
 ) -> Path:
     """Save a copy of the PDF ``src`` whose scanned pages have selectable, searchable text.
     The pages themselves stay exactly as they are."""
@@ -259,7 +273,7 @@ def make_searchable(
             raise ConversionError(
                 "This PDF already has selectable text, so there is nothing to recognise."
             )
-        add_text_layer(doc, language, progress=progress, cancel=cancel)
+        add_text_layer(doc, language, progress=progress, cancel=cancel, turn_pages=turn_pages)
         if progress:
             progress(0.97, "Saving")
         return _save(

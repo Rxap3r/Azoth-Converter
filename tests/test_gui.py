@@ -402,3 +402,11 @@ def test_notification_only_in_the_background(window, monkeypatch):
     from azoth.gui.settings import Preferences
 
     assert Preferences().notify is False
+
+
+def test_turn_pages_setting(window):
+    from azoth.gui.settings import Preferences
+
+    assert window.settings_page.turn_check.isChecked()  # on by default
+    window.settings_page.turn_check.setChecked(False)
+    assert Preferences().ocr_turn_pages is False

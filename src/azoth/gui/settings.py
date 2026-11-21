@@ -118,6 +118,15 @@ class Preferences:
         self.store.sync()
 
     @property
+    def ocr_turn_pages(self) -> bool:
+        """Text recognition turns sideways or upside-down pages upright (on by default)."""
+        return self._get("ocr_turn_pages", True, bool)
+
+    def save_ocr_turn_pages(self, on: bool) -> None:
+        self.store.setValue("ocr_turn_pages", on)
+        self.store.sync()
+
+    @property
     def ocr_language(self) -> str | None:
         return self._get("ocr_language", "") or None
 

@@ -113,6 +113,7 @@ class MainWindow(QMainWindow):
         self.settings_page.theme_changed.connect(self.set_theme)
         self.settings_page.use_word_changed.connect(self._set_use_word)
         self.settings_page.notify_check.toggled.connect(self._set_notify)
+        self.settings_page.turn_check.toggled.connect(self.prefs.save_ocr_turn_pages)
         self.pdf_page.task.done.connect(
             lambda outputs: (
                 self.notifier.notify(f"Done! {Path(outputs[0]).name} is ready.")
@@ -360,6 +361,7 @@ class MainWindow(QMainWindow):
             "level": self.quality.level(),
             "keep_metadata": self.settings_page.metadata_check.isChecked(),
             **self.ocr_options.options(),
+            "ocr_turn_pages": self.settings_page.turn_check.isChecked(),
         }
         self._thread = QThread(self)
         self._worker = ConversionWorker(
@@ -466,6 +468,7 @@ class MainWindow(QMainWindow):
 
     def _load_preferences(self) -> None:
         self.settings_page.notify_check.setChecked(self.prefs.notify)
+        self.settings_page.turn_check.setChecked(self.prefs.ocr_turn_pages)
         self.notifier.enabled = self.prefs.notify
         self.quality.set_level(self.prefs.level)
         self.settings_page.metadata_check.setChecked(self.prefs.keep_metadata)

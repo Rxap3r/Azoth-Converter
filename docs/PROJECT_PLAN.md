@@ -138,7 +138,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Add or remove a password (only with the user's own password). *Done (Nov 2026): AES-256, password never stored, weak-password warning; `azoth pdf password add/remove`.*
   - [ ] Later: Merge, Split and Edit pages drop an owner's "no printing / no copying" restrictions in the copy; keep them like Compress does.
 - [x] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs). *Done (Nov 2026, owner's choices): on the Convert page (scans/photos → Word, TXT; photos → searchable PDF as an option) and as PDF tools → Make searchable / `azoth pdf ocr`; "best" language models (37 MB, fetched by `packaging/fetch_tessdata.py`); the text is an invisible layer, pages stay byte for byte the same.*
-  - [x] Turn sideways or upside-down scans automatically before reading. *Done (Nov 2026): only when a page reads badly are the other three directions tried (quick, 100 dpi); the page itself keeps its rotation.*
+  - [x] Turn sideways or upside-down scans automatically before reading. *Done (Nov 2026): only when a page reads badly are the other three directions tried (quick, 100 dpi); such pages are also turned upright (only the rotation setting; owner's wish: a Settings option, on by default).*
   - [ ] Later: Word from scans with layout and pictures (now: the text as plain paragraphs)
   - [ ] Later: several languages in one document (e.g. German + English), more languages
   - [x] A Cancel button and page progress bar for Make searchable on long PDFs

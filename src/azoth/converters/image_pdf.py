@@ -80,6 +80,7 @@ class ImageToPdfConverter(Converter):
                     ocr_converter.language(ctx),
                     progress=lambda f, m: ctx.progress(0.5 + f * 0.45, m),
                     cancel=ctx.cancel_event,
+                    turn_pages=bool(ctx.option("ocr_turn_pages", True)),
                 )
             doc.save(dst, garbage=3, deflate=True)
         except ConversionError:

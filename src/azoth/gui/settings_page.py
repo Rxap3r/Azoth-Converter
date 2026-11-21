@@ -94,10 +94,18 @@ class SettingsPage(QWidget):
             "Show a Windows notification when work finishes while the app is in the background"
         )
         self.notify_check.setChecked(True)
+        self.turn_check = QCheckBox(
+            "Text recognition: turn sideways or upside-down pages the right way up"
+        )
+        self.turn_check.setToolTip(
+            "Only the page's direction changes; the picture itself stays exactly the same."
+        )
+        self.turn_check.setChecked(True)
         conversion = [
             label("Converting", "h2"),
             self.metadata_check,
             self.word_check,
+            self.turn_check,
             self.notify_check,
         ]
 

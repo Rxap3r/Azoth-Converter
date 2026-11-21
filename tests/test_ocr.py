@@ -273,8 +273,8 @@ def test_searchable_pdf_to_word_uses_its_hidden_text(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("rotation", [90, 180, 270])
 def test_sideways_or_upside_down_scan_is_read(tmp_path, rotation):
-    """A page shown the wrong way up is read the right way up. The page itself stays as it
-    is (same picture, same rotation); the hidden text sits on the words."""
+    """A page shown the wrong way up is read and turned the right way up. The picture
+    stays byte for byte the same; the hidden text sits on the words."""
     picture = make_text_scan(tmp_path / "p.png", LETTER)
     doc = pymupdf.open()
     page = doc.new_page(width=500, height=300)
@@ -284,7 +284,9 @@ def test_sideways_or_upside_down_scan_is_read(tmp_path, rotation):
     doc.close()
     out = ocr.make_searchable(tmp_path / "turned.pdf", tmp_path / "out.pdf", "eng")
     with pymupdf.open(out) as result:
-        assert result[0].rotation == rotation
+        assert result[0].rotation == 0  # upright now
+        with pymupdf.open(tmp_path / "turned.pdf") as original:
+            assert pictures(result) == pictures(original)
         text = result[0].get_text()
         for line in LETTER:
             assert line in text
@@ -310,3 +312,50 @@ def test_reading_score():
     assert ocr.reading_score("Thank you for your order.") > 0.8
     assert ocr.reading_score("By) e) — QD ® Q > < o. Q® 2 ja") < 0.3
     assert ocr.reading_score("") == 0
+
+
+def test_sideways_photo_to_searchable_pdf_is_turned_upright(tmp_path):
+    from PIL import Image
+
+    upright = make_text_scan(tmp_path / "upright.png", LETTER)
+    sideways = tmp_path / "sideways.png"
+    Image.open(upright).rotate(90, expand=True).save(sideways)  # a screenshot turned left
+    [out] = Engine().convert(sideways, "pdf", tmp_path / "o", options={"ocr": True}).outputs
+    with pymupdf.open(out) as doc:
+        page = doc[0]
+        assert page.rotation == 90  # shown turned back to the right
+        assert page.rect.width > page.rect.height  # landscape, like the upright text
+        assert "Invoice number 4711" in page.get_text()
+        word = next(w for w in page.get_text("words") if w[4] == "Invoice")
+        assert word[0] < 100 and word[1] < 150  # top left of what you see
+
+
+def test_turning_pages_can_be_switched_off(tmp_path):
+    picture = make_text_scan(tmp_path / "p.png", LETTER)
+    doc = pymupdf.open()
+    page = doc.new_page(width=500, height=300)
+    page.insert_image(page.rect, filename=str(picture))
+    page.set_rotation(180)  # upside down
+    doc.save(tmp_path / "turned.pdf")
+    doc.close()
+    out = ocr.make_searchable(
+        tmp_path / "turned.pdf", tmp_path / "out.pdf", "eng", turn_pages=False
+    )
+    with pymupdf.open(out) as result:
+        assert result[0].rotation == 180  # left as it was
+        assert "Invoice number 4711" in result[0].get_text()  # but read correctly
+    assert (
+        cli(
+            [
+                "pdf",
+                "ocr",
+                str(tmp_path / "turned.pdf"),
+                "--keep-rotation",
+                "-o",
+                str(tmp_path / "c.pdf"),
+            ]
+        )
+        == 0
+    )
+    with pymupdf.open(tmp_path / "c.pdf") as result:
+        assert result[0].rotation == 180

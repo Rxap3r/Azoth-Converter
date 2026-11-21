@@ -53,6 +53,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
         "keep_metadata": args.keep_metadata,
         "ocr": args.ocr,
         "ocr_language": args.language,
+        "ocr_turn_pages": not args.keep_rotation,
     }
     failures = 0
     for file in args.files:
@@ -233,6 +234,7 @@ def cmd_pdf_ocr(args: argparse.Namespace) -> int:
             args.language or ocr.default_language(),
             overwrite=args.overwrite,
             progress=_progress_printer(src.name),
+            turn_pages=not args.keep_rotation,
         )
     except ConversionError as exc:
         print(f"\n✗ {exc}", file=sys.stderr)
@@ -338,6 +340,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="language of the text for text recognition (default: the computer's language)",
     )
     p.add_argument(
+        "--keep-rotation",
+        action="store_true",
+        help="with --ocr: don't turn sideways or upside-down pictures the right way up",
+    )
+    p.add_argument(
         "--no-word",
         action="store_true",
         help="use LibreOffice even if Microsoft Word is installed (Word → PDF)",
@@ -412,6 +419,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=list(LANGUAGES),
         default=None,
         help="language of the text for text recognition (default: the computer's language)",
+    )
+    p.add_argument(
+        "--keep-rotation",
+        action="store_true",
+        help="don't turn sideways or upside-down pages the right way up",
     )
     p.add_argument("--output", "-o", help="output file (default: 'name (searchable).pdf')")
     p.add_argument("--overwrite", action="store_true")

@@ -27,8 +27,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
     PDF invisibly, so you can search, select and copy it.
   - a searchable scan (picture with invisible text) → Word now gives the text, not one big
     picture.
-  - pages that are sideways or upside down are recognised the right way up; the page itself
-    stays as it is. Normal pages are not slowed down by this check;
+  - pages that are sideways or upside down are read and **turned the right way up** (only the
+    page's direction changes, the picture stays exactly the same). Can be turned off in
+    Settings, or with `--keep-rotation`. Normal pages are not slowed down by this check;
   - Make searchable shows a progress bar and has a **Cancel** button (nothing is saved when
     cancelled).
   The language is chosen next to the format tiles and remembered; the first time it follows the

@@ -46,7 +46,7 @@ from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
 from .options_panel import LanguageBox
 from .output_folder import FileNameRow, OutputFolderRow
-from .settings import forget_file_dialog_history
+from .settings import Preferences, forget_file_dialog_history
 from .theme import Colors, repolish
 from .widgets import label
 
@@ -841,12 +841,15 @@ class SearchableTool(_SinglePdfTool):
             self.cancel,
         )
         target = (folder or src.parent) / f"{name}.pdf"
+        turn = Preferences().ocr_turn_pages  # Settings: turn pages the right way up
 
         def progress(fraction: float, message: str) -> None:
             report(fraction, f"{message}…")
 
         return lambda: [
-            ocr.make_searchable(src, target, language, progress=progress, cancel=cancel)
+            ocr.make_searchable(
+                src, target, language, progress=progress, cancel=cancel, turn_pages=turn
+            )
         ]
 
 
