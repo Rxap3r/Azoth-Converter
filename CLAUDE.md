@@ -6,8 +6,8 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.1.0** (18 Nov 2026) on GitHub Releases (installer + portable
-  ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
+- **Released:** Azoth Converter **0.2.0** (19 Nov 2026; 0.1.0 on 18 Nov) on GitHub Releases
+  (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
   (Linux), Tests (Windows) and Windows app required). `dev` accepts direct pushes. Dependabot
@@ -20,10 +20,11 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
-- **Version 0.2.0** prepared (19 Nov 2026): new look, PDF tools, remove photo metadata. The owner
-  publishes it with the Release workflow after the pull request is merged. Later work goes
-  under `CHANGELOG.md` → Unreleased. Not yet tried on a real Windows PC: the new look, and
-  metadata removal with real phone photos.
+- **Version 0.2.1** prepared (21 Nov 2026): error log, Uninstall button, clean updates,
+  open-folder fix. The owner publishes it with the Release workflow after the pull request is
+  merged. Later work goes under `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
+  0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
+  should show it next time. Not yet tried with real phone photos: metadata removal.
 - **Next planned work (owner decides the order):**
   - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
     smiley from afar), a cleaner "Supported formats" section;
@@ -71,6 +72,11 @@ Rules:
   If the session started on another branch that already has commits not on `dev`, bring them over (`git checkout dev && git merge --no-edit <that-branch>`) instead of losing them.
 - **Never commit or push to `main` directly.** `main` only changes through a **pull request from
   `dev` into `main` that the owner reviews and merges**. Never merge it yourself.
+- **Before opening a pull request into `main`** (owner's wish, Nov 2026): check whether the
+  changes since the last release are worth a release (new features or fixes users notice). If
+  yes, first ask the owner whether to release; if they agree, prepare the release on `dev`
+  (see "Releasing") and only then open one pull request, so `main` doesn't need a second one
+  just for the version and notes.
 - **Only open that pull request when the owner explicitly tells you to** (e.g. "pull it"). When
   work seems ready, you may ask whether they want a pull request, but wait for the go-ahead;
   a request for a release or a build is not a go-ahead for a pull request on its own.
@@ -80,6 +86,17 @@ Rules:
   and test the ~190 MB installer. Doc-only pushes (`docs/**`, `*.md`) start no run, but pull
   requests into `main` always get the full check, because the three checks (Tests (Linux),
   Tests (Windows), Windows app) are required before merging. Don't change this without asking.
+
+### Time limits (watch these as the project grows)
+
+Every test and build job has a time limit (`timeout-minutes` in `build-and-test.yml` and
+`release.yml`): **30 min** for Tests (Linux) and Tests (Windows), **45 min** for the Windows
+app / installer build. A job that runs longer is stopped and fails, so a stuck test can't run
+for 6 hours. Normal times (Nov 2026): Linux ~1–2 min, Windows tests ~3–5 min, installer
+~4–15 min; one Linux run took 20 min because installing LibreOffice was slow. **When adding
+many or slow tests, check the run times in the Actions tab; if a job regularly needs more
+than about half its limit, raise the limit (ask the owner, it's a workflow change)** rather
+than letting good runs fail.
 
 ## Releasing (only when the owner asks)
 
@@ -152,6 +169,7 @@ src/azoth/
                       targets.py (which targets are offered, no Qt), theme.py (light/dark
                       colours + stylesheet; widgets only set a "role" property), icons.py
                       (line icons drawn from SVG), About dialog, settings.py (QSettings)
+                      error_log.py (local error log + crash dump, Settings → Error log…)
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
 packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),

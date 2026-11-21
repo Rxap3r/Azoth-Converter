@@ -1,14 +1,19 @@
-"""The Settings page: look (light / dark / follow Windows), conversion settings, About."""
+"""The Settings page: look, conversion settings, About, and Uninstall (installed app only)."""
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QUrl, Signal
+import sys
+from pathlib import Path
+
+from PySide6.QtCore import QProcess, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QCheckBox,
     QFrame,
     QHBoxLayout,
+    QMessageBox,
     QPushButton,
     QRadioButton,
     QVBoxLayout,
@@ -16,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__
-from . import theme
+from . import error_log, theme
 from .widgets import label
 
 METADATA_DETAILS = (
@@ -29,6 +34,16 @@ METADATA_DETAILS = (
     "Kept: the picture itself, its colours (colour profile) and the right way up.\n"
     "When it's on, the camera details, date and GPS location are copied over."
 )
+
+
+def uninstaller() -> Path | None:
+    """The installer's uninstall program next to the app, or None (portable or run from source)."""
+    if not getattr(sys, "frozen", False):
+        return None
+    found = sorted(Path(sys.executable).parent.glob("unins[0-9][0-9][0-9].exe"))
+    return found[-1] if found else None
+
+
 RELEASES_URL = "https://github.com/Rxap3r/Azoth-Converter/releases"
 
 
@@ -86,11 +101,16 @@ class SettingsPage(QWidget):
         self.updates_btn = QPushButton("Check for updates…")
         self.updates_btn.setToolTip(RELEASES_URL)
         self.updates_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
+        self.log_btn = QPushButton("Error log…")
+        self.log_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(error_log.log_path())))
+        )
         buttons = QWidget()
         row = QHBoxLayout(buttons)
         row.setContentsMargins(0, 0, 0, 0)
         row.addWidget(self.updates_btn)
         row.addWidget(self.about_btn)
+        row.addWidget(self.log_btn)
         row.addStretch(1)
         about = [
             label("About", "h2"),
@@ -108,17 +128,70 @@ class SettingsPage(QWidget):
             ),
         ]
 
+        self.uninstall_btn = QPushButton("Uninstall Azoth Converter…")
+        self.uninstall_btn.clicked.connect(self.uninstall)
+        uninstall = [
+            label("Uninstall", "h2"),
+            label(
+                "Removes the app and everything it saved on this computer (settings, error log). "
+                "Your own files and converted files are not touched.",
+                "small",
+                wrap=True,
+            ),
+            self.uninstall_btn,
+        ]
+        groups = [appearance, conversion, about]
+        if uninstaller() is not None:  # only in the installed app, not the portable one
+            groups.append(uninstall)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 20)
         layout.setSpacing(14)
         layout.addWidget(label("Settings", "h1"))
-        for group in (appearance, conversion, about):
+        for group in groups:
             card = _card(*group)
             card.setMaximumWidth(640)
             layout.addWidget(card, 0, Qt.AlignmentFlag.AlignLeft)
             card.setMinimumWidth(520)
         self.about_btn.setMaximumWidth(260)
+        self.uninstall_btn.setMaximumWidth(260)
         layout.addStretch(1)
+
+    def uninstall(self) -> None:
+        program = uninstaller()
+        if program is None:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Uninstall Azoth Converter",
+            "Remove Azoth Converter and its settings from this computer?\n\n"
+            "Your own files and converted files are not touched. The app closes now.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        if QProcess.startDetached(str(program), []):
+            QApplication.quit()  # the uninstaller can't remove files of a running app
+        else:
+            QMessageBox.warning(
+                self,
+                "Uninstall Azoth Converter",
+                "The uninstaller could not be started. Use Windows Settings → Apps instead.",
+            )
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self.update_log_button()
+
+    def update_log_button(self) -> None:
+        exists = error_log.log_path().is_file()
+        self.log_btn.setEnabled(exists)
+        self.log_btn.setToolTip(
+            "Details of errors, saved on this computer only. Attach it when reporting a problem."
+            if exists
+            else "No errors so far."
+        )
 
     def theme_choice(self) -> str:
         return next(k for k, b in self.theme_buttons.items() if b.isChecked())

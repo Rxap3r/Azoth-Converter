@@ -297,3 +297,75 @@ def test_metadata_setting_explains_what_is_removed(window):
     assert not window.settings_page.metadata_check.isChecked()  # removed by default
     for word in ("GPS location", "date and time", "serial number", "preview", "Kept:"):
         assert word in text
+
+
+def test_open_folder_only_for_one_folder_and_result_clears(window, qtbot, sample_png, tmp_path):
+    import shutil
+
+    def convert():
+        assert window.target_picker.select("webp")
+        window.start_conversion()
+        qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    one = shutil.copy(sample_png, a / "one.png")
+    two = shutil.copy(sample_png, b / "two.png")
+
+    window.add_files([one])
+    convert()
+    assert window.open_btn.isVisibleTo(window) and window.last_output == a
+
+    window.add_files([two])  # list changed: the old result is cleared
+    assert not window.open_btn.isVisibleTo(window)
+    assert not window.progress.isVisibleTo(window) and window.status_label.text() == ""
+
+    convert()  # results in two folders: each file has its own "Show in folder" instead
+    assert window.status_label.text() == "Finished"
+    assert not window.open_btn.isVisibleTo(window) and window.last_output is None
+
+    window.file_list.remove_rows(range(window.file_list.count()))  # empty list
+    assert window.status_label.text() == "" and not window.progress.isVisibleTo(window)
+
+
+def test_uninstall_button_only_in_installed_app(qtbot, monkeypatch, tmp_path):
+    import sys
+
+    from azoth.gui import settings_page
+
+    assert settings_page.uninstaller() is None  # run from source: nothing to uninstall
+    exe = tmp_path / "AzothConverter.exe"
+    exe.write_bytes(b"")
+    (tmp_path / "unins000.exe").write_bytes(b"")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(exe))
+    assert settings_page.uninstaller() == tmp_path / "unins000.exe"
+
+    window = MainWindow()
+    qtbot.addWidget(window)
+    page = window.settings_page
+    assert page.uninstall_btn.isVisibleTo(page)
+
+    started, quit_called = [], []
+    monkeypatch.setattr(
+        settings_page.QProcess,
+        "startDetached",
+        lambda program, args: started.append(program) or True,
+    )
+    monkeypatch.setattr(settings_page.QApplication, "quit", lambda: quit_called.append(True))
+    no, yes = (
+        settings_page.QMessageBox.StandardButton.No,
+        settings_page.QMessageBox.StandardButton.Yes,
+    )
+    monkeypatch.setattr(settings_page.QMessageBox, "question", lambda *a: no)
+    page.uninstall_btn.click()
+    assert started == [] and quit_called == []  # asked first; "No" does nothing
+    monkeypatch.setattr(settings_page.QMessageBox, "question", lambda *a: yes)
+    page.uninstall_btn.click()
+    assert started == [str(tmp_path / "unins000.exe")] and quit_called == [True]
+
+
+def test_no_uninstall_button_when_run_from_source(window):
+    assert not window.settings_page.uninstall_btn.isVisibleTo(window.settings_page)

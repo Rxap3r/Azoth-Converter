@@ -10,6 +10,7 @@ def main() -> int:
     from PySide6.QtWidgets import QApplication
 
     from ..engine import cleanup_stale_temp_folders
+    from . import error_log
     from .main_window import MainWindow
     from .resources import icon_path
     from .settings import APPLICATION, ORGANIZATION, configure_storage
@@ -21,6 +22,7 @@ def main() -> int:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("AzothConverter.App")
 
     configure_storage()  # everything in one folder, removed by the uninstaller
+    error_log.install()  # problems are written to a file there, never sent anywhere
     cleanup_stale_temp_folders()  # leftovers from a crash or forced shutdown
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName(APPLICATION)

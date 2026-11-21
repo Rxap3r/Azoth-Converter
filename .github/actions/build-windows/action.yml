@@ -52,10 +52,19 @@ runs:
         Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
         & "$dir\azoth.exe" --version
         if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
-        # Simulate everything the app can leave behind while being used:
+        # Update over an existing installation: old libraries go, settings stay.
         $data = "$env:APPDATA\Azoth Converter"
         New-Item -ItemType Directory -Force "$data" | Out-Null
-        "x" | Out-File "$data\settings.ini"
+        "keep me" | Out-File "$data\settings.ini"
+        "x" | Out-File "$dir\_internal\left-from-old-version.dll"
+        Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
+        if (Test-Path "$dir\_internal\left-from-old-version.dll") { throw "update left an old library behind" }
+        if ((Get-Content "$data\settings.ini") -ne "keep me") { throw "update changed the settings" }
+        & "$dir\azoth.exe" --version
+        if ($LASTEXITCODE -ne 0) { throw "updated program does not start" }
+        "Update: old libraries removed, settings kept"
+        # Simulate everything the app can leave behind while being used:
+        "x" | Out-File "$data\error-log.txt"
         "x" | Out-File "$data\QtProject.ini"
         New-Item -ItemType Directory -Force "$env:TEMP\azoth-crashed-job" | Out-Null
         "x" | Out-File "$env:TEMP\azoth-crashed-job\leftover.tmp"

@@ -7,6 +7,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-21
+
+### Added
+- **Error log:** if something goes wrong, the details are saved in a file on your computer
+  (Settings → **Error log…**) and a short message is shown instead of the app just closing.
+  Hard crashes inside a library are written there too. The log is never sent anywhere and is
+  removed by the uninstaller.
+- **Uninstall…** at the bottom of Settings (installed app only): asks first, then closes the app
+  and starts the normal uninstaller. Your own and converted files are not touched.
+
+### Changed
+- **Open output folder** (under the Convert button) only appears when all results are in one
+  folder. When they are in different folders, use **Show in folder** on each file.
+- Adding or removing files clears "Finished" and the progress bar of the last conversion.
+- Installing a new version over an old one first removes the old program libraries, so no
+  outdated files are left behind. Your settings are kept. The automatic build tests this.
+
+### Development
+- Test and build jobs have a time limit (30 min for tests, 45 min for the installer), so a
+  stuck run stops instead of running for hours.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added
@@ -125,6 +146,7 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Rxap3r/Azoth-Converter/releases/tag/v0.1.0
