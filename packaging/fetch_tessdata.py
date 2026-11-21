@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import hashlib
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -34,6 +36,22 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+ATTEMPTS = 5  # the download server sometimes answers "busy" (503) for a moment
+
+
+def _download(url: str, path: Path) -> None:
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            urllib.request.urlretrieve(url, path)  # noqa: S310
+            return
+        except (urllib.error.URLError, OSError) as exc:
+            if attempt == ATTEMPTS:
+                raise
+            wait = 5 * attempt
+            print(f"  failed ({exc}), trying again in {wait} s")
+            time.sleep(wait)
+
+
 def main() -> int:
     TARGET.mkdir(parents=True, exist_ok=True)
     for name, expected in FILES.items():
@@ -43,7 +61,7 @@ def main() -> int:
             continue
         temp = path.with_suffix(".part")
         print(f"{name}: downloading")
-        urllib.request.urlretrieve(URL.format(commit=COMMIT, name=name), temp)  # noqa: S310
+        _download(URL.format(commit=COMMIT, name=name), temp)
         actual = _sha256(temp)
         if actual != expected:
             temp.unlink()

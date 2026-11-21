@@ -74,7 +74,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ### Development
 
 - The OCR language files are not in git: `packaging/fetch_tessdata.py` downloads them (pinned
-  version, SHA-256 checked) for development, tests and the build. The build stops if they are
+  version, SHA-256 checked, tried again up to 5 times if the server is busy) for development,
+  tests and the build. The build stops if they are
   missing, and the built app must read the sample scan before the installer is made.
 
 ## [0.2.1] - 2026-11-21
