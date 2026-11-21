@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from . import error_log, theme
-from .widgets import label
+from .widgets import label, scrollable
 
 METADATA_DETAILS = (
     "When this is off (recommended), converted photos no longer contain:\n"
@@ -157,7 +157,11 @@ class SettingsPage(QWidget):
         if uninstaller() is not None:  # only in the installed app, not the portable one
             groups.append(uninstall)
 
-        layout = QVBoxLayout(self)
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scrollable(content))  # scrolls instead of squeezing when too small
         layout.setContentsMargins(28, 24, 28, 20)
         layout.setSpacing(14)
         layout.addWidget(label("Settings", "h1"))

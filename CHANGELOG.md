@@ -49,6 +49,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - Edit pages: the buttons "Move earlier" and "Move later" are now "◀ Move" and "Move ▶", the
   direction the page moves in the page grid.
 
+### Fixed
+
+- Settings: the buttons under *About* were cut off by the text below them when the window
+  was too low (e.g. with larger text in Windows). The page now scrolls instead, like the
+  choices next to the format tiles.
+
 ### Quality
 
 - Compress never shrinks pictures below 150 dpi or saves them below JPG quality 75, and photos

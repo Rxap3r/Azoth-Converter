@@ -410,3 +410,36 @@ def test_turn_pages_setting(window):
     assert window.settings_page.turn_check.isChecked()  # on by default
     window.settings_page.turn_check.setChecked(False)
     assert Preferences().ocr_turn_pages is False
+
+
+def test_no_page_squeezes_its_buttons(qtbot, tmp_path, sample_png):
+    """In a window that is too low, every page scrolls instead of squeezing buttons and
+    checkboxes (they would be cut off or overlap): each one is as tall as in a big window."""
+    from PySide6.QtWidgets import QAbstractButton, QApplication
+
+    from azoth.gui.main_window import MainWindow
+
+    w = MainWindow()
+    qtbot.addWidget(w)
+    w.show()
+    w.add_files([sample_png])  # the Convert page with its format tiles
+
+    def heights(page: str) -> dict:
+        w.show_page(page)
+        QApplication.processEvents()
+        return {
+            id(b): (b.text(), b.height())
+            for b in w.findChildren(QAbstractButton)
+            if b.isVisible() and b.window() is w
+        }
+
+    for page in w.nav_buttons:
+        w.resize(1600, 1400)
+        roomy = heights(page)
+        # Lower than the window allows: like larger text (Windows scaling) on a small screen.
+        w.setMinimumSize(0, 0)
+        w.resize(960, 420)
+        small = heights(page)
+        for key, (text, height) in small.items():
+            if key in roomy:
+                assert height >= roomy[key][1], (page, text, height, roomy[key][1])

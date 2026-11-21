@@ -3,7 +3,15 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QPoint, QRect, QSize, Qt
-from PySide6.QtWidgets import QFrame, QLabel, QLayout, QSizePolicy, QWidget, QWidgetItem
+from PySide6.QtWidgets import (
+    QFrame,
+    QLabel,
+    QLayout,
+    QScrollArea,
+    QSizePolicy,
+    QWidget,
+    QWidgetItem,
+)
 
 
 def label(text: str = "", role: str | None = None, *, wrap: bool = False) -> QLabel:
@@ -13,6 +21,21 @@ def label(text: str = "", role: str | None = None, *, wrap: bool = False) -> QLa
         widget.setProperty("role", role)
     widget.setWordWrap(wrap)
     return widget
+
+
+def scrollable(content: QWidget) -> QScrollArea:
+    """Wrap a page (or panel) so it scrolls when the window is too small, instead of Qt
+    squeezing its parts on top of each other. Use it for every page whose content can grow."""
+    layout = content.layout()
+    if layout is not None:
+        # The content never gets smaller than it needs; the scroll area scrolls instead.
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QFrame.Shape.NoFrame)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    scroll.setWidget(content)
+    return scroll
 
 
 def divider() -> QFrame:

@@ -7,10 +7,8 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QLayout,
     QProgressBar,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -22,7 +20,7 @@ from .options_panel import OcrOptions, QualitySelector
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .theme import Colors, repolish
-from .widgets import label
+from .widgets import label, scrollable
 
 
 class ConvertPage(QWidget):
@@ -101,7 +99,6 @@ class ConvertPage(QWidget):
         column = QVBoxLayout(choices)
         column.setContentsMargins(22, 24, 22, 0)
         column.setSpacing(14)
-        column.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)  # scroll, never squeeze
         column.addWidget(label("Convert to", "h2"))
         column.addWidget(self.target_picker)
         column.addWidget(self.notes_label)
@@ -110,11 +107,7 @@ class ConvertPage(QWidget):
         column.addWidget(self.output_row)
         column.addWidget(self.name_row)
         column.addStretch(1)
-        self.choices_scroll = QScrollArea()
-        self.choices_scroll.setWidgetResizable(True)
-        self.choices_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.choices_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.choices_scroll.setWidget(choices)
+        self.choices_scroll = scrollable(choices)
         right = QVBoxLayout(self.right)
         right.setContentsMargins(0, 0, 0, 20)
         right.setSpacing(14)

@@ -242,6 +242,10 @@ Office tests are skipped when LibreOffice isn't installed. Install it to run the
 
 ## Look and feel
 
+Pages and panels whose content can grow are wrapped in `widgets.scrollable()`, so a low window
+(or larger Windows text) scrolls instead of squeezing buttons on top of each other;
+`test_no_page_squeezes_its_buttons` checks every page.
+
 All colours are in `gui/theme.py` (one set for light, one for dark); widgets never hard-code
 colours, they set a `role` property that the stylesheet styles. `tests/test_theme.py` checks
 every colour pair for readable contrast: keep it passing when colours change.
