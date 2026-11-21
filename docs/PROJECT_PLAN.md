@@ -138,10 +138,10 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Add or remove a password (only with the user's own password). *Done (Nov 2026): AES-256, password never stored, weak-password warning; `azoth pdf password add/remove`.*
   - [ ] Later: Merge, Split and Edit pages drop an owner's "no printing / no copying" restrictions in the copy; keep them like Compress does.
 - [x] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs). *Done (Nov 2026, owner's choices): on the Convert page (scans/photos → Word, TXT; photos → searchable PDF as an option) and as PDF tools → Make searchable / `azoth pdf ocr`; "best" language models (37 MB, fetched by `packaging/fetch_tessdata.py`); the text is an invisible layer, pages stay byte for byte the same.*
-  - [ ] Later: turn sideways or upside-down scans automatically before reading (now the user turns them in Edit pages)
+  - [ ] **Next (agreed Nov 2026):** turn sideways or upside-down scans automatically before reading (now the user turns them in Edit pages)
   - [ ] Later: Word from scans with layout and pictures (now: the text as plain paragraphs)
   - [ ] Later: several languages in one document (e.g. German + English), more languages
-  - [ ] Later: a Cancel button and page progress bar for Make searchable on long PDFs
+  - [ ] **Next (agreed Nov 2026):** a Cancel button and page progress bar for Make searchable on long PDFs
   - [ ] **Owner's wish (Nov 2026):** OCR → a "real" text PDF like one made from Word (visible, selectable text with exact selection boxes, editable in Word with formatting), as an option next to the 1:1 searchable PDF (picture + invisible text). Needs layout rebuilding (fonts, sizes, columns); the picture would no longer be kept 1:1
 - [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
 - [ ] PDF → Excel for tables
@@ -163,7 +163,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Bin button on every PDF in the Merge list** (owner's wish, Nov 2026), like on the Convert page; "Remove" below the list and the Delete key still work
 - [x] **Plain-language quality texts** (owner's wish, Nov 2026): "quality 95 / 300 DPI" replaced by what it means for the user; the numbers are in the tooltip
 - [x] Target format picker as a grid of format tiles, with the most used ones first
-- [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
+- [ ] **Next (agreed Nov 2026):** "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
 - [ ] **Rework the app icon** (ideas 1–3 on the design canvas; owner postponed the choice, Nov 2026): the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
 - [x] Consistent icon set inside the app (bundled, no web fonts or online assets): line icons drawn in `gui/icons.py`
 - [x] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)

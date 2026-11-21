@@ -28,6 +28,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Next planned work (owner decides the order):**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
+  - **agreed next (owner, 21 Nov 2026):** (1) OCR polish: turn sideways/upside-down scans
+    automatically, progress bar + Cancel for Make searchable; (2) "Done" notification with
+    Open file / Open folder. The owner tests these together with today's changes, then release;
   - **next release (0.3.0 suggested):** compress PDF, passwords and OCR are all done on `dev`
     (OCR: full Build and test incl. Windows app passed 21 Nov 2026, not yet tried by the owner
     on a real PC); ask the owner whether to release;
