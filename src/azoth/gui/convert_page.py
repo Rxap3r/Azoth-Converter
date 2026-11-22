@@ -20,11 +20,12 @@ from .options_panel import OcrOptions, QualitySelector
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .theme import Colors, repolish
-from .widgets import label, scrollable
+from .widgets import download_button, label, scrollable
 
 
 class ConvertPage(QWidget):
-    def __init__(self, banners: list[str]) -> None:
+    def __init__(self, banners: list[tuple[str, str, str]]) -> None:
+        """``banners``: (warning, button text, web page) for each missing engine."""
         super().__init__()
         self.file_list = FileList()
         self.target_picker = TargetPicker()
@@ -66,8 +67,13 @@ class ConvertPage(QWidget):
         left = QVBoxLayout()
         left.setContentsMargins(28, 24, 24, 20)
         left.setSpacing(16)
-        for text in banners:
+        self.download_buttons: list[QPushButton] = []
+        for text, button_text, url in banners:
             left.addWidget(label(f"⚠ {text}", "banner", wrap=True))
+            if url:
+                button = download_button(button_text, url)
+                left.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
+                self.download_buttons.append(button)
         left.addLayout(header)
         left.addWidget(self.drop_zone)
         left.addWidget(self.file_list, 1)

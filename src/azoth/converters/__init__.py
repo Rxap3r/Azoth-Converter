@@ -1,6 +1,6 @@
 """Converter plugins. Add new plugins to ``all_converters``."""
 
-from .base import ConversionCancelled, ConversionContext, ConversionError, Converter
+from .base import ConversionCancelled, ConversionContext, ConversionError, Converter, RetryAlone
 
 
 def all_converters(*, use_word: bool = True) -> list[Converter]:
@@ -34,5 +34,6 @@ __all__ = [
     "ConversionContext",
     "ConversionError",
     "Converter",
+    "RetryAlone",
     "all_converters",
 ]

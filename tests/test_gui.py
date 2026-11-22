@@ -443,3 +443,64 @@ def test_no_page_squeezes_its_buttons(qtbot, tmp_path, sample_png):
         for key, (text, height) in small.items():
             if key in roomy:
                 assert height >= roomy[key][1], (page, text, height, roomy[key][1])
+
+
+def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch):
+    from azoth.converters import office
+    from azoth.gui import widgets
+
+    monkeypatch.setattr(office, "find_soffice", lambda: None)
+    opened = []
+    monkeypatch.setattr(widgets.QDesktopServices, "openUrl", opened.append)
+    w = MainWindow()
+    qtbot.addWidget(w)
+    [button] = w.convert_page.download_buttons
+    assert button.text() == "Download LibreOffice…"
+    button.click()
+    w.formats_panel.download_btn.click()
+    assert [u.toString() for u in opened] == [office.DOWNLOAD_URL] * 2
+    assert office.DOWNLOAD_URL.startswith("https://www.libreoffice.org/")
+
+
+def test_no_download_button_when_libreoffice_is_installed(window):
+    from azoth.converters.office import find_soffice
+
+    if find_soffice() is None:
+        pytest.skip("LibreOffice not installed")
+    assert window.convert_page.download_buttons == []
+    assert window.formats_panel.download_btn is None
+
+
+def test_wrapped_text_is_never_drawn_over_buttons_with_larger_text(qtbot):
+    """Windows' fonts and text scaling make text wider than here: wrapped text must still
+    get all the height it needs (otherwise it's drawn over the buttons next to it)."""
+    from PySide6.QtGui import QFont
+    from PySide6.QtWidgets import QApplication
+
+    w = MainWindow()
+    qtbot.addWidget(w)
+    w.resize(1000, 720)
+    w.show()
+    for size in (12, 14):
+        for widget in w.findChildren(QLabel):
+            font = QFont(widget.font())
+            font.setPointSizeF(size)
+            widget.setFont(font)
+        for page in w.nav_buttons:
+            w.show_page(page)
+            QApplication.processEvents()
+            QApplication.processEvents()
+            for lbl in w.findChildren(QLabel):
+                if lbl.isVisible() and lbl.wordWrap() and lbl.text():
+                    needed = lbl.heightForWidth(lbl.width())
+                    assert lbl.height() >= needed, (page, size, lbl.text()[:40])
+
+
+def test_a_warning_is_shown_on_the_file_card(window, sample_png, tmp_path):
+    window.add_files([sample_png])
+    window._job_count = 1
+    out = str(tmp_path / "photo.pdf")
+    window._on_done(0, [out], ["⚠ Word failed, LibreOffice was used (the layout may differ).", "x"])
+    card = window.file_list.cards[0]
+    assert card.status.text() == "✓ photo.pdf  ⚠ Word failed, LibreOffice was used"
+    assert "the layout may differ" in card.status.toolTip()

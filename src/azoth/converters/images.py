@@ -84,6 +84,7 @@ class ImageConverter(Converter):
     id = "images"
     label = "Pillow"
     priority = 10
+    parallel_safe = True  # Pillow and pillow-heif work in parallel threads
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
         for src in READABLE:

@@ -6,16 +6,20 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.2.0** (19 Nov 2026; 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.3.0** (22 Nov 2026; 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
   (Linux), Tests (Windows) and Windows app required). `dev` accepts direct pushes. Dependabot
   alerts, private vulnerability reporting and two-factor authentication are on.
-- **Waiting on the owner:** the SignPath Foundation code-signing application. Sequence:
+- **Code signing is postponed** (owner, Nov 2026): first make the app good, then sign.
+  Releases are **not signed**; `CODE_SIGNING.md`, the README and the release notes say so
+  (keep them honest until signing really works). Planned sequence:
   1. ✓ `CODE_SIGNING.md` is on `main` (pull request #5, merged 19 Nov 2026);
-  2. **next:** the owner applies on signpath.org with the repo link and the link to `CODE_SIGNING.md`
-     on `main`;
+  2. the owner applies on signpath.org with the repo link and the link to `CODE_SIGNING.md`
+     on `main` (Nov 2026: the form asks whether the app shows up in a web search; the owner
+     worries a small project may be declined). **Wait for SignPath's answer** before planning
+     more; alternatives if declined: Certum open-source certificate, Azure Trusted Signing;
   3. after approval, the owner saves the SignPath API key as a GitHub secret (never in chat);
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
@@ -28,17 +32,22 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Next planned work (owner decides the order):**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
-  - **0.3.0 prepared (22 Nov 2026):** compress PDF, passwords, OCR, file names in every PDF
-    tool, "Done" card; tested by the owner on Windows (OCR selection fine in Chrome/Edge, good
-    enough in Firefox). Pull request #8 `dev` → `main` is open (22 Nov 2026); after the
-    owner merges it, they run Actions → Release on `main`;
+  - **0.3.0 released (22 Nov 2026, pull request #8):** compress PDF, passwords, OCR, file
+    names in every PDF tool, "Done" card. OCR selection: fine in Chrome/Edge, good enough in
+    Firefox (owner: don't tune further). Later: check OCR speed on long PDFs;
   - later: a version check inside the app (only on click, after code signing; owner decides),
     see Phase 5 in `docs/PROJECT_PLAN.md`;
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
     real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
-    edit pages, compress, passwords ✓ on `dev`, not released yet) → **OCR** ✓ (on `dev`);
-  - technical improvements: faster batches, smaller download;
+    edit pages, compress, passwords ✓) → **OCR** ✓ (all released in 0.3.0);
+  - technical improvements: **faster batches ✓ on `dev`, not released** (LibreOffice and
+    Word: up to 10 files per start; photos: up to 4 at once; PDF restrictions kept in
+    Merge / Split / Edit pages). Windows "Build and test" passed. Word → PDF never worked
+    before (Documents.Open rejected PowerShell's $true/$false); fixed by passing the options
+    by name (InvokeMember), **confirmed by the owner on a PC with Word** (Nov 2026, several
+    files at once). **0.3.1 prepared on `dev`, pull request into `main` opened (Nov 2026)**;
+    then: smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with

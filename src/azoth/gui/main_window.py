@@ -63,6 +63,7 @@ class MainWindow(QMainWindow):
         self._worker: ConversionWorker | None = None
         self._cancel = threading.Event()
         self._done_count = 0
+        self._running: dict[int, float] = {}  # row → progress of files being converted
         self._job_count = 0
         self._outputs: list[Path] = []
         self._failed = 0
@@ -82,7 +83,10 @@ class MainWindow(QMainWindow):
     # --- layout -------------------------------------------------------------
 
     def _build_ui(self) -> None:
-        banners = [c.unavailable_reason() for c in self.engine.unavailable()]
+        banners = [
+            (c.unavailable_reason(), f"Download {c.label}…", c.download_url)
+            for c in self.engine.unavailable()
+        ]
         self.convert_page = ConvertPage(banners)
         page = self.convert_page
         self.file_list = page.file_list
@@ -349,6 +353,7 @@ class MainWindow(QMainWindow):
 
         self._cancel = threading.Event()
         self._done_count = 0
+        self._running: dict[int, float] = {}  # row → progress of files being converted
         self._job_count = len(jobs)
         self.progress.setValue(0)
         self.progress.setVisible(True)
@@ -391,8 +396,9 @@ class MainWindow(QMainWindow):
         self.cancel_btn.setEnabled(False)
         self.status_label.setText("Cancelling…")
 
-    def _set_overall(self, row_fraction: float) -> None:
-        overall = (self._done_count + row_fraction) / max(self._job_count, 1)
+    def _set_overall(self) -> None:
+        # several files can be converted at the same time (photos): add them all up
+        overall = (self._done_count + sum(self._running.values())) / max(self._job_count, 1)
         self.progress.setValue(int(overall * 1000))
 
     @Slot(int)
@@ -405,13 +411,18 @@ class MainWindow(QMainWindow):
     @Slot(int, float, str)
     def _on_progress(self, row: int, fraction: float, message: str) -> None:
         self.file_list.set_progress(row, fraction, message)
-        self._set_overall(fraction)
+        self._running[row] = max(0.0, min(1.0, fraction))
+        self._set_overall()
 
     @Slot(int, list, list)
     def _on_done(self, row: int, outputs: list, notes: list) -> None:
         self._done_count += 1
-        self._set_overall(0)
+        self._running.pop(row, None)
+        self._set_overall()
         text = f"✓ {Path(outputs[0]).name}" if len(outputs) == 1 else f"✓ {len(outputs)} files"
+        warnings = [n for n in notes if n.startswith("⚠")]
+        if warnings:  # e.g. "⚠ Word failed, LibreOffice was used": details in the tooltip
+            text += "  " + warnings[0].split(" (")[0].split(". ")[0]
         self.file_list.set_status(
             row,
             text,
@@ -425,8 +436,9 @@ class MainWindow(QMainWindow):
     @Slot(int, str)
     def _on_failed(self, row: int, message: str) -> None:
         self._done_count += 1
+        self._running.pop(row, None)
         self._failed += 1
-        self._set_overall(0)
+        self._set_overall()
         self.file_list.set_status(row, f"✗ {message}", tooltip=message, state=FAILED)
 
     @Slot(bool)

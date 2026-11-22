@@ -56,28 +56,40 @@ def cmd_convert(args: argparse.Namespace) -> int:
         "ocr_turn_pages": not args.keep_rotation,
     }
     failures = 0
-    for file in args.files:
-        path = Path(file)
-        try:
-            result = engine.convert(
-                path,
-                args.to,
-                args.output,
-                options=options,
-                overwrite=args.overwrite,
-                progress=None if args.quiet else _progress_printer(path.name),
-            )
-        except ConversionError as exc:
+    paths = [Path(f) for f in args.files]
+    printers = [None if args.quiet else _progress_printer(p.name) for p in paths]
+    current = [0]  # photos run in parallel: only show the progress of the file shown next
+
+    def show(i: int, fraction: float, message: str) -> None:
+        if i == current[0]:
+            printers[i](fraction, message)
+
+    results = engine.convert_many(
+        paths,
+        args.to,
+        args.output,
+        options=options,
+        overwrite=args.overwrite,
+        progress=None if args.quiet else show,
+    )
+    for i, outcome in results:
+        current[0] = i + 1
+        path = paths[i]
+        if isinstance(outcome, ConversionError):
             failures += 1
             if not args.quiet:
                 print()
-            print(f"✗ {path.name}: {exc}", file=sys.stderr)
+            print(f"✗ {path.name}: {outcome}", file=sys.stderr)
             continue
+        if isinstance(outcome, Exception):
+            raise outcome
         if not args.quiet:
             print()
-            for out in result.outputs:
+            for out in outcome.outputs:
                 print(f"✓ {path.name} → {out}")
-            for note in result.notes:
+            for warning in outcome.warnings:
+                print(f"  warning: {warning}")
+            for note in outcome.notes:
                 print(f"  note: {note}")
     return 1 if failures else 0
 

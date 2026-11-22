@@ -16,6 +16,7 @@ from PIL import Image
 from azoth import pdf_tools, quality
 from azoth.cli import main as cli
 from azoth.converters import ConversionError
+from azoth.pdf_tools import PageEdit
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples" / "pdf"
 
@@ -382,3 +383,89 @@ def test_cli_password_add_and_remove(photo_pdf, monkeypatch, capsys):
     assert pdf_tools.lock_state(locked.with_name("report (protected) (unlocked).pdf")) == (
         pdf_tools.UNLOCKED
     )
+
+
+# --- an owner's restrictions stay on copies (merge, split, edit pages) -------------
+
+_PRINT = pymupdf.PDF_PERM_PRINT | pymupdf.PDF_PERM_ACCESSIBILITY
+_COPY = pymupdf.PDF_PERM_COPY | pymupdf.PDF_PERM_ACCESSIBILITY
+
+
+def _pages_pdf(path, labels, permissions=None):
+    """A PDF with one labelled page per label; restricted to ``permissions`` if given."""
+    doc = pymupdf.open()
+    for label in labels:
+        doc.new_page().insert_text((72, 72), label)
+    if permissions is None:
+        doc.save(path)
+    else:
+        doc.save(path, encryption=pymupdf.PDF_ENCRYPT_AES_256, owner_pw="boss", user_pw="",
+                 permissions=permissions)  # fmt: skip
+    doc.close()
+    return path
+
+
+def _allowed(path):
+    with pymupdf.open(path) as doc:
+        return doc.permissions & pdf_tools._ALL_PERMISSIONS
+
+
+def _labels(path):
+    with pymupdf.open(path) as doc:
+        return [page.get_text().strip() for page in doc]
+
+
+def test_edit_pages_keeps_restrictions_and_the_owner_password(tmp_path):
+    src = _pages_pdf(tmp_path / "r.pdf", ["A", "B", "C"], _PRINT)
+    out = pdf_tools.edit_pages(src, tmp_path / "e.pdf", [PageEdit(2), PageEdit(0, 90)])
+    assert pdf_tools.lock_state(out) == pdf_tools.RESTRICTED
+    assert _allowed(out) == _allowed(src)
+    assert _labels(out) == ["C", "A"]
+    unlocked = pdf_tools.remove_password(out, tmp_path / "u.pdf", "boss")
+    assert pdf_tools.lock_state(unlocked) == pdf_tools.UNLOCKED
+
+
+@pytest.mark.parametrize("groups", [None, [[0, 2], [1]]])
+def test_split_keeps_restrictions_and_the_owner_password(tmp_path, groups):
+    src = _pages_pdf(tmp_path / "r.pdf", ["A", "B", "C"], _PRINT)
+    parts = pdf_tools.split(src, tmp_path / "parts", groups)
+    expected = [["A"], ["B"], ["C"]] if groups is None else [["A", "C"], ["B"]]
+    assert [_labels(p) for p in parts] == expected
+    for part in parts:
+        assert pdf_tools.lock_state(part) == pdf_tools.RESTRICTED
+        assert _allowed(part) == _allowed(src)
+    unlocked = pdf_tools.remove_password(parts[0], tmp_path / "u.pdf", "boss")
+    assert pdf_tools.lock_state(unlocked) == pdf_tools.UNLOCKED
+
+
+def test_merge_allows_only_what_every_restricted_source_allows(tmp_path):
+    a = _pages_pdf(tmp_path / "a.pdf", ["A"], _PRINT)
+    b = _pages_pdf(tmp_path / "b.pdf", ["B"], _COPY)
+    c = _pages_pdf(tmp_path / "c.pdf", ["C"])
+    out = pdf_tools.merge([a, b, c], tmp_path / "m.pdf")
+    assert _labels(out) == ["A", "B", "C"]
+    assert pdf_tools.lock_state(out) == pdf_tools.RESTRICTED
+    assert _allowed(out) == _allowed(a) & _allowed(b)
+    assert not _allowed(out) & (pymupdf.PDF_PERM_PRINT | pymupdf.PDF_PERM_COPY)
+    # the copy gets its own random owner password, not a known one
+    with pytest.raises(ConversionError):
+        pdf_tools.remove_password(out, tmp_path / "u.pdf", "boss")
+
+
+def test_merge_of_one_restricted_pdf_keeps_its_restrictions(tmp_path):
+    a = _pages_pdf(tmp_path / "a.pdf", ["A"], _PRINT)
+    b = _pages_pdf(tmp_path / "b.pdf", ["B"])
+    out = pdf_tools.merge([b, a], tmp_path / "m.pdf")
+    assert pdf_tools.lock_state(out) == pdf_tools.RESTRICTED
+    assert _allowed(out) == _allowed(a)
+
+
+def test_copies_of_unrestricted_pdfs_stay_unlocked(tmp_path):
+    a = _pages_pdf(tmp_path / "a.pdf", ["A", "B"])
+    b = _pages_pdf(tmp_path / "b.pdf", ["C"])
+    outputs = [
+        pdf_tools.merge([a, b], tmp_path / "m.pdf"),
+        pdf_tools.edit_pages(a, tmp_path / "e.pdf", [PageEdit(1)]),
+        *pdf_tools.split(a, tmp_path / "parts"),
+    ]
+    assert all(pdf_tools.lock_state(p) == pdf_tools.UNLOCKED for p in outputs)

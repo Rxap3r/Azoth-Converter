@@ -28,7 +28,7 @@ import time
 from collections.abc import Iterable
 from pathlib import Path
 
-from .base import ConversionCancelled, ConversionContext, ConversionError, Converter
+from .base import ConversionCancelled, ConversionContext, ConversionError, Converter, RetryAlone
 
 WORD_SOURCES = ["docx", "doc", "odt", "rtf", "txt"]
 DEFAULT_TIMEOUT = 180  # seconds per document
@@ -38,9 +38,12 @@ DEFAULT_TIMEOUT = 180  # seconds per document
 POWERSHELL_SCRIPT = r"""
 $ErrorActionPreference = 'Stop'
 $word = $null
-$doc = $null
 $saved = $null
-$missing = [System.Reflection.Missing]::Value
+# One line per finished document ("ok 3" or "failed 3 <reason>"), so the app can show
+# progress and knows which results are complete.
+function Report([string]$line) {
+    [System.IO.File]::AppendAllText($env:AZOTH_STATUS, $line + "`n")
+}
 try {
     $word = New-Object -ComObject Word.Application
     $word.Visible = $false
@@ -51,21 +54,43 @@ try {
     $opts.UpdateLinksAtOpen = $false
     $opts.UpdateFieldsAtPrint = $false
     $opts.UpdateLinksAtPrint = $false
-    # Open(FileName, ConfirmConversions, ReadOnly, AddToRecentFiles, PasswordDocument,
-    #      PasswordTemplate, Revert, WritePasswordDocument, WritePasswordTemplate, Format,
-    #      Encoding, Visible, OpenAndRepair, DocumentDirection, NoEncodingDialog)
-    # A dummy password makes protected documents fail instead of prompting.
-    $doc = $word.Documents.Open($env:AZOTH_SRC, $false, $true, $false,
-        'azoth-no-password', $missing, $false, $missing, $missing, $missing,
-        $missing, $false, $false, $missing, $true)
-    $doc.ExportAsFixedFormat($env:AZOTH_DST, 17)   # wdExportFormatPDF
+    $count = [int]$env:AZOTH_COUNT
+    for ($i = 0; $i -lt $count; $i++) {
+        $doc = $null
+        try {
+            $src = [Environment]::GetEnvironmentVariable("AZOTH_SRC_$i")
+            $dst = [Environment]::GetEnvironmentVariable("AZOTH_DST_$i")
+            # Documents.Open with named options, passed through COM's own call mechanism:
+            # PowerShell can't pass $true/$false to Open's "by reference" parameters
+            # directly (error: "True" of type "bool" can't be converted to "Object").
+            # A dummy password makes protected documents fail instead of prompting.
+            $names = [string[]]@('FileName', 'ConfirmConversions', 'ReadOnly',
+                'AddToRecentFiles', 'PasswordDocument', 'Revert', 'Visible',
+                'OpenAndRepair', 'NoEncodingDialog')
+            $values = [object[]]@($src, $false, $true, $false, 'azoth-no-password',
+                $false, $false, $false, $true)
+            $docs = $word.Documents
+            $doc = $docs.GetType().InvokeMember('Open',
+                [System.Reflection.BindingFlags]::InvokeMethod, $null, $docs, $values,
+                $null, $null, $names)
+            $doc.ExportAsFixedFormat($dst, 17)   # wdExportFormatPDF
+            $doc.Close(0)                        # wdDoNotSaveChanges
+            $doc = $null
+            Report "ok $i"
+        }
+        catch {
+            Report ("failed $i " + ($_.Exception.Message -replace '[\r\n]+', ' '))
+        }
+        finally {
+            if ($doc -ne $null) { try { $doc.Close(0) } catch {} }
+        }
+    }
 }
 catch {
     [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }
 finally {
-    if ($doc -ne $null) { $doc.Close(0) }             # wdDoNotSaveChanges
     if ($word -ne $null) {
         if ($saved -ne $null) {
             $word.Options.UpdateLinksAtOpen = $saved[0]
@@ -153,25 +178,72 @@ class WordConverter(Converter):
                 raise
             ctx.progress(0.5, "Word failed, using LibreOffice instead")
             try:
-                return self.fallback.convert(src, dst, ctx)
+                produced = self.fallback.convert(src, dst, ctx)
             except ConversionError as fallback_exc:
                 raise ConversionError(f"{exc} LibreOffice also failed: {fallback_exc}") from exc
+            ctx.warnings.append(
+                f"Word failed, LibreOffice was used (the layout may differ slightly). {exc}"
+            )
+            return produced
+
+    def batch_key(self, src: str, dst: str) -> tuple[str, str] | None:
+        return ("word", dst) if src in WORD_SOURCES and dst == "pdf" else None
+
+    def convert_batch(
+        self, jobs: list[tuple[Path, Path]], ctx: ConversionContext
+    ) -> list[ConversionError | None]:
+        """One Word start for all ``jobs``. Files Word didn't finish are handed back to be
+        tried on their own (and then with LibreOffice if Word fails again)."""
+        done, _, _ = self._run_word(jobs, ctx)
+        results: list[ConversionError | None] = []
+        for n, (_, dst) in enumerate(jobs):
+            local = ctx.work_dir / f"word-out{n}.pdf"
+            if done.get(n) == "ok" and local.exists():
+                shutil.move(local, dst)
+                results.append(None)
+            else:
+                results.append(RetryAlone())
+        return results
 
     def _convert_with_word(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
+        done, returncode, stderr = self._run_word([(src, dst)], ctx)
+        local = ctx.work_dir / "word-out0.pdf"
+        if done.get(0) != "ok" or not local.exists():
+            if done.get(0, "ok") != "ok":
+                detail = done[0]
+            else:
+                lines = [ln.strip() for ln in stderr.decode(errors="replace").splitlines()]
+                detail = " ".join(ln for ln in lines if ln)[:400]
+                if not detail and returncode:
+                    detail = f"PowerShell stopped with exit code {returncode}"
+            detail = f": {detail}" if detail else ""
+            raise ConversionError(f"Microsoft Word could not convert the file{detail}")
+        shutil.move(local, dst)
+        return [dst]
+
+    def _run_word(
+        self, jobs: list[tuple[Path, Path]], ctx: ConversionContext
+    ) -> tuple[dict[int, str], int | None, bytes]:
+        """Run the script for ``jobs``. Returns {file number: "ok" or the reason it
+        failed}, PowerShell's exit code and its error output. Results are
+        ``work_dir/word-out<n>.pdf``."""
         powershell = find_powershell()
         if powershell is None:
             raise ConversionError("PowerShell is missing, so Word can't be used.")
 
-        # Word gets a private copy with a plain name; the original is never opened.
+        # Word gets private copies with plain names; the originals are never opened.
+        # Paths only travel in environment variables, never inside the script text.
         in_dir = ctx.work_dir / "word-in"
         in_dir.mkdir(parents=True, exist_ok=True)
-        local_src = in_dir / f"input{src.suffix.lower()}"
-        shutil.copyfile(src, local_src)
-        local_dst = ctx.work_dir / "word-out.pdf"
-
+        status = ctx.work_dir / "word-status.txt"
         env = dict(os.environ)
-        env["AZOTH_SRC"] = str(local_src.resolve())
-        env["AZOTH_DST"] = str(local_dst.resolve())
+        env["AZOTH_COUNT"] = str(len(jobs))
+        env["AZOTH_STATUS"] = str(status.resolve())
+        for n, (src, _) in enumerate(jobs):
+            local_src = in_dir / f"input{n}{src.suffix.lower()}"
+            shutil.copyfile(src, local_src)
+            env[f"AZOTH_SRC_{n}"] = str(local_src.resolve())
+            env[f"AZOTH_DST_{n}"] = str((ctx.work_dir / f"word-out{n}.pdf").resolve())
         cmd = [
             powershell,
             "-NoProfile",
@@ -183,27 +255,45 @@ class WordConverter(Converter):
         ]
         ctx.progress(0.1, "Starting Microsoft Word")
         proc = _start_process(cmd, env)
+        # The time limit is per document: it starts again whenever one is finished.
         timeout = float(ctx.option("timeout", DEFAULT_TIMEOUT))
-        started = time.monotonic()
+        started = last_done = time.monotonic()
+        done: dict[int, str] = {}
         try:
             while proc.poll() is None:
                 if ctx.cancel_event.is_set():
                     proc.kill()
                     raise ConversionCancelled()
-                if time.monotonic() - started > timeout:
+                now = time.monotonic()
+                count = len(done)
+                done = _read_status(status)
+                if len(done) != count:
+                    last_done = now
+                if now - last_done > timeout:
                     proc.kill()
-                    raise ConversionError(f"Word didn't finish within {int(timeout)} s.")
-                elapsed = time.monotonic() - started
-                ctx.progress(min(0.9, 0.1 + elapsed / 30), "Converting with Microsoft Word")
+                    if len(jobs) == 1:
+                        raise ConversionError(f"Word didn't finish within {int(timeout)} s.")
+                    break
+                part = len(done) + min(0.9, (now - started) / 30 if len(jobs) == 1 else 0.5)
+                ctx.progress(0.1 + 0.8 * part / len(jobs), "Converting with Microsoft Word")
                 time.sleep(0.2)
         finally:
             if proc.poll() is None:
                 proc.kill()
             _, stderr = proc.communicate()
+        return _read_status(status), proc.returncode, stderr
 
-        if proc.returncode != 0 or not local_dst.exists():
-            lines = stderr.decode(errors="replace").strip().splitlines()
-            detail = f": {lines[0]}" if lines else ""
-            raise ConversionError(f"Microsoft Word could not convert the file{detail}")
-        shutil.move(local_dst, dst)
-        return [dst]
+
+def _read_status(path: Path) -> dict[int, str]:
+    """The script's status lines: {file number: "ok" or the reason it failed}."""
+    try:
+        lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+    except OSError:
+        return {}
+    done = {}
+    for line in lines:
+        word, _, rest = line.partition(" ")
+        number, _, reason = rest.partition(" ")
+        if word in ("ok", "failed") and number.isdigit():
+            done[int(number)] = "ok" if word == "ok" else (reason.strip() or "unknown error")
+    return done

@@ -7,6 +7,48 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-22
+
+### Added
+
+- When LibreOffice isn't installed, a "Download LibreOffice…" button (on the Convert page
+  and under Supported formats) opens its official download page in your browser. The app
+  itself still never goes online.
+- When Microsoft Word can't convert a file and LibreOffice is used instead, the file now
+  says so ("Word failed, LibreOffice was used"), with Word's reason in the tooltip and in
+  the error log. Before, this happened silently.
+
+### Changed
+
+- Converting many Word, Excel or PowerPoint files with LibreOffice is much faster: up to
+  10 files are now done in one LibreOffice start instead of one start per file (10 Word
+  files to PDF: about 4 times faster in our test). The results are the same; a file that
+  fails is tried again on its own, so its error message stays clear.
+- Converting many photos is much faster: up to 4 are converted at the same time (one
+  processor core stays free so the window stays responsive). 16 large photos to PNG: about
+  4 times faster in our test. The files are exactly the same as before.
+- Converting many Word files to PDF with Microsoft Word is faster: Word now starts once
+  for up to 10 files instead of once per file. A file Word can't convert is tried again
+  on its own and then with LibreOffice, as before.
+
+### Fixed
+
+- Word → PDF with Microsoft Word never actually worked: Word refused how the options for
+  opening the document were passed, and LibreOffice silently took over. The options are now
+  passed the way Word expects.
+- Settings: the text under "Check for updates", "About" and "Error log" no longer covers
+  those buttons with larger Windows text.
+
+### Privacy and safety
+
+- The code signing policy, the README and the release notes now say clearly that the
+  downloads are not signed yet; signing is planned.
+- Merge, Split and Edit pages now keep a PDF's restrictions (for example "no printing" or
+  "no copying") in the new file, like Compress already did. Split and Edit pages keep the
+  original lock, so the owner's password still removes it. A merged PDF allows only what
+  every one of its restricted files allows; to lift that, remove the restrictions from the
+  originals first.
+
 ## [0.3.0] - 2026-11-22
 
 ### Added
@@ -222,7 +264,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.1.0...v0.2.0

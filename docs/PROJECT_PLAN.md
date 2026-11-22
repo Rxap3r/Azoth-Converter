@@ -136,7 +136,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails. *Done (Nov 2026): lossless (pages copied, not redrawn), bookmarks kept; `pdf_tools.py`, `gui/pdf_tools_page.py`, `azoth pdf split --ranges`, `azoth pdf edit`.*
 - [x] Compress PDF (downsample images). *Done (Nov 2026): Light / Balanced / Strong, never below `MIN_DPI` and `MIN_IMAGE_QUALITY`, nothing saved unless at least 1 % smaller; `azoth pdf compress`.*
 - [x] Add or remove a password (only with the user's own password). *Done (Nov 2026): AES-256, password never stored, weak-password warning; `azoth pdf password add/remove`.*
-  - [ ] Later: Merge, Split and Edit pages drop an owner's "no printing / no copying" restrictions in the copy; keep them like Compress does.
+  - [x] Merge, Split and Edit pages keep an owner's "no printing / no copying" restrictions in the copy, like Compress does
 - [x] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs). *Done (Nov 2026, owner's choices): on the Convert page (scans/photos → Word, TXT; photos → searchable PDF as an option) and as PDF tools → Make searchable / `azoth pdf ocr`; "best" language models (37 MB, fetched by `packaging/fetch_tessdata.py`); the text is an invisible layer, pages stay byte for byte the same.*
   - [x] Turn sideways or upside-down scans automatically before reading. *Done (Nov 2026): only when a page reads badly are the other three directions tried (quick, 100 dpi); such pages are also turned upright (only the rotation setting; owner's wish: a Settings option, on by default).*
   - [ ] Later: Word from scans with layout and pictures (now: the text as plain paragraphs)
@@ -150,7 +150,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
   - [ ] With the design refresh: a "Show metadata" button on each file card instead of the right-click menu
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
-- [ ] **Next release (0.2.x):** compress PDF, passwords, OCR (all three done on `dev`)
+- [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
 
 ### Design refresh (timing flexible)
 - [x] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. **Owner's choice (Nov 2026): style A.** Icon choice postponed.*
@@ -175,7 +175,11 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Uninstall button in Settings** (owner's wish, Nov 2026): only in the installed app; starts the normal uninstaller
 - [x] **Error log** (owner's wish, Nov 2026, after a crash with mixed PNG and other photos that couldn't be reproduced): details of unexpected errors and hard crashes go to `error-log.txt` in the app's folder; Settings → Error log…; never sent anywhere
 - [ ] Find the crash the owner saw in 0.2.0 (several photos, some already PNG, then Convert) once the error log shows it
-- [ ] **Faster large batches:** keep one LibreOffice (and one Word) instance running for a whole batch instead of starting it for every file (~1 s overhead per file today); convert several files in parallel where the engine allows it (images, PDF → images)
+- [ ] **Faster large batches:**
+  - [x] LibreOffice: up to 10 files per start instead of one start per file (`Engine.convert_many`, `Converter.convert_batch`); about 4× faster for 10 Word files
+  - [x] Word (Windows): one Word start for up to 10 files instead of one per file. Tested by the owner with real Word (Nov 2026)
+  - [x] Photos: up to 4 converted at the same time (`Converter.parallel_safe`); about 4× faster for 16 large photos
+  - [ ] PDF → images in parallel: PyMuPDF isn't thread-safe, so this would need separate processes
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
 - [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)

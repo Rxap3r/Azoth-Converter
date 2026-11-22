@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Hashable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -21,6 +21,13 @@ class ConversionCancelled(ConversionError):
         super().__init__("Conversion cancelled")
 
 
+class RetryAlone(ConversionError):
+    """A file of a batch that didn't get converted and should be tried on its own."""
+
+    def __init__(self) -> None:
+        super().__init__("Not converted in the batch")
+
+
 @dataclass
 class ConversionContext:
     """Everything a converter may use while it runs."""
@@ -30,6 +37,9 @@ class ConversionContext:
     options: dict[str, Any] = field(default_factory=dict)
     progress: ProgressCallback = lambda fraction, message: None
     cancel_event: threading.Event = field(default_factory=threading.Event)
+    warnings: list[str] = field(default_factory=list)
+    """Things the user should know about this file's result (e.g. a fallback engine was
+    used). Shown on the file and written to the local error log."""
 
     def check_cancelled(self) -> None:
         if self.cancel_event.is_set():
@@ -47,6 +57,12 @@ class Converter(ABC):
     optional: bool = False
     """Optional engines (e.g. Microsoft Word) don't trigger "missing engine" warnings."""
     """When two converters offer the same conversion, the higher priority wins."""
+    download_url: str = ""
+    """Official download page of a missing engine (the app offers a button that opens it
+    in the browser, only when clicked)."""
+    parallel_safe: bool = False
+    """True if several files may be converted at the same time in different threads
+    (never for PyMuPDF, which isn't thread-safe, or for external programs)."""
 
     def is_available(self) -> bool:
         """False when a required engine (e.g. LibreOffice) is missing."""
@@ -78,6 +94,23 @@ class Converter(ABC):
     def quality_note(self, src: str, dst: str) -> str | None:
         """A short warning shown to the user when a conversion may lose information."""
         return None
+
+    def batch_key(self, src: str, dst: str) -> Hashable | None:
+        """Files with the same key can be converted together by :meth:`convert_batch`
+        (faster: the engine program starts once for all of them). None: one by one."""
+        return None
+
+    def convert_batch(
+        self, jobs: list[tuple[Path, Path]], ctx: ConversionContext
+    ) -> list[ConversionError | None]:
+        """Convert several (src, dst) pairs with the same :meth:`batch_key` at once.
+
+        Returns one entry per job: None if ``dst`` was created, a ConversionError if that
+        file failed for sure, or ConversionError subclass :class:`RetryAlone` if it
+        should be tried again on its own (e.g. another file in the batch crashed the
+        engine). Raises ConversionCancelled when cancelled.
+        """
+        return [RetryAlone() for _ in jobs]
 
     @abstractmethod
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:

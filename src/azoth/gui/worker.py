@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 import traceback
+from contextlib import closing
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal, Slot
@@ -45,6 +46,35 @@ class ConversionWorker(QObject):
 
     @Slot()
     def run(self) -> None:
+        if self.target == CLEAN_TARGET or self.name is not None:
+            self._run_one_by_one()
+        else:
+            self._run_batch()
+        self.finished.emit(self.cancel_event.is_set())
+
+    def _run_batch(self) -> None:
+        """Conversions: the engine may do several files in one go (much faster with
+        LibreOffice); results still come back file by file."""
+        rows = [row for row, _ in self.jobs]
+        results = self.engine.convert_many(
+            [path for _, path in self.jobs],
+            self.target,
+            self.output_dir,
+            options=self.options,
+            started=lambda i: self.file_started.emit(rows[i]),
+            progress=lambda i, f, m: self.file_progress.emit(rows[i], f, m),
+            cancel_event=self.cancel_event,
+        )
+        with closing(results):
+            for i, outcome in results:
+                if isinstance(outcome, Exception):
+                    if self._report_failure(rows[i], self.jobs[i][1], outcome):
+                        break
+                else:
+                    notes = self._notes(self.jobs[i][1], outcome)
+                    self.file_done.emit(rows[i], [str(p) for p in outcome.outputs], notes)
+
+    def _run_one_by_one(self) -> None:
         for row, path in self.jobs:
             if self.cancel_event.is_set():
                 break
@@ -54,20 +84,26 @@ class ConversionWorker(QObject):
                     outputs, notes = self._clean(path)
                 else:
                     outputs, notes = self._convert(row, path)
-            except ConversionCancelled:
-                self.file_failed.emit(row, "Cancelled")
-                break
-            except ConversionError as exc:
-                self.file_failed.emit(row, str(exc))
             except Exception as exc:  # never let one bad file kill the app
-                error_log.write(
-                    f"Converting a {path.suffix or 'file'} to {self.target} failed",
-                    traceback.format_exc(),
-                )
-                self.file_failed.emit(row, f"Unexpected error: {exc}")
+                if self._report_failure(row, path, exc):
+                    break
             else:
                 self.file_done.emit(row, outputs, notes)
-        self.finished.emit(self.cancel_event.is_set())
+
+    def _report_failure(self, row: int, path: Path, exc: Exception) -> bool:
+        """Show why a file failed. True if the user cancelled (stop the rest)."""
+        if isinstance(exc, ConversionCancelled):
+            self.file_failed.emit(row, "Cancelled")
+            return True
+        if isinstance(exc, ConversionError):
+            self.file_failed.emit(row, str(exc))
+        else:
+            error_log.write(
+                f"Converting a {path.suffix or 'file'} to {self.target} failed",
+                "".join(traceback.format_exception(exc)),
+            )
+            self.file_failed.emit(row, f"Unexpected error: {exc}")
+        return False
 
     def _convert(self, row: int, path: Path) -> tuple[list[str], list[str]]:
         result = self.engine.convert(
@@ -79,7 +115,16 @@ class ConversionWorker(QObject):
             cancel_event=self.cancel_event,
             name=self.name,
         )
-        return [str(p) for p in result.outputs], result.notes
+        return [str(p) for p in result.outputs], self._notes(path, result)
+
+    def _notes(self, path: Path, result) -> list[str]:
+        """The result's notes, warnings first (marked ⚠). Warnings also go into the local
+        error log, so the details can be looked up later."""
+        for warning in result.warnings:
+            error_log.write(
+                f"Note while converting a {path.suffix or 'file'} to {self.target}", warning
+            )
+        return [*(f"⚠ {w}" for w in result.warnings), *result.notes]
 
     def _clean(self, path: Path) -> tuple[list[str], list[str]]:
         result = metadata.clean_file(path, self.output_dir, name=self.name)

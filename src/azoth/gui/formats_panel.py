@@ -16,9 +16,10 @@ from PySide6.QtWidgets import (
 )
 
 from .. import metadata, ranking
+from ..converters import office
 from ..format_list import CATEGORY_TITLES, conversion_table
 from .targets import display_name
-from .widgets import flow_container, label
+from .widgets import download_button, flow_container, label
 
 LIBREOFFICE_TIP = "Needs LibreOffice, a free program from libreoffice.org"
 
@@ -105,6 +106,9 @@ class FormatsPanel(QWidget):
                 "(free download from libreoffice.org)."
             )
         self.status_label = label(status, "muted", wrap=True)
+        self.download_btn = None
+        if not libreoffice_installed:
+            self.download_btn = download_button("Download LibreOffice…", office.DOWNLOAD_URL)
 
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search, e.g. heic or .docx")
@@ -171,6 +175,8 @@ class FormatsPanel(QWidget):
         layout.setSpacing(14)
         layout.addLayout(heading)
         layout.addWidget(self.status_label)
+        if self.download_btn is not None:
+            layout.addWidget(self.download_btn, 0, Qt.AlignmentFlag.AlignLeft)
         layout.addLayout(filters)
         layout.addWidget(scroll, 1)
 

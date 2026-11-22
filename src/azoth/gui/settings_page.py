@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QProcess, Qt, QUrl, Signal
+from PySide6.QtCore import QProcess, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
@@ -168,8 +168,13 @@ class SettingsPage(QWidget):
         for group in groups:
             card = _card(*group)
             card.setMaximumWidth(640)
-            layout.addWidget(card, 0, Qt.AlignmentFlag.AlignLeft)
             card.setMinimumWidth(520)
+            # A row with a stretch instead of AlignLeft: with AlignLeft, Qt doesn't give
+            # wrapped text the height it needs, and it gets drawn over the buttons.
+            row = QHBoxLayout()
+            row.addWidget(card, 1)
+            row.addStretch(0)
+            layout.addLayout(row)
         self.about_btn.setMaximumWidth(260)
         self.uninstall_btn.setMaximumWidth(260)
         layout.addStretch(1)

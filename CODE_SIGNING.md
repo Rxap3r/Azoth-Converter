@@ -1,6 +1,11 @@
 # Code signing policy
 
-Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+> **Status: planned, not in place yet.** Azoth Converter's releases are currently **not
+> signed**, so Windows may warn before running them. This page describes how signing will
+> work once the project is accepted into the SignPath Foundation's free program. Until then,
+> nothing on this page applies to the downloads.
+
+Once in place: free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
 
 ## What is signed
 
