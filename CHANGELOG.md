@@ -28,6 +28,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Privacy and safety
 
+- The code signing policy, the README and the release notes now say clearly that the
+  downloads are not signed yet; signing is planned.
+
 - Merge, Split and Edit pages now keep a PDF's restrictions (for example "no printing" or
   "no copying") in the new file, like Compress already did. Split and Edit pages keep the
   original lock, so the owner's password still removes it. A merged PDF allows only what

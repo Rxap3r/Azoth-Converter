@@ -12,7 +12,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
   (Linux), Tests (Windows) and Windows app required). `dev` accepts direct pushes. Dependabot
   alerts, private vulnerability reporting and two-factor authentication are on.
-- **Waiting on the owner:** the SignPath Foundation code-signing application. Sequence:
+- **Code signing is postponed** (owner, Nov 2026): first make the app good, then sign.
+  Releases are **not signed**; `CODE_SIGNING.md`, the README and the release notes say so
+  (keep them honest until signing really works). Planned sequence:
   1. ✓ `CODE_SIGNING.md` is on `main` (pull request #5, merged 19 Nov 2026);
   2. the owner applies on signpath.org with the repo link and the link to `CODE_SIGNING.md`
      on `main` (Nov 2026: the form asks whether the app shows up in a web search; the owner

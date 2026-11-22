@@ -196,8 +196,9 @@ docs/               project plan
 
 ## Code signing policy
 
-Releases are built automatically from this repository and will be signed through the
-SignPath Foundation's free program for open-source projects. See [CODE_SIGNING.md](CODE_SIGNING.md).
+Releases are built automatically from this repository. They are **not signed yet**; signing
+through the SignPath Foundation's free program for open-source projects is planned. See
+[CODE_SIGNING.md](CODE_SIGNING.md).
 
 ## Security
 
