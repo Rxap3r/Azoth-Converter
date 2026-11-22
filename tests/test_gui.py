@@ -273,6 +273,77 @@ def test_remove_metadata_not_offered_for_documents(window, sample_png, sample_pd
     assert CLEAN_TARGET not in _targets(window)
 
 
+def test_change_size_only(window, qtbot, sample_png, tmp_path):
+    from PIL import Image
+
+    from azoth.gui.targets import CLEAN_TARGET, RESIZE_TARGET
+    from azoth.resize import FIT, Resize
+
+    photo = tmp_path / "holiday.jpg"
+    Image.new("RGB", (400, 300), "red").save(photo)
+    window.add_files([photo, sample_png])
+    targets = _targets(window)
+    assert targets[-2:] == [RESIZE_TARGET, CLEAN_TARGET]
+    sizes = window.resize_options
+    assert sizes.isHidden() or sizes.spec() is None  # nothing is resized by default
+
+    assert window.target_picker.select(RESIZE_TARGET)
+    assert not sizes.isHidden()
+    assert sizes.spec() == Resize(FIT, width=1920, height=1080)  # Full HD ready to go
+    sizes.set_mode(None)
+    assert not window.convert_btn.isEnabled()  # no size chosen
+    assert window.convert_btn.text() == "Choose a new size"
+    sizes.set_mode("percent")
+    assert sizes.preset.currentText() == "50 %"  # a ready-made size, not "Custom"
+    assert window.convert_btn.isEnabled() and window.convert_btn.text() == "Resize 2 files"
+    assert "(resized)" in window.notes_label.text()
+
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    with Image.open(tmp_path / "holiday (resized).jpg") as im:
+        assert im.size == (200, 150)
+    with Image.open(tmp_path / "logo (resized).png") as im:
+        assert im.size == (60, 40) and im.mode == "RGBA"
+    assert window.done_card.message.text() == "Done! 2 files resized."
+
+
+def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):
+    from PIL import Image
+
+    window.add_files([sample_png])
+    window.output_dir = tmp_path / "out"
+    assert window.target_picker.select("jpg")
+    sizes = window.resize_options
+    assert not sizes.isHidden() and sizes.spec() is None
+    sizes.set_mode("width")
+    assert sizes.width_box.isHidden()  # a ready-made size: no number to type
+    sizes.set_custom(width=60)
+    assert not sizes.width_box.isHidden()
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    with Image.open(tmp_path / "out" / "logo.jpg") as im:
+        assert im.size == (60, 40)
+    assert window.file_list.status(0) == "✓ logo.jpg · 60 × 40 px"
+
+    assert window.target_picker.select("pdf")
+    assert sizes.isHidden()  # a PDF page isn't resized
+    window.add_files([sample_pdf])
+    assert window.target_picker.select("png")
+    assert sizes.isHidden()  # PDF pages use the quality's sharpness instead
+
+
+def test_size_also_resizes_files_already_in_that_format(window, sample_png, tmp_path):
+    from PIL import Image
+
+    photo = tmp_path / "holiday.jpg"
+    Image.new("RGB", (40, 30), "red").save(photo)
+    window.add_files([photo, sample_png])
+    assert window.target_picker.select("jpg")
+    assert window.convert_btn.text() == "Convert 1 file to JPG"  # the JPG is skipped
+    window.resize_options.set_mode("percent")
+    assert window.convert_btn.text() == "Convert 2 files to JPG"  # … unless it gets a new size
+
+
 def test_show_metadata_text(window, sample_pdf, tmp_path):
     photo = _photo_with_location(tmp_path / "holiday.jpg")
     window.add_files([photo, sample_pdf])
@@ -280,6 +351,24 @@ def test_show_metadata_text(window, sample_pdf, tmp_path):
     assert "Location (GPS): 47.36944° N, 8.53333° E" in text
     assert "Camera: SecretCamera" in text
     assert "photos and images" in window.file_list.metadata_text(1)
+
+
+def test_metadata_button_on_photo_cards(window, monkeypatch, sample_pdf, tmp_path):
+    from azoth.gui import file_list
+
+    photo = _photo_with_location(tmp_path / "holiday.jpg")
+    window.add_files([photo, sample_pdf])
+    cards = window.file_list.cards
+    assert not cards[0].metadata_btn.isHidden()  # a photo: the button is there
+    assert cards[0].size.text().startswith("40 × 30 px · ")  # pixels shown for photos
+    assert " px" not in cards[1].size.text()
+    assert cards[1].metadata_btn.isHidden()  # a PDF: nothing to show
+    shown = []
+    monkeypatch.setattr(
+        file_list.QMessageBox, "information", lambda parent, title, text: shown.append(text)
+    )
+    cards[0].metadata_btn.click()
+    assert "Camera: SecretCamera" in shown[0]
 
 
 def test_check_for_updates_only_opens_the_browser(window, monkeypatch):
@@ -504,3 +593,25 @@ def test_a_warning_is_shown_on_the_file_card(window, sample_png, tmp_path):
     card = window.file_list.cards[0]
     assert card.status.text() == "✓ photo.pdf  ⚠ Word failed, LibreOffice was used"
     assert "the layout may differ" in card.status.toolTip()
+
+
+def test_ready_made_picture_sizes(qtbot):
+    from azoth import resize
+    from azoth.gui.options_panel import ResizeOptions
+
+    panel = ResizeOptions()
+    qtbot.addWidget(panel)
+    assert panel.spec() is None and panel.preset.isHidden()
+    modes = [panel.mode.itemData(i) for i in range(panel.mode.count())]
+    assert resize.LONGEST not in modes  # "Screen size" covers it, simpler to choose
+    assert not panel.only_shrink.isChecked()  # a chosen size is what you get
+    panel.set_mode(resize.FIT)
+    items = [panel.preset.itemText(i) for i in range(panel.preset.count())]
+    assert items[2] == "3840 × 2160 (4K UHD)" and items[-1] == panel.CUSTOM
+    assert panel.preset.currentText() == "1920 × 1080 (Full HD, 1080p)"  # not "Custom"
+    panel.preset.setCurrentIndex(2)
+    assert panel.spec() == resize.Resize(resize.FIT, width=3840, height=2160)
+    panel.set_mode(resize.HEIGHT)
+    assert panel.spec() == resize.Resize(resize.HEIGHT, width=1920, height=1080)
+    panel.set_custom(height=777)
+    assert panel.spec().height == 777 and not panel.height_box.isHidden()

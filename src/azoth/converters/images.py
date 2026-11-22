@@ -11,6 +11,7 @@ from pathlib import Path
 
 from PIL import Image, ImageOps, ImageSequence, features
 
+from .. import resize
 from .base import ConversionContext, ConversionError, Converter
 
 try:
@@ -22,6 +23,9 @@ except ImportError:  # pragma: no cover - optional dependency
     HEIF_SUPPORTED = False
 
 AVIF_SUPPORTED = bool(features.check("avif"))
+# Load all of Pillow's format readers now (at start-up, one thread), not lazily while
+# several photos are opened at once in parallel threads.
+Image.init()
 
 # Format id -> Pillow format name used when saving.
 PIL_SAVE_FORMATS = {
@@ -92,7 +96,15 @@ class ImageConverter(Converter):
                 if src != dst:
                     yield src, dst
 
+    def supports_resize(self, src: str, dst: str) -> bool:
+        return src in READABLE and dst in PIL_SAVE_FORMATS
+
     def quality_note(self, src: str, dst: str) -> str | None:
+        if src == dst and dst in ("jpg", "webp", "heic", "avif"):
+            return (
+                f"{dst.upper()} is a lossy format: the resized picture is saved again with "
+                "the chosen quality."
+            )
         if dst == "gif":
             return "GIF supports only 256 colours, so photos may look grainy."
         if dst == "ico":
@@ -113,6 +125,29 @@ class ImageConverter(Converter):
             src.suffix.lower().lstrip("."), src.suffix.lower().lstrip(".")
         )
         keep_metadata = bool(ctx.option("keep_metadata", False))
+        size: resize.Resize | None = ctx.option("resize", None)
+
+        def prepare(frame: Image.Image) -> Image.Image:
+            # The size is applied after turning the picture upright (in _prepare_frame),
+            # so "width" means the width the user sees.
+            frame = _prepare_frame(frame, dst_id)
+            if size is None:
+                return frame
+            resized = resize.apply(frame, size)
+            if resized.size != frame.size and not changed:
+                changed.append(
+                    f"New size: {resized.width} × {resized.height} px "
+                    f"(was {frame.width} × {frame.height} px)."
+                )
+            if resized.size == frame.size and size.would_enlarge(*frame.size) and not kept:
+                kept.append(
+                    f"Kept the original size ({frame.width} × {frame.height} px): the picture "
+                    "is already smaller and “Don't enlarge smaller pictures” is on."
+                )
+            return resized
+
+        kept: list[str] = []
+        changed: list[str] = []
 
         try:
             with Image.open(src) as im:
@@ -123,17 +158,21 @@ class ImageConverter(Converter):
                     frames = []
                     for i, frame in enumerate(ImageSequence.Iterator(im)):
                         ctx.check_cancelled()
-                        frames.append(_prepare_frame(frame.copy(), dst_id))
+                        frames.append(prepare(frame.copy()))
                         ctx.progress((i + 1) / n_frames * 0.8, f"Frame {i + 1}/{n_frames}")
                     durations = im.info.get("duration")
                 else:
-                    frames = [_prepare_frame(im, dst_id)]
+                    frames = [prepare(im)]
                     durations = None
         except ConversionError:
             raise
+        except resize.ResizeError as exc:
+            raise ConversionError(str(exc)) from exc
         except Exception as exc:  # Pillow raises many exception types for bad files
             raise ConversionError(f"Could not read image: {exc}") from exc
 
+        ctx.warnings.extend(kept)
+        ctx.notes.extend(changed)
         ctx.check_cancelled()
         first = frames[0]
         for frame in frames:
@@ -145,6 +184,9 @@ class ImageConverter(Converter):
             save_args["icc_profile"] = icc_profile  # colour profile, not personal data
         if exif is not None and dst_id in ("jpg", "png", "webp", "tiff", "heic", "avif"):
             exif[0x0112] = 1  # orientation is already applied to the pixels
+            if size is not None:  # the old pixel size would be wrong now
+                exif.get_ifd(0x8769).pop(0xA002, None)
+                exif.get_ifd(0x8769).pop(0xA003, None)
             save_args["exif"] = exif.tobytes()
         if dst_id == "webp" and src_id in LOSSLESS_SOURCES:
             save_args["lossless"] = True  # pixel-perfect copy of a lossless original

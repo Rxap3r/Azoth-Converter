@@ -14,7 +14,7 @@ Base "What's new" on the version's section in CHANGELOG.md, in plain language.
 | File | What it is |
 |---|---|
 | **AzothConverter-Setup-<version>.exe** | **Installer (recommended).** Installs the app with a Start menu entry and a clean uninstall under *Settings → Apps*. No admin rights needed. |
-| **AzothConverter-portable-<version>.zip** | **Portable version, no installation.** Unzip the folder anywhere and run `AzothConverter.exe`; to remove it, delete the folder. Same app as the installer. Note: it still keeps its few settings in `%APPDATA%\Azoth Converter`, which stays behind when you delete the folder (a fully portable version is planned). |
+| **AzothConverter-portable-<version>.zip** | **Portable version, no installation.** Unzip the folder anywhere (also a USB stick) and run `AzothConverter.exe`; to remove it, delete the folder. Same app as the installer, but it keeps its settings and temporary files in a `data` folder next to itself, so nothing is left on the computer. |
 | Source code (zip / tar.gz) | Added by GitHub to every release: the project's code at this version. Only needed by developers. |
 
 The files aren't signed yet, so Windows may show "Windows protected your PC": click **More info → Run anyway**.

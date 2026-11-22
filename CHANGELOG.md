@@ -7,6 +7,55 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-22
+
+### Added
+
+- **Change picture size:** photos can be made smaller or bigger while converting, or
+  saved in the same format with only a new size ("Change size only", saved as
+  "name (resized)"). Choose a screen size (8K, 4K, QHD, Full HD, HD …, turned for portrait
+  photos), a width, a height or a percentage, from ready-made sizes or "Custom size…".
+  Proportions are always kept. "Don't enlarge smaller pictures" leaves small ones as they
+  are. Each resized file shows its new size (e.g. "· 1920 × 1280 px"). Command line:
+  `--resize 1920x1080`, `--resize 2000` (longest side), `--resize 50%`, `--only-shrink`.
+- **Portable mode:** when a file `portable.txt` lies next to the program, the app keeps its
+  settings and error log in a `data` folder beside it, and its temporary files in
+  `data\temp`, instead of on the PC. Nothing to uninstall: delete the folder. The "Done"
+  notification is off by default there (Windows remembers every app that shows one).
+  The portable ZIP now contains this file (the installer never does), so it is fully
+  portable.
+- Photos in the list show their size in pixels next to the file size
+  (e.g. "4032 × 3024 px · 3.2 MB").
+- **"Show metadata" button** (ⓘ) on every photo in the list, so you can see what's hidden
+  in it (location, camera, date …) without the right-click menu.
+
+### Changed
+
+- The command-line program in the Windows download is now called **azoth-terminal.exe**
+  (was azoth.exe), so it's clear which one is the app. Double-clicking it shows a short note
+  on how to use it instead of opening the app. Updating removes the old azoth.exe.
+
+### Quality
+
+- Pictures keep all their pixels unless you choose a size. Making smaller uses Lanczos
+  (sharp, clean), enlarging uses smooth bicubic; transparent edges stay clean. Kept
+  metadata no longer claims the old pixel size.
+
+### Fixed
+
+- The app could crash ("access violation") while converting several photos at once:
+  Python's memory clean-up could run in a conversion thread and free parts of the window.
+  It now runs only in the main thread, and all picture format readers load at start-up.
+  This may also have been the crash seen in 0.2.0 with several photos.
+
+### Development
+
+- The possible target formats and conversion routes are worked out once and remembered,
+  instead of again for every change in the list.
+- The Windows build also makes and tests the portable ZIP: unzipped, it must convert, start
+  and leave nothing in `%APPDATA%`, the temp folder or the registry. Manual test builds
+  offer the ZIP for download too.
+
 ## [0.3.1] - 2026-11-22
 
 ### Added
@@ -264,7 +313,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...v0.2.1

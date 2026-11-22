@@ -148,7 +148,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] PDF → Excel for tables
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
-  - [ ] With the design refresh: a "Show metadata" button on each file card instead of the right-click menu
+  - [x] A "Show metadata" button (ⓘ) on each photo card, besides the right-click menu (0.4.0)
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
 - [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
 
@@ -183,18 +183,23 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
 - [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
-- [ ] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
+- [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
 ### Phase 3: Audio and video (≈ 4 weeks)
 - [ ] FFmpeg plugin with progress parsed from FFmpeg's output
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
 - [ ] Trim, resolution, bitrate, mute; hardware encoding (NVENC, Quick Sync, AMF)
 - [ ] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file
-- [ ] **Release 0.3**
+- [x] **Release 0.3** (0.3.0 and 0.3.1, Nov 2026)
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
-- [ ] **Fully portable version** (runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
+- [x] **Fully portable version** (on `dev`, Nov 2026: `portable.py`; `portable.txt` only in the ZIP, never in the installer; the build tests the unzipped app; runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
+- [x] Command-line program renamed to `azoth-terminal.exe` (owner's wish, 0.4.0); double-clicked it shows a short note instead of opening the app
 - [ ] Windows Explorer right-click menu: "Convert with Azoth Converter → …"
+- [ ] **Image size and quality (owner's wish, Nov 2026):** choose how many pixels a picture should have (e.g. width × height, a percentage, or "longest side 2000 px"), when converting or on its own (same format).
+  - [x] Smaller: normal high-quality downscaling (Lanczos), plus **plain enlarging** (smooth bicubic, adds no detail). App: "Picture size" + "Change size only" tile; CLI: `--resize`, `--only-shrink` (on `dev`, Nov 2026). Owner's feedback: "Screen size" instead of "Fit inside", turned for portrait photos; "Longest side" only on the command line; enlarging is normal, "Don't enlarge smaller pictures" optional; ready-made sizes (8K … 640 × 360, percentages) with "Custom size…" last, owner's wish
+  - [ ] Later, its own step: **AI upscaling** that invents plausible detail to fit the new size (a local model, e.g. Real-ESRGAN; must run offline, adds download size). Also "improve quality" at the same size (sharpen, remove JPEG blocks, reduce noise).
+  - Never the default: originals stay 1:1 unless the user asks. Say clearly that AI-added detail isn't real (not for documents, evidence or ID photos)
 - [ ] Watch folders (files dropped in a folder are converted automatically)
 - [ ] Data formats (CSV/JSON/XML/YAML/XLSX), Markdown/HTML/EPUB, archives, Camera RAW, SVG
 - [ ] Saved presets, optional local conversion history (can be cleared or turned off)

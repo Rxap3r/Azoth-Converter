@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import icons
-from .targets import CLEAN_TARGET, CLEAN_TILE, Choices, tile_text
+from .targets import CLEAN_TARGET, CLEAN_TILE, RESIZE_TARGET, RESIZE_TILE, Choices, tile_text
 from .theme import LIGHT_COLORS, Colors
 from .widgets import label
 
@@ -69,14 +69,18 @@ class TargetPicker(QWidget):
         self._grid.setSpacing(8)
         for col in range(COLUMNS):
             self._grid.setColumnStretch(col, 1)
+        self.resize_tile = Tile(RESIZE_TARGET, *RESIZE_TILE, wide=True)
         self.clean_tile = Tile(CLEAN_TARGET, *CLEAN_TILE, wide=True)
-        self.clean_tile.setVisible(False)
-        self.group.addButton(self.clean_tile)
+        self.extra_tiles = [self.resize_tile, self.clean_tile]  # below the formats
+        for tile in self.extra_tiles:
+            tile.setVisible(False)
+            self.group.addButton(tile)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addLayout(self._grid)
-        layout.addWidget(self.clean_tile)
+        for tile in self.extra_tiles:
+            layout.addWidget(tile)
         self._quiet = False
         self.apply_colors(self._colors)
 
@@ -95,8 +99,10 @@ class TargetPicker(QWidget):
                 self.group.addButton(tile)
                 self._grid.addWidget(tile, i // COLUMNS, i % COLUMNS)
                 self.tiles.append(tile)
+            self.resize_tile.setVisible(choices.can_resize)
             self.clean_tile.setVisible(choices.can_clean)
-            self.clean_tile.setChecked(False)
+            for tile in self.extra_tiles:
+                tile.setChecked(False)
             offered = self.ids()
             wanted = next((k for k in keep if k in offered), offered[0] if offered else None)
             for button in self._buttons():
@@ -106,32 +112,31 @@ class TargetPicker(QWidget):
         self.changed.emit(self.current())
 
     def _buttons(self) -> list[Tile]:
-        return [*self.tiles, *([self.clean_tile] if not self.clean_tile.isHidden() else [])]
+        return [*self.tiles, *(t for t in self.extra_tiles if not t.isHidden())]
 
     def ids(self) -> list[str]:
-        """Offered targets in order; "clean" (remove metadata) comes last."""
-        return [t.target for t in self.tiles] + (
-            [CLEAN_TARGET] if not self.clean_tile.isHidden() else []
-        )
+        """Offered targets in order; "resize" and "clean" (same format) come last."""
+        return [t.target for t in self._buttons()]
 
     def current(self) -> str | None:
         button = self.group.checkedButton()
         return button.target if isinstance(button, Tile) and button.target in self.ids() else None
 
     def select(self, target: str) -> bool:
-        for button in (*self.tiles, self.clean_tile):
+        for button in (*self.tiles, *self.extra_tiles):
             if button.target == target and target in self.ids():
                 button.setChecked(True)
                 return True
         return False
 
     def set_busy(self, busy: bool) -> None:
-        for button in (*self.tiles, self.clean_tile):
+        for button in (*self.tiles, *self.extra_tiles):
             button.setEnabled(not busy)
 
     def apply_colors(self, colors: Colors) -> None:
         self._colors = colors
         self.clean_tile.icon_label.setPixmap(icons.pixmap("shield", colors.success, 20))
+        self.resize_tile.icon_label.setPixmap(icons.pixmap("resize", colors.accent, 20))
 
     def _toggled(self, button, checked: bool) -> None:
         if checked and not self._quiet:

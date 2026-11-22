@@ -12,7 +12,7 @@ Once in place: free code signing provided by [SignPath.io](https://about.signpat
 For each release, these files are signed:
 
 - the installer `AzothConverter-Setup-<version>.exe`;
-- the programs inside the installer and the portable ZIP, `AzothConverter.exe` and `azoth.exe`.
+- the programs inside the installer and the portable ZIP, `AzothConverter.exe` and `azoth-terminal.exe`.
 
 Every signed file is built automatically by GitHub Actions (the **Release** workflow in this
 repository), directly from the source code on the `main` branch. Nothing is built or signed on

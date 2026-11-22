@@ -87,6 +87,10 @@ class Engine:
         were installed. Used to list what's possible, never to run conversions."""
         self.converters = list(converters) if converters is not None else all_converters()
         self._edges: dict[str, dict[str, Converter]] = {}
+        # Routes and target lists never change for an engine (which converters are
+        # available is decided here), so they are worked out once and remembered.
+        self._routes: dict[tuple[str, str], list[Step] | None] = {}
+        self._targets: dict[str, list[formats.Format]] = {}
         for conv in sorted(self.converters, key=lambda c: c.priority):
             if not assume_available and not conv.is_available():
                 continue
@@ -104,6 +108,13 @@ class Engine:
 
     def find_route(self, src: str, dst: str) -> list[Step] | None:
         """Shortest chain of converters from ``src`` to ``dst`` (breadth-first search)."""
+        key = (src, dst)
+        if key not in self._routes:
+            self._routes[key] = self._search_route(src, dst)
+        route = self._routes[key]
+        return None if route is None else list(route)
+
+    def _search_route(self, src: str, dst: str) -> list[Step] | None:
         if src == dst:
             return None
         queue: deque[tuple[str, list[Step]]] = deque([(src, [])])
@@ -124,8 +135,28 @@ class Engine:
                 queue.append((nxt, [*path, step]))
         return None
 
+    def resize_route(self, fmt: str) -> list[Step] | None:
+        """Saving a ``fmt`` file again in the same format, in a new size (option ``resize``)."""
+        for conv in sorted(self.converters, key=lambda c: -c.priority):
+            if conv.is_available() and conv.supports_resize(fmt, fmt):
+                return [Step(fmt, fmt, conv)]
+        return None
+
+    def can_resize(self, src: str, dst: str) -> bool:
+        """True if ``src`` files can get a new picture size when converted to ``dst``
+        (or saved again in a new size, when ``src == dst``)."""
+        route = self.resize_route(src) if src == dst else self.find_route(src, dst)
+        return route is not None and route[-1].converter.supports_resize(
+            route[-1].src, route[-1].dst
+        )
+
     def targets_for(self, src: str) -> list[formats.Format]:
         """All formats ``src`` can be converted to, most useful first (see ranking.py)."""
+        if src not in self._targets:
+            self._targets[src] = self._search_targets(src)
+        return list(self._targets[src])
+
+    def _search_targets(self, src: str) -> list[formats.Format]:
         result = []
         for fmt in formats.FORMATS.values():
             if fmt.id != src and self.find_route(src, fmt.id) is not None:
@@ -156,10 +187,11 @@ class Engine:
         name: str | None = None,
     ) -> ConversionResult:
         """``name``: the result's file name without extension (default: the original's)."""
-        job = self._plan(Path(source), target, output_dir, name)
+        resolved = quality.resolve_options(options)  # level → values, enforce limits
+        job = self._plan(Path(source), target, output_dir, name, resolved)
         return self._run(
             job,
-            quality.resolve_options(options),  # level → values, enforce limits
+            resolved,
             overwrite=overwrite,
             report=progress or (lambda f, m: None),
             cancel=cancel_event or threading.Event(),
@@ -196,7 +228,7 @@ class Engine:
         jobs: list[_Job | ConversionError] = []
         for source in sources:
             try:
-                jobs.append(self._plan(source, target, output_dir, None))
+                jobs.append(self._plan(source, target, output_dir, None, resolved))
             except ConversionError as exc:
                 jobs.append(exc)
 
@@ -315,7 +347,12 @@ class Engine:
     # --- internals ----------------------------------------------------------
 
     def _plan(
-        self, source: Path, target: str, output_dir: Path | str | None, name: str | None
+        self,
+        source: Path,
+        target: str,
+        output_dir: Path | str | None,
+        name: str | None,
+        options: dict[str, Any],
     ) -> _Job:
         if not source.is_file():
             raise ConversionError(f"File not found: {source}")
@@ -326,10 +363,13 @@ class Engine:
             dst_fmt = formats.get(target)
         except KeyError as exc:
             raise ConversionError(str(exc)) from exc
+        resizing = options.get("resize") is not None
         if src_fmt.id == dst_fmt.id:
-            raise ConversionError(f"{source.name} is already {dst_fmt.name}")
-
-        route = self.find_route(src_fmt.id, dst_fmt.id)
+            route = self.resize_route(src_fmt.id) if resizing else None
+            if route is None:
+                raise ConversionError(f"{source.name} is already {dst_fmt.name}")
+        else:
+            route = self.find_route(src_fmt.id, dst_fmt.id)
         if route is None:
             hint = ""
             for conv in self.unavailable():
@@ -337,7 +377,18 @@ class Engine:
                     hint = " " + conv.unavailable_reason()
                     break
             raise ConversionError(f"Cannot convert {src_fmt.name} to {dst_fmt.name}.{hint}")
-        stem = source.stem if name is None else check_file_name(name, dst_fmt.extension)
+        last = route[-1]
+        if resizing and not last.converter.supports_resize(last.src, last.dst):
+            raise ConversionError(
+                f"The picture size can't be changed when converting {src_fmt.name} to "
+                f"{dst_fmt.name}. Only pictures saved as pictures can get a new size."
+            )
+        if name is not None:
+            stem = check_file_name(name, dst_fmt.extension)
+        elif src_fmt.id == dst_fmt.id:
+            stem = f"{source.stem} (resized)"  # never the original's name
+        else:
+            stem = source.stem
         out_dir = Path(output_dir) if output_dir is not None else source.parent
         return _Job(source, src_fmt, route, stem, out_dir)
 
@@ -385,7 +436,7 @@ class Engine:
         report(0.0, f"Converting {len(group)} files at once with {step.converter.label}")
         ctx = ConversionContext(
             work_dir=work_dir,
-            options=options,
+            options=options if len(job.route) == 1 else _without_resize(options),
             progress=lambda f, m: report(max(0.0, min(1.0, f)) / len(job.route), m),
             cancel_event=cancel,
         )
@@ -428,13 +479,14 @@ class Engine:
 
                     ctx = ConversionContext(
                         work_dir=step_dir,
-                        options=options,
+                        options=options if i == len(route) - 1 else _without_resize(options),
                         progress=step_progress,
                         cancel_event=cancel,
                     )
                     ctx.check_cancelled()
                     produced = step.converter.convert(current, step_dst, ctx)
                     result.warnings.extend(ctx.warnings)
+                    result.notes.extend(ctx.notes)
                 if not produced or not all(p.exists() for p in produced):
                     raise ConversionError("The converter did not produce any output")
                 current = produced[0]
@@ -447,6 +499,11 @@ class Engine:
                     result.outputs.append(final)
         report(1.0, "Done")
         return result
+
+
+def _without_resize(options: dict[str, Any]) -> dict[str, Any]:
+    """Options for steps before the last: the size is changed once, at the end."""
+    return {k: v for k, v in options.items() if k != "resize"}
 
 
 def _no_progress(fraction: float, message: str) -> None:

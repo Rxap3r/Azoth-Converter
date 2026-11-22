@@ -6,7 +6,7 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.3.0** (22 Nov 2026; 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.3.1** (22 Nov 2026, pull request #9; 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
@@ -27,9 +27,22 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Version 0.2.1** (error log, Uninstall button, clean updates, open-folder fix) is on `main`
   (pull request #7, merged 21 Nov 2026) and **released** as v0.2.1 on GitHub Releases. Later work goes under
   `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
-  0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
-  should show it next time. Not yet tried with real phone photos: metadata removal.
-- **Next planned work (owner decides the order):**
+  0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced. Probably the
+  same as the "access violation" the owner hit on 22 Nov 2026 (Python's garbage collection
+  in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
+- **0.4.0 prepared on `dev` (22 Nov 2026):** picture size, fully portable ZIP, "Show
+  metadata" button, crash fix, cached format list. Version, changelog and
+  `docs/releases/v0.4.0.md` done; pull request #10 (`dev` → `main`) opened 22 Nov 2026.
+  Next: the owner merges it and runs Actions → Release on `main`. Also in 0.4.0:
+  `azoth-terminal.exe` (renamed CLI), pixel size on photo cards.
+- **Next planned work, in this order (owner, 22 Nov 2026):**
+  1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
+     (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Owner tested
+     the Windows test build on 22 Nov 2026: works (with portable mode and the crash fix). AI upscaling / "improve quality" comes later as its own step;
+  2. ✓ **Fully portable version** (on `dev`, not released): `portable.txt` only in the
+     ZIP (owner: never in the installer); the Windows build tests the unzipped app;
+  3. later: smaller download (owner doesn't worry about size now), design refresh, the rest.
+- **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
   - **0.3.0 released (22 Nov 2026, pull request #8):** compress PDF, passwords, OCR, file
@@ -41,13 +54,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
     real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
     edit pages, compress, passwords ✓) → **OCR** ✓ (all released in 0.3.0);
-  - technical improvements: **faster batches ✓ on `dev`, not released** (LibreOffice and
-    Word: up to 10 files per start; photos: up to 4 at once; PDF restrictions kept in
-    Merge / Split / Edit pages). Windows "Build and test" passed. Word → PDF never worked
-    before (Documents.Open rejected PowerShell's $true/$false); fixed by passing the options
-    by name (InvokeMember), **confirmed by the owner on a PC with Word** (Nov 2026, several
-    files at once). **0.3.1 prepared on `dev`, pull request into `main` opened (Nov 2026)**;
-    then: smaller download;
+  - technical improvements: **faster batches ✓ released in 0.3.1** (Word and LibreOffice: up
+    to 10 files per start; photos: up to 4 at once), plus Word → PDF that really uses Word
+    (never worked before 0.3.1) and PDF restrictions kept. Next: smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
@@ -176,6 +185,8 @@ src/azoth/
   ocr.py              text recognition (Tesseract inside PyMuPDF): searchable PDF, page texts;
                       converters/ocr.py = images → TXT/DOCX; language files in
                       resources/tessdata (not in git: `python packaging/fetch_tessdata.py`)
+  portable.py         portable mode (portable.txt next to the exe → data/ and data/temp beside it)
+  resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
   metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py
@@ -189,7 +200,7 @@ src/azoth/
                       error_log.py (local error log + crash dump, Settings → Error log…)
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
-packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),
+packaging/            PyInstaller spec (AzothConverter.exe + azoth-terminal.exe), installer.iss (Inno Setup),
                       make_icon.py; the automatic build creates and tests the installer
 .github/workflows/    only two workflows: build-and-test.yml and release.yml (shown in the Actions tab)
 .github/actions/      their shared steps: run-tests, build-windows (composite actions, not listed)

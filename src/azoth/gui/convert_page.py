@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from . import icons
 from .done_card import DoneCard
 from .file_list import FileList
-from .options_panel import OcrOptions, QualitySelector
+from .options_panel import OcrOptions, QualitySelector, ResizeOptions
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .theme import Colors, repolish
@@ -32,6 +32,8 @@ class ConvertPage(QWidget):
         self.quality = QualitySelector()
         self.ocr = OcrOptions()
         self.ocr.set_mode(None)
+        self.resize = ResizeOptions()
+        self.resize.setVisible(False)
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()
 
@@ -109,6 +111,7 @@ class ConvertPage(QWidget):
         column.addWidget(self.target_picker)
         column.addWidget(self.notes_label)
         column.addWidget(self.ocr)
+        column.addWidget(self.resize)
         column.addWidget(self.quality)
         column.addWidget(self.output_row)
         column.addWidget(self.name_row)

@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import __version__, formats
+from .. import __version__, formats, resize
 from ..converters import all_converters
 from ..converters.msword import word_installed
 from ..engine import Engine
@@ -40,7 +40,7 @@ from .formats_panel import FormatsPanel
 from .pdf_tools_page import PdfToolsPage
 from .settings import Preferences
 from .settings_page import SettingsPage
-from .targets import CLEAN_TARGET, display_name
+from .targets import CLEAN_TARGET, RESIZE_TARGET, display_name
 from .widgets import label
 from .worker import ConversionWorker
 
@@ -93,6 +93,7 @@ class MainWindow(QMainWindow):
         self.target_picker = page.target_picker
         self.quality = page.quality
         self.ocr_options = page.ocr
+        self.resize_options = page.resize
         self.output_row = page.output_row
         self.name_row = page.name_row
         self.notes_label = page.notes_label
@@ -103,6 +104,7 @@ class MainWindow(QMainWindow):
         self.cancel_btn = page.cancel_btn
         self.file_list.changed.connect(self._files_changed)
         self.target_picker.changed.connect(lambda _target: self._update_notes())
+        self.resize_options.changed.connect(self._update_action)
         self.cancel_btn.clicked.connect(self._cancel_conversion)
         self.convert_btn.clicked.connect(self.start_conversion)
 
@@ -279,6 +281,7 @@ class MainWindow(QMainWindow):
         self.target_picker.set_busy(busy)
         self.quality.set_busy(busy)
         self.ocr_options.set_busy(busy)
+        self.resize_options.set_busy(busy)
         count = self.file_list.count()
         self.convert_page.subtitle.setText(
             f"{count} file{'s' if count != 1 else ''} · drop more anywhere in this window"
@@ -287,16 +290,23 @@ class MainWindow(QMainWindow):
         )
         self._update_action()
 
-    def _jobs_for(self, target: str | None) -> int:
-        return sum(1 for f in self.file_list.formats if f is not None and f.id != target)
+    def _resize_spec(self):
+        """The chosen picture size, or None (no new size, or the choice isn't shown)."""
+        return self.resize_options.spec() if not self.resize_options.isHidden() else None
+
+    def _jobs_for(self, target: str | None) -> list[int]:
+        resizing = self._resize_spec() is not None
+        return targets.jobs(self.file_list.formats, target, resizing)
 
     def _update_action(self) -> None:
         target = self.target_picker.current()
         busy = self._thread is not None
-        count = self._jobs_for(target) if target else 0
+        count = len(self._jobs_for(target))
         files = f"{count} file{'s' if count != 1 else ''}"
         if target == CLEAN_TARGET:
             text = f"Remove metadata from {files}"
+        elif target == RESIZE_TARGET:
+            text = f"Resize {files}" if count else "Choose a new size"
         elif target:
             text = f"Convert {files} to {display_name(target)}"
         else:
@@ -309,13 +319,17 @@ class MainWindow(QMainWindow):
         self.name_row.set_extension(self._result_extension(target))
         self.settings_page.metadata_check.setEnabled(target != CLEAN_TARGET)
         self.ocr_options.set_mode(targets.ocr_mode(self.file_list.formats, target))
+        resizable = targets.can_resize(self.engine, self.file_list.formats, target)
+        if target == RESIZE_TARGET and self.resize_options.spec() is None:
+            self.resize_options.set_mode(resize.FIT)  # this tile is about a new size
+        self.resize_options.setVisible(resizable)
         notes = targets.notes(self.engine, self.file_list.formats, target)
         self.notes_label.setText("\n".join(notes))
         self.notes_label.setVisible(bool(notes))
         self._update_action()
 
     def _result_extension(self, target: str | None) -> str:
-        if target == CLEAN_TARGET:
+        if target in (CLEAN_TARGET, RESIZE_TARGET):
             files = self.file_list.files
             return files[0].suffix.lstrip(".") if len(files) == 1 else ""
         return formats.FORMATS[target].extension if target in formats.FORMATS else ""
@@ -333,17 +347,21 @@ class MainWindow(QMainWindow):
         target = self.target_picker.current()
         if not target or self._thread is not None:
             return
+        size = self._resize_spec()
+        if target == RESIZE_TARGET and size is None:
+            return
+        to_convert = set(self._jobs_for(target))
         jobs = []
         for row, (path, fmt) in enumerate(
             zip(self.file_list.files, self.file_list.formats, strict=True)
         ):
             if fmt is None:
                 self.file_list.set_status(row, "Skipped: unknown file type")
-            elif fmt.id == target:
+            elif row not in to_convert:
                 self.file_list.set_status(row, "Skipped: already this format")
             else:
                 self.file_list.set_status(row, "Waiting", state=WAITING)
-                jobs.append((row, path))
+                jobs.append((row, path, targets.job_target(target, fmt)))
         if not jobs:
             return
         category = targets.single_category(self.file_list.formats)
@@ -365,6 +383,7 @@ class MainWindow(QMainWindow):
         options = {
             "level": self.quality.level(),
             "keep_metadata": self.settings_page.metadata_check.isChecked(),
+            "resize": size,
             **self.ocr_options.options(),
             "ocr_turn_pages": self.settings_page.turn_check.isChecked(),
         }
@@ -403,8 +422,9 @@ class MainWindow(QMainWindow):
 
     @Slot(int)
     def _on_started(self, row: int) -> None:
-        cleaning = self._worker is not None and self._worker.target == CLEAN_TARGET
-        verb = "Removing metadata from" if cleaning else "Converting"
+        verb = {CLEAN_TARGET: "Removing metadata from", RESIZE_TARGET: "Resizing"}.get(
+            self._worker.target if self._worker is not None else "", "Converting"
+        )
         self.file_list.set_progress(row, 0.0, "Working…")
         self.status_label.setText(f"{verb} {self.file_list.files[row].name}")
 
@@ -420,6 +440,9 @@ class MainWindow(QMainWindow):
         self._running.pop(row, None)
         self._set_overall()
         text = f"✓ {Path(outputs[0]).name}" if len(outputs) == 1 else f"✓ {len(outputs)} files"
+        new_size = next((n for n in notes if n.startswith("New size: ")), None)
+        if new_size:  # "✓ photo (resized).jpg · 2500 × 1875 px"
+            text += " · " + new_size.removeprefix("New size: ").split(" (")[0]
         warnings = [n for n in notes if n.startswith("⚠")]
         if warnings:  # e.g. "⚠ Word failed, LibreOffice was used": details in the tooltip
             text += "  " + warnings[0].split(" (")[0].split(". ")[0]
@@ -443,7 +466,7 @@ class MainWindow(QMainWindow):
 
     @Slot(bool)
     def _on_finished(self, cancelled: bool) -> None:
-        cleaning = self._worker is not None and self._worker.target == CLEAN_TARGET
+        kind = self._worker.target if self._worker is not None else None
         if self._thread is not None:
             self._thread.quit()
             self._thread.wait()
@@ -458,7 +481,13 @@ class MainWindow(QMainWindow):
             next(iter(self._output_folders)) if len(self._output_folders) == 1 else None
         )
         converted = self._done_count - self._failed
-        text = done_message(converted, self._failed, cancelled, cleaning)
+        text = done_message(
+            converted,
+            self._failed,
+            cancelled,
+            cleaning=kind == CLEAN_TARGET,
+            resizing=kind == RESIZE_TARGET,
+        )
         self.status_label.setText("")
         self.done_card.show_result(
             text,

@@ -36,6 +36,13 @@ picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC
 in the app, choose **Remove metadata only**; right-click a file and choose
 **Show metadata…** to see what it contains first.
 
+**Change picture size:** make photos smaller or bigger while converting, or keep the format
+and only change the size. Choose a screen size like Full HD or 4K (turned for portrait
+photos), a width, a height or a percentage; proportions are always kept, and nothing is
+resized unless you choose a size.
+In the app under **Picture size** (or the **Change size only** tile); on the command line
+`azoth convert *.jpg --to jpg --resize 2000`.
+
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
 unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
 Word → PDF for an exact layout. Under **Quality** next to the format tiles you can choose smaller files
@@ -50,7 +57,9 @@ PDF → Word, PDF ↔ images and the image conversions work without it.
 
 Each release offers two versions of the same app:
 - **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry and clean uninstall.
-- **AzothConverter-portable-<version>.zip**: no installation; unzip and run `AzothConverter.exe`, delete the folder to remove it.
+- **AzothConverter-portable-<version>.zip**: no installation; unzip anywhere (also a USB
+  stick) and run `AzothConverter.exe`. It keeps its settings and temporary files in a `data`
+  folder next to itself, so nothing is left on the computer; delete the folder to remove it.
 
 The "Source code" archives that GitHub adds to every release are only needed by developers.
 
@@ -62,7 +71,9 @@ and leaves no files, settings or registry entries behind.
 tile on the right and click **Convert**. It remembers your format, output folder and quality setting.
 Under **Settings** you can choose a light or dark look, or let it follow Windows.
 
-**The command line:**
+**The command line:** in the Windows download the command-line program is
+`azoth-terminal.exe` (next to `AzothConverter.exe`; type `azoth-terminal` instead of `azoth`
+in the examples). Installed from source with pip, the command is `azoth`.
 
 ```bash
 azoth convert report.docx --to pdf
@@ -168,7 +179,7 @@ cd packaging
 pyinstaller azoth.spec --noconfirm
 ```
 
-The result is in `packaging/dist/AzothConverter/`: `AzothConverter.exe` (the app) and `azoth.exe` (command line).
+The result is in `packaging/dist/AzothConverter/`: `AzothConverter.exe` (the app) and `azoth-terminal.exe` (command line).
 The installer is made from that folder with [Inno Setup](https://jrsoftware.org/isinfo.php):
 
 ```bash

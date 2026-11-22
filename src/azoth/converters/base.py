@@ -40,6 +40,8 @@ class ConversionContext:
     warnings: list[str] = field(default_factory=list)
     """Things the user should know about this file's result (e.g. a fallback engine was
     used). Shown on the file and written to the local error log."""
+    notes: list[str] = field(default_factory=list)
+    """Plain information about this file's result (e.g. its new picture size)."""
 
     def check_cancelled(self) -> None:
         if self.cancel_event.is_set():
@@ -89,6 +91,11 @@ class Converter(ABC):
         intermediate result. Example: PDF → Word works well on real PDFs, but
         Excel → PDF → Word would produce a poor Word file.
         """
+        return False
+
+    def supports_resize(self, src: str, dst: str) -> bool:
+        """True if this converter can change the picture size (option ``resize``) while
+        converting ``src`` to ``dst``. ``src == dst``: saving again in a new size."""
         return False
 
     def quality_note(self, src: str, dst: str) -> str | None:

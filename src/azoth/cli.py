@@ -5,6 +5,8 @@ Examples::
     azoth convert report.docx --to pdf
     azoth convert *.heic --to jpg -o converted
     azoth convert scan.pdf --to png --dpi 300
+    azoth convert *.heic --to jpg --resize 2000
+    azoth convert photo.jpg --to jpg --resize 50%
     azoth clean *.jpg -o to-share
     azoth clean --show photo.heic
     azoth formats report.pdf
@@ -24,7 +26,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, formats, quality
+from . import __version__, formats, quality, resize
 from .converters import ConversionError
 from .engine import Engine, unique_path
 from .ocr import LANGUAGES
@@ -46,7 +48,16 @@ def cmd_convert(args: argparse.Namespace) -> int:
     from .converters import all_converters
 
     engine = Engine(all_converters(use_word=not args.no_word))
+    if args.only_shrink and args.resize is None:
+        print("--only-shrink needs --resize", file=sys.stderr)
+        return 2
+    try:
+        size = None if args.resize is None else resize.parse(args.resize, not args.only_shrink)
+    except resize.ResizeError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     options = {
+        "resize": size,
         "level": args.level,
         "quality": args.quality,
         "dpi": args.dpi,
@@ -304,7 +315,8 @@ def _bounded(low: int, high: int):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="azoth",
+        # The packaged Windows program is azoth-terminal.exe; installed with pip: azoth.
+        prog="azoth-terminal" if getattr(sys, "frozen", False) else "azoth",
         description="Offline file converter. Your files never leave this computer.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -334,6 +346,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=f"resolution for PDF → images, {quality.MIN_DPI}-{quality.MAX_DPI} "
         "(overrides --level)",
+    )
+    p.add_argument(
+        "--resize",
+        metavar="SIZE",
+        help="new picture size, keeping proportions: 50%% (percentage), 2000 (longest "
+        "side in pixels), 1920x1080 (screen size: fits inside, turned for portrait pictures), "
+        "1920x (width), x1080 (height). Smaller pictures are enlarged (smooth, adds no "
+        "detail). "
+        "With the same format as the file (e.g. --to jpg for a JPG) a resized copy is saved",
+    )
+    p.add_argument(
+        "--only-shrink",
+        action="store_true",
+        help="with --resize: don't enlarge pictures that are smaller than the size",
     )
     p.add_argument(
         "--keep-metadata",
