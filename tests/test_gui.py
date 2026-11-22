@@ -277,6 +277,7 @@ def test_change_size_only(window, qtbot, sample_png, tmp_path):
     from PIL import Image
 
     from azoth.gui.targets import CLEAN_TARGET, RESIZE_TARGET
+    from azoth.resize import FIT, Resize
 
     photo = tmp_path / "holiday.jpg"
     Image.new("RGB", (400, 300), "red").save(photo)
@@ -288,11 +289,12 @@ def test_change_size_only(window, qtbot, sample_png, tmp_path):
 
     assert window.target_picker.select(RESIZE_TARGET)
     assert not sizes.isHidden()
+    assert sizes.spec() == Resize(FIT, width=1920, height=1080)  # Full HD ready to go
     sizes.set_mode(None)
     assert not window.convert_btn.isEnabled()  # no size chosen
     assert window.convert_btn.text() == "Choose a new size"
     sizes.set_mode("percent")
-    sizes.percent_box.setValue(50)
+    assert sizes.preset.currentText() == "50 %"  # a ready-made size, not "Custom"
     assert window.convert_btn.isEnabled() and window.convert_btn.text() == "Resize 2 files"
     assert "(resized)" in window.notes_label.text()
 
@@ -314,7 +316,9 @@ def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):
     sizes = window.resize_options
     assert not sizes.isHidden() and sizes.spec() is None
     sizes.set_mode("width")
-    sizes.width_box.setValue(60)
+    assert sizes.width_box.isHidden()  # a ready-made size: no number to type
+    sizes.set_custom(width=60)
+    assert not sizes.width_box.isHidden()
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
     with Image.open(tmp_path / "out" / "logo.jpg") as im:
@@ -571,3 +575,22 @@ def test_a_warning_is_shown_on_the_file_card(window, sample_png, tmp_path):
     card = window.file_list.cards[0]
     assert card.status.text() == "✓ photo.pdf  ⚠ Word failed, LibreOffice was used"
     assert "the layout may differ" in card.status.toolTip()
+
+
+def test_ready_made_picture_sizes(qtbot):
+    from azoth import resize
+    from azoth.gui.options_panel import ResizeOptions
+
+    panel = ResizeOptions()
+    qtbot.addWidget(panel)
+    assert panel.spec() is None and panel.preset.isHidden()
+    panel.set_mode(resize.FIT)
+    items = [panel.preset.itemText(i) for i in range(panel.preset.count())]
+    assert items[2] == "3840 × 2160 (4K UHD)" and items[-1] == panel.CUSTOM
+    assert panel.preset.currentText() == "1920 × 1080 (Full HD, 1080p)"  # not "Custom"
+    panel.preset.setCurrentIndex(2)
+    assert panel.spec() == resize.Resize(resize.FIT, width=3840, height=2160)
+    panel.set_mode(resize.HEIGHT)
+    assert panel.spec() == resize.Resize(resize.HEIGHT, width=1920, height=1080)
+    panel.set_custom(height=777)
+    assert panel.spec().height == 777 and not panel.height_box.isHidden()

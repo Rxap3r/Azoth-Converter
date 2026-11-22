@@ -321,7 +321,7 @@ class MainWindow(QMainWindow):
         self.ocr_options.set_mode(targets.ocr_mode(self.file_list.formats, target))
         resizable = targets.can_resize(self.engine, self.file_list.formats, target)
         if target == RESIZE_TARGET and self.resize_options.spec() is None:
-            self.resize_options.set_mode(resize.LONGEST)  # this tile is about a new size
+            self.resize_options.set_mode(resize.FIT)  # this tile is about a new size
         self.resize_options.setVisible(resizable)
         notes = targets.notes(self.engine, self.file_list.formats, target)
         self.notes_label.setText("\n".join(notes))

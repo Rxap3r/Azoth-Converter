@@ -167,3 +167,38 @@ def apply(img: Image.Image, spec: Resize | None) -> Image.Image:
         resized = img.resize(size, method)
     resized.info = info
     return resized
+
+
+# --- ready-made sizes for the app (biggest first) ------------------------------------
+
+
+@dataclass(frozen=True)
+class Preset:
+    label: str
+    width: int = 0
+    height: int = 0
+    percent: float = 100
+
+
+_SIDES = [
+    (7680, 4320, "8K"),
+    (5120, 2880, "5K"),
+    (3840, 2160, "4K UHD"),
+    (2560, 1440, "QHD, 1440p"),
+    (1920, 1080, "Full HD, 1080p"),
+    (1600, 900, "HD+"),
+    (1280, 720, "HD, 720p"),
+    (1024, 576, "Small"),
+    (854, 480, "SD, 480p"),
+    (640, 360, "Very small"),
+]
+
+PRESETS: dict[str, list[Preset]] = {
+    FIT: [Preset(f"{w} × {h} ({name})", w, h) for w, h, name in _SIDES],
+    LONGEST: [Preset(f"{w} px ({name})", w, h) for w, h, name in _SIDES],
+    WIDTH: [Preset(f"{w} px ({name})", w, h) for w, h, name in _SIDES],
+    HEIGHT: [Preset(f"{h} px ({name})", w, h) for w, h, name in _SIDES],
+    PERCENT: [Preset(f"{p} %", percent=p) for p in (400, 300, 200, 150, 125, 75, 50, 33, 25, 10)],
+}
+DEFAULT_PRESET = {FIT: 4, LONGEST: 4, WIDTH: 4, HEIGHT: 4, PERCENT: 6}
+"""Position of the preset chosen first: Full HD, or 50 %."""

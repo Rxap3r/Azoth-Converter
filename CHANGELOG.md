@@ -16,6 +16,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   choose "Also enlarge smaller pictures". Command line: `--resize 2000`, `--resize 50%`,
   `--resize 1920x1080`, `--enlarge`.
   Each resized file shows its new size (e.g. "· 2500 × 1875 px").
+  Ready-made sizes to pick from (8K, 5K, 4K, QHD, Full HD, HD … and percentages);
+  "Custom size…" lets you type your own numbers. "Change size only" starts at
+  Full HD (1920 × 1080).
 - **Portable mode:** when a file `portable.txt` lies next to the program, the app keeps its
   settings and error log in a `data` folder beside it, and its temporary files in
   `data\temp`, instead of on the PC. Nothing to uninstall: delete the folder. The "Done"
