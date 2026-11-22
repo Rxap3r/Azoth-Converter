@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
     QLayout,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QWidget,
@@ -21,6 +23,15 @@ def label(text: str = "", role: str | None = None, *, wrap: bool = False) -> QLa
         widget.setProperty("role", role)
     widget.setWordWrap(wrap)
     return widget
+
+
+def download_button(text: str, url: str) -> QPushButton:
+    """A button that opens an official download page in the browser. The app itself never
+    goes online: only the browser does, and only when the button is clicked."""
+    button = QPushButton(text)
+    button.setToolTip(f"{url}\nOpens in your browser. After installing, restart Azoth Converter.")
+    button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(url)))
+    return button
 
 
 def scrollable(content: QWidget) -> QScrollArea:

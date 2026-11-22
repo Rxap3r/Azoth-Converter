@@ -7,6 +7,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+
+- When LibreOffice isn't installed, a "Download LibreOffice…" button (on the Convert page
+  and under Supported formats) opens its official download page in your browser. The app
+  itself still never goes online.
+
 ### Changed
 
 - Converting many Word, Excel or PowerPoint files with LibreOffice is much faster: up to

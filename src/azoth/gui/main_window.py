@@ -83,7 +83,10 @@ class MainWindow(QMainWindow):
     # --- layout -------------------------------------------------------------
 
     def _build_ui(self) -> None:
-        banners = [c.unavailable_reason() for c in self.engine.unavailable()]
+        banners = [
+            (c.unavailable_reason(), f"Download {c.label}…", c.download_url)
+            for c in self.engine.unavailable()
+        ]
         self.convert_page = ConvertPage(banners)
         page = self.convert_page
         self.file_list = page.file_list

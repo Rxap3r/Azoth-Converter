@@ -443,3 +443,29 @@ def test_no_page_squeezes_its_buttons(qtbot, tmp_path, sample_png):
         for key, (text, height) in small.items():
             if key in roomy:
                 assert height >= roomy[key][1], (page, text, height, roomy[key][1])
+
+
+def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch):
+    from azoth.converters import office
+    from azoth.gui import widgets
+
+    monkeypatch.setattr(office, "find_soffice", lambda: None)
+    opened = []
+    monkeypatch.setattr(widgets.QDesktopServices, "openUrl", opened.append)
+    w = MainWindow()
+    qtbot.addWidget(w)
+    [button] = w.convert_page.download_buttons
+    assert button.text() == "Download LibreOffice…"
+    button.click()
+    w.formats_panel.download_btn.click()
+    assert [u.toString() for u in opened] == [office.DOWNLOAD_URL] * 2
+    assert office.DOWNLOAD_URL.startswith("https://www.libreoffice.org/")
+
+
+def test_no_download_button_when_libreoffice_is_installed(window):
+    from azoth.converters.office import find_soffice
+
+    if find_soffice() is None:
+        pytest.skip("LibreOffice not installed")
+    assert window.convert_page.download_buttons == []
+    assert window.formats_panel.download_btn is None

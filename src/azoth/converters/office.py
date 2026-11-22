@@ -68,6 +68,7 @@ FAMILY = {
 }
 
 DEFAULT_TIMEOUT = 300  # seconds per document
+DOWNLOAD_URL = "https://www.libreoffice.org/download/download-libreoffice/"
 
 _UPDATE_CHECK = "/org.openoffice.Office.Jobs/Jobs/org.openoffice.Office.Jobs:Job['UpdateCheck']"
 HARDENED_SETTINGS = [
@@ -129,6 +130,7 @@ class OfficeConverter(Converter):
     id = "libreoffice"
     label = "LibreOffice"
     priority = 10
+    download_url = DOWNLOAD_URL
 
     def __init__(self) -> None:
         self._soffice: Path | None = None
