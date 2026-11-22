@@ -2,7 +2,8 @@
 
 Merge, split, edit pages and passwords are lossless: pages are copied as they are (text,
 pictures, fonts, links, form fields), never rendered or re-compressed. Bookmarks are kept
-where their pages are. Compress only shrinks pictures as far as the chosen level allows
+where their pages are. An owner's restrictions (no printing, no copying, ...) stay on every
+copy made from a restricted PDF. Compress only shrinks pictures as far as the chosen level allows
 (see ``quality.COMPRESS_LEVELS``).
 Results are first saved in a private temporary folder and only then moved to their
 place, so a failure never leaves a half-written file. Originals are never changed and
@@ -12,6 +13,7 @@ existing files are never overwritten unless asked.
 from __future__ import annotations
 
 import re
+import secrets
 import shutil
 import tempfile
 from collections.abc import Callable, Iterable
@@ -26,6 +28,16 @@ from .converters.pdf import open_pdf, page_file_name
 from .engine import TEMP_PREFIX, unique_path
 
 ROTATIONS = (0, 90, 180, 270)
+_ALL_PERMISSIONS = (
+    pymupdf.PDF_PERM_PRINT
+    | pymupdf.PDF_PERM_MODIFY
+    | pymupdf.PDF_PERM_COPY
+    | pymupdf.PDF_PERM_ANNOTATE
+    | pymupdf.PDF_PERM_FORM
+    | pymupdf.PDF_PERM_ACCESSIBILITY
+    | pymupdf.PDF_PERM_ASSEMBLE
+    | pymupdf.PDF_PERM_PRINT_HQ
+)
 Progress = Callable[[float, str], None]
 
 
@@ -36,6 +48,29 @@ class PageEdit:
 
     index: int
     rotation: int = 0
+
+
+def _restrictions(doc: pymupdf.Document) -> int | None:
+    """What an owner password still allows in this PDF (``PDF_PERM_*`` flags), or None
+    if nothing is restricted."""
+    if not (doc.metadata or {}).get("encryption"):
+        return None
+    allowed = doc.permissions & _ALL_PERMISSIONS
+    return None if allowed == _ALL_PERMISSIONS else allowed
+
+
+def _locked_like(allowed: int | None) -> dict:
+    """Save options that put the same restrictions on a new PDF. Nobody knows the
+    original owner password here, so the copy gets a random one: the restrictions can
+    only be lifted on the originals (Password → remove), not on the copy."""
+    if allowed is None:
+        return {}
+    return {
+        "encryption": pymupdf.PDF_ENCRYPT_AES_256,
+        "owner_pw": secrets.token_urlsafe(24),  # 32 characters; MuPDF takes at most 40
+        "user_pw": "",
+        "permissions": allowed,
+    }
 
 
 def page_count(path: Path | str) -> int:
@@ -126,17 +161,22 @@ def _same_pages(expected: int) -> Callable[[Path], None]:
 def merge(
     sources: list[Path], dst: Path, *, overwrite: bool = False, progress: Progress | None = None
 ) -> Path:
-    """Join several PDFs into one, in the given order. Bookmarks of each file are kept."""
+    """Join several PDFs into one, in the given order. Bookmarks of each file are kept.
+    If any of them is restricted, the result allows only what every one of them allows."""
     sources = [Path(s) for s in sources]
     if len(sources) < 2:
         raise ConversionError("Choose at least two PDFs to merge.")
     report = progress or (lambda f, m: None)
     out = pymupdf.open()
     toc: list[list] = []
+    allowed: int | None = None
     try:
         for i, src in enumerate(sources):
             report(i / len(sources), f"Adding {src.name}")
             with open_pdf(src) as doc:
+                limits = _restrictions(doc)
+                if limits is not None:
+                    allowed = limits if allowed is None else allowed & limits
                 offset = out.page_count
                 try:
                     out.insert_pdf(doc)
@@ -151,7 +191,7 @@ def merge(
                 pass
         target = _target(Path(dst), overwrite, sources)
         report(0.95, "Saving")
-        return _save(out, target)
+        return _save(out, target, **_locked_like(allowed))
     finally:
         out.close()
 
@@ -220,18 +260,34 @@ def split(
             ]
         else:
             names = [_group_name(src.stem, g) for g in groups]
+        restricted = _restrictions(doc) is not None
         for n, (group, name) in enumerate(zip(groups, names, strict=True)):
             if not group or min(group) < 0 or max(group) >= total:
                 raise ConversionError("Those pages aren't in this PDF.")
             report(n / len(groups), f"Saving {name}")
+            target = _target(out_dir / name, overwrite, [src])
+            if restricted:
+                outputs.append(_split_restricted(src, group, target))
+                continue
             part = pymupdf.open()
             try:
                 for index in group:
                     part.insert_pdf(doc, from_page=index, to_page=index)
-                outputs.append(_save(part, _target(out_dir / name, overwrite, [src])))
+                outputs.append(_save(part, target))
             finally:
                 part.close()
     return outputs
+
+
+def _split_restricted(src: Path, group: list[int], target: Path) -> Path:
+    """One part of a restricted PDF: a copy of the whole file reduced to these pages, so it
+    keeps the original lock (and the owner's own password still lifts it)."""
+    with open_pdf(src) as doc:
+        try:
+            doc.select(group)
+        except Exception as exc:
+            raise ConversionError(f"Could not copy the pages: {exc}") from exc
+        return _save(doc, target, encryption=pymupdf.PDF_ENCRYPT_KEEP)
 
 
 # --- edit pages --------------------------------------------------------------------
@@ -269,7 +325,8 @@ def edit_pages(
                     page.set_rotation((page.rotation + edit.rotation) % 360)
         except Exception as exc:
             raise ConversionError(f"Could not change the pages: {exc}") from exc
-        return _save(doc, _target(Path(dst), overwrite, [src]))
+        # keeps an owner's restrictions (and their own password still lifts them)
+        return _save(doc, _target(Path(dst), overwrite, [src]), encryption=pymupdf.PDF_ENCRYPT_KEEP)
 
 
 # --- compress ----------------------------------------------------------------------
@@ -385,16 +442,6 @@ def compress(
 
 MAX_PASSWORD_BYTES = 127  # the PDF standard only uses the first 127 bytes
 GOOD_PASSWORD_LENGTH = 12
-_ALL_PERMISSIONS = (
-    pymupdf.PDF_PERM_PRINT
-    | pymupdf.PDF_PERM_MODIFY
-    | pymupdf.PDF_PERM_COPY
-    | pymupdf.PDF_PERM_ANNOTATE
-    | pymupdf.PDF_PERM_FORM
-    | pymupdf.PDF_PERM_ACCESSIBILITY
-    | pymupdf.PDF_PERM_ASSEMBLE
-    | pymupdf.PDF_PERM_PRINT_HQ
-)
 UNLOCKED, NEEDS_PASSWORD, RESTRICTED = "unlocked", "needs password", "restricted"
 
 
@@ -410,8 +457,7 @@ def lock_state(path: Path | str) -> str:
     with doc:
         if doc.needs_pass:
             return NEEDS_PASSWORD
-        encrypted = bool((doc.metadata or {}).get("encryption"))
-        if encrypted and doc.permissions & _ALL_PERMISSIONS != _ALL_PERMISSIONS:
+        if _restrictions(doc) is not None:
             return RESTRICTED
         return UNLOCKED
 

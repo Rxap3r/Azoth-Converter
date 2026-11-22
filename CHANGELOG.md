@@ -7,6 +7,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Privacy and safety
+
+- Merge, Split and Edit pages now keep a PDF's restrictions (for example "no printing" or
+  "no copying") in the new file, like Compress already did. Split and Edit pages keep the
+  original lock, so the owner's password still removes it. A merged PDF allows only what
+  every one of its restricted files allows; to lift that, remove the restrictions from the
+  originals first.
+
 ## [0.3.0] - 2026-11-22
 
 ### Added
