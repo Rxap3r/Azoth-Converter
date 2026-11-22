@@ -353,6 +353,22 @@ def test_show_metadata_text(window, sample_pdf, tmp_path):
     assert "photos and images" in window.file_list.metadata_text(1)
 
 
+def test_metadata_button_on_photo_cards(window, monkeypatch, sample_pdf, tmp_path):
+    from azoth.gui import file_list
+
+    photo = _photo_with_location(tmp_path / "holiday.jpg")
+    window.add_files([photo, sample_pdf])
+    cards = window.file_list.cards
+    assert not cards[0].metadata_btn.isHidden()  # a photo: the button is there
+    assert cards[1].metadata_btn.isHidden()  # a PDF: nothing to show
+    shown = []
+    monkeypatch.setattr(
+        file_list.QMessageBox, "information", lambda parent, title, text: shown.append(text)
+    )
+    cards[0].metadata_btn.click()
+    assert "Camera: SecretCamera" in shown[0]
+
+
 def test_check_for_updates_only_opens_the_browser(window, monkeypatch):
     from azoth.gui import settings_page
 

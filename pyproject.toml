@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "azoth-converter"
-version = "0.3.1"
+version = "0.4.0"
 description = "Offline desktop file converter: your files never leave your computer."
 readme = "README.md"
 license = "GPL-3.0-or-later"

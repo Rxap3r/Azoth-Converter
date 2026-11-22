@@ -87,6 +87,10 @@ class Engine:
         were installed. Used to list what's possible, never to run conversions."""
         self.converters = list(converters) if converters is not None else all_converters()
         self._edges: dict[str, dict[str, Converter]] = {}
+        # Routes and target lists never change for an engine (which converters are
+        # available is decided here), so they are worked out once and remembered.
+        self._routes: dict[tuple[str, str], list[Step] | None] = {}
+        self._targets: dict[str, list[formats.Format]] = {}
         for conv in sorted(self.converters, key=lambda c: c.priority):
             if not assume_available and not conv.is_available():
                 continue
@@ -104,6 +108,13 @@ class Engine:
 
     def find_route(self, src: str, dst: str) -> list[Step] | None:
         """Shortest chain of converters from ``src`` to ``dst`` (breadth-first search)."""
+        key = (src, dst)
+        if key not in self._routes:
+            self._routes[key] = self._search_route(src, dst)
+        route = self._routes[key]
+        return None if route is None else list(route)
+
+    def _search_route(self, src: str, dst: str) -> list[Step] | None:
         if src == dst:
             return None
         queue: deque[tuple[str, list[Step]]] = deque([(src, [])])
@@ -141,6 +152,11 @@ class Engine:
 
     def targets_for(self, src: str) -> list[formats.Format]:
         """All formats ``src`` can be converted to, most useful first (see ranking.py)."""
+        if src not in self._targets:
+            self._targets[src] = self._search_targets(src)
+        return list(self._targets[src])
+
+    def _search_targets(self, src: str) -> list[formats.Format]:
         result = []
         for fmt in formats.FORMATS.values():
             if fmt.id != src and self.find_route(src, fmt.id) is not None:

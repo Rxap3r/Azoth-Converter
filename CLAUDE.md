@@ -30,6 +30,10 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced. Probably the
   same as the "access violation" the owner hit on 22 Nov 2026 (Python's garbage collection
   in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
+- **0.4.0 prepared on `dev` (22 Nov 2026):** picture size, fully portable ZIP, "Show
+  metadata" button, crash fix, cached format list. Version, changelog and
+  `docs/releases/v0.4.0.md` done; waiting for the owner's "pull it", then the owner merges
+  and runs the Release workflow.
 - **Next planned work, in this order (owner, 22 Nov 2026):**
   1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
      (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Owner tested

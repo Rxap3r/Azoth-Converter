@@ -87,6 +87,13 @@ class FileCard(QFrame):
         self.open_btn.clicked.connect(self.open_output)
         self.folder_btn.clicked.connect(self.open_folder)
 
+        self.metadata_btn = QPushButton()  # photos only: what's hidden in the file
+        self.metadata_btn.setProperty("role", "icon")
+        self.metadata_btn.setToolTip("Show metadata (location, camera, date …)")
+        self.metadata_btn.setAccessibleName(f"Show the metadata of {path.name}")
+        self.metadata_btn.setVisible(fmt is not None and fmt.id in metadata.CLEANABLE)
+        self.metadata_btn.clicked.connect(lambda: owner.show_metadata(owner.cards.index(self)))
+
         self.remove_btn = QPushButton()
         self.remove_btn.setProperty("role", "icon")
         self.remove_btn.setToolTip("Remove from list")
@@ -113,6 +120,7 @@ class FileCard(QFrame):
         row.setSpacing(14)
         row.addWidget(self.badge)
         row.addLayout(text, 1)
+        row.addWidget(self.metadata_btn)
         row.addWidget(self.remove_btn)
 
     def set_state(self, state: str, text: str, tooltip: str = "") -> None:
@@ -270,6 +278,7 @@ class FileList(QWidget):
         self._colors = colors
         for card in self.cards:
             card.remove_btn.setIcon(icons.icon("trash", colors.muted))
+            card.metadata_btn.setIcon(icons.icon("info", colors.muted))
 
     # --- right-click menu and metadata --------------------------------------------
 

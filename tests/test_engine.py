@@ -136,3 +136,17 @@ def test_stale_temp_folders_are_cleaned_up(private_tmp):
     assert cleanup_stale_temp_folders() == 1
     assert not old.exists()
     assert running.exists() and other.exists()
+
+
+def test_routes_and_targets_are_worked_out_once(monkeypatch):
+    engine = Engine()
+    first = engine.targets_for("png")
+    assert engine.find_route("png", "pdf") is not None
+    calls = []
+    monkeypatch.setattr(engine, "_search_route", lambda *a: calls.append(a))
+    monkeypatch.setattr(engine, "_search_targets", lambda *a: calls.append(a))
+    assert engine.targets_for("png") == first
+    assert engine.find_route("png", "pdf") is not None
+    assert calls == []  # remembered, not searched again
+    engine.targets_for("png").clear()  # changing a returned list doesn't change the memory
+    assert engine.targets_for("png") == first

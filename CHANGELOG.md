@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-22
+
 ### Added
 
 - **Change picture size:** photos can be made smaller or bigger while converting, or
@@ -22,12 +24,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   notification is off by default there (Windows remembers every app that shows one).
   The portable ZIP now contains this file (the installer never does), so it is fully
   portable.
-
-### Development
-
-- The Windows build also makes and tests the portable ZIP: unzipped, it must convert, start
-  and leave nothing in `%APPDATA%`, the temp folder or the registry. Manual test builds
-  offer the ZIP for download too.
+- **"Show metadata" button** (ⓘ) on every photo in the list, so you can see what's hidden
+  in it (location, camera, date …) without the right-click menu.
 
 ### Quality
 
@@ -41,6 +39,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   Python's memory clean-up could run in a conversion thread and free parts of the window.
   It now runs only in the main thread, and all picture format readers load at start-up.
   This may also have been the crash seen in 0.2.0 with several photos.
+
+### Development
+
+- The possible target formats and conversion routes are worked out once and remembered,
+  instead of again for every change in the list.
+- The Windows build also makes and tests the portable ZIP: unzipped, it must convert, start
+  and leave nothing in `%APPDATA%`, the temp folder or the registry. Manual test builds
+  offer the ZIP for download too.
 
 ## [0.3.1] - 2026-11-22
 
@@ -299,7 +305,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...v0.2.1

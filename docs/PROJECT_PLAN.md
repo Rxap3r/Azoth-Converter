@@ -148,7 +148,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] PDF → Excel for tables
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
-  - [ ] With the design refresh: a "Show metadata" button on each file card instead of the right-click menu
+  - [x] A "Show metadata" button (ⓘ) on each photo card, besides the right-click menu (0.4.0)
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
 - [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
 
@@ -183,7 +183,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
 - [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
-- [ ] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
+- [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
 ### Phase 3: Audio and video (≈ 4 weeks)
 - [ ] FFmpeg plugin with progress parsed from FFmpeg's output
