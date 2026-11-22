@@ -440,6 +440,9 @@ class MainWindow(QMainWindow):
         self._running.pop(row, None)
         self._set_overall()
         text = f"✓ {Path(outputs[0]).name}" if len(outputs) == 1 else f"✓ {len(outputs)} files"
+        new_size = next((n for n in notes if n.startswith("New size: ")), None)
+        if new_size:  # "✓ photo (resized).jpg · 2500 × 1875 px"
+            text += " · " + new_size.removeprefix("New size: ").split(" (")[0]
         warnings = [n for n in notes if n.startswith("⚠")]
         if warnings:  # e.g. "⚠ Word failed, LibreOffice was used": details in the tooltip
             text += "  " + warnings[0].split(" (")[0].split(". ")[0]

@@ -15,6 +15,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   percentage. Proportions are always kept; smaller pictures are only enlarged when you
   choose "Also enlarge smaller pictures". Command line: `--resize 2000`, `--resize 50%`,
   `--resize 1920x1080`, `--enlarge`.
+  Each resized file shows its new size (e.g. "· 2500 × 1875 px").
 - **Portable mode:** when a file `portable.txt` lies next to the program, the app keeps its
   settings and error log in a `data` folder beside it, and its temporary files in
   `data\temp`, instead of on the PC. Nothing to uninstall: delete the folder. The "Done"
@@ -33,6 +34,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - Pictures keep all their pixels unless you choose a size. Making smaller uses Lanczos
   (sharp, clean), enlarging uses smooth bicubic; transparent edges stay clean. Kept
   metadata no longer claims the old pixel size.
+
+### Fixed
+
+- The app could crash ("access violation") while converting several photos at once:
+  Python's memory clean-up could run in a conversion thread and free parts of the window.
+  It now runs only in the main thread, and all picture format readers load at start-up.
+  This may also have been the crash seen in 0.2.0 with several photos.
 
 ## [0.3.1] - 2026-11-22
 

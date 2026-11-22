@@ -470,6 +470,7 @@ class Engine:
                     ctx.check_cancelled()
                     produced = step.converter.convert(current, step_dst, ctx)
                     result.warnings.extend(ctx.warnings)
+                    result.notes.extend(ctx.notes)
                 if not produced or not all(p.exists() for p in produced):
                     raise ConversionError("The converter did not produce any output")
                 current = produced[0]

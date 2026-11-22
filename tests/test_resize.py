@@ -206,3 +206,19 @@ def test_cli_rejects_bad_sizes(tmp_path, capsys):
     assert main(["convert", str(src), "--to", "png", "--resize", "huge"]) == 2
     assert "not a size" in capsys.readouterr().err
     assert main(["convert", str(src), "--to", "png", "--enlarge"]) == 2
+
+
+def test_the_new_size_is_reported(engine, tmp_path):
+    src = _photo(tmp_path / "p.png", (400, 300))
+    out = engine.convert(src, "jpg", options={"resize": parse("200")})
+    assert "New size: 200 × 150 px (was 400 × 300 px)." in out.notes
+
+
+def test_all_image_readers_are_loaded_up_front():
+    """Loading a format reader while photos are opened in parallel threads crashed the
+    packaged app; images.py loads them all when it is imported."""
+    from PIL import Image
+
+    import azoth.converters.images  # noqa: F401
+
+    assert Image._initialized == 2

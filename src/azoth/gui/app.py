@@ -11,6 +11,7 @@ def main() -> int:
 
     from ..engine import cleanup_stale_temp_folders
     from . import error_log
+    from .main_thread_gc import MainThreadGC
     from .main_window import MainWindow
     from .resources import icon_path
     from .settings import APPLICATION, ORGANIZATION, configure_storage
@@ -28,9 +29,13 @@ def main() -> int:
     app.setApplicationName(APPLICATION)
     app.setOrganizationName(ORGANIZATION)
     app.setWindowIcon(QIcon(str(icon_path())))
+    collector = MainThreadGC(app)  # memory clean-up never runs in a conversion thread
     window = MainWindow()
     window.show()
-    return app.exec()
+    try:
+        return app.exec()
+    finally:
+        collector.stop()
 
 
 if __name__ == "__main__":

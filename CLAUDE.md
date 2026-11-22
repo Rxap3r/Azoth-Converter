@@ -27,8 +27,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Version 0.2.1** (error log, Uninstall button, clean updates, open-folder fix) is on `main`
   (pull request #7, merged 21 Nov 2026) and **released** as v0.2.1 on GitHub Releases. Later work goes under
   `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
-  0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
-  should show it next time. Not yet tried with real phone photos: metadata removal.
+  0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced. Probably the
+  same as the "access violation" the owner hit on 22 Nov 2026 (Python's garbage collection
+  in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
 - **Next planned work, in this order (owner, 22 Nov 2026):**
   1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
      (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Not yet

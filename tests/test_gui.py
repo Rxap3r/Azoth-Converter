@@ -319,6 +319,7 @@ def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
     with Image.open(tmp_path / "out" / "logo.jpg") as im:
         assert im.size == (60, 40)
+    assert window.file_list.status(0) == "✓ logo.jpg · 60 × 40 px"
 
     assert window.target_picker.select("pdf")
     assert sizes.isHidden()  # a PDF page isn't resized

@@ -23,6 +23,9 @@ except ImportError:  # pragma: no cover - optional dependency
     HEIF_SUPPORTED = False
 
 AVIF_SUPPORTED = bool(features.check("avif"))
+# Load all of Pillow's format readers now (at start-up, one thread), not lazily while
+# several photos are opened at once in parallel threads.
+Image.init()
 
 # Format id -> Pillow format name used when saving.
 PIL_SAVE_FORMATS = {
@@ -131,6 +134,11 @@ class ImageConverter(Converter):
             if size is None:
                 return frame
             resized = resize.apply(frame, size)
+            if resized.size != frame.size and not changed:
+                changed.append(
+                    f"New size: {resized.width} × {resized.height} px "
+                    f"(was {frame.width} × {frame.height} px)."
+                )
             if resized.size == frame.size and size.would_enlarge(*frame.size) and not kept:
                 kept.append(
                     f"Kept the original size ({frame.width} × {frame.height} px): the picture "
@@ -140,6 +148,7 @@ class ImageConverter(Converter):
             return resized
 
         kept: list[str] = []
+        changed: list[str] = []
 
         try:
             with Image.open(src) as im:
@@ -164,6 +173,7 @@ class ImageConverter(Converter):
             raise ConversionError(f"Could not read image: {exc}") from exc
 
         ctx.warnings.extend(kept)
+        ctx.notes.extend(changed)
         ctx.check_cancelled()
         first = frames[0]
         for frame in frames:
