@@ -43,12 +43,10 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     edit pages, compress, passwords ✓) → **OCR** ✓ (all released in 0.3.0);
   - technical improvements: **faster batches ✓ on `dev`, not released** (LibreOffice and
     Word: up to 10 files per start; photos: up to 4 at once; PDF restrictions kept in
-    Merge / Split / Edit pages). Still to do before releasing: a "Build and test" run on
-    Windows, and the owner tries Word → PDF with several files on a PC with Word (GitHub's
-    machines have no Office). **Owner's first test (Nov 2026): Word failed for every file and
-    LibreOffice took over**: Documents.Open rejected PowerShell's $true/$false ("bool can't
-    be converted to Object"); it never worked, also not in 0.3.0. Fixed by passing the options
-    by name (InvokeMember); **owner to confirm with a new test build**. Then: smaller download;
+    Merge / Split / Edit pages). Windows "Build and test" passed. Word → PDF never worked
+    before (Documents.Open rejected PowerShell's $true/$false); fixed by passing the options
+    by name (InvokeMember), **confirmed by the owner on a PC with Word** (Nov 2026, several
+    files at once). Next: release decision, then smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with

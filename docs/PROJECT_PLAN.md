@@ -177,7 +177,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Find the crash the owner saw in 0.2.0 (several photos, some already PNG, then Convert) once the error log shows it
 - [ ] **Faster large batches:**
   - [x] LibreOffice: up to 10 files per start instead of one start per file (`Engine.convert_many`, `Converter.convert_batch`); about 4× faster for 10 Word files
-  - [x] Word (Windows): one Word start for up to 10 files instead of one per file. **Not yet tried with real Word** (GitHub's Windows machines have no Office): owner to test on a PC with Word before the next release
+  - [x] Word (Windows): one Word start for up to 10 files instead of one per file. Tested by the owner with real Word (Nov 2026)
   - [x] Photos: up to 4 converted at the same time (`Converter.parallel_safe`); about 4× faster for 16 large photos
   - [ ] PDF → images in parallel: PyMuPDF isn't thread-safe, so this would need separate processes
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
