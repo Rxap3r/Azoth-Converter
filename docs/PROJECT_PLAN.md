@@ -150,7 +150,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
   - [ ] With the design refresh: a "Show metadata" button on each file card instead of the right-click menu
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
-- [ ] **Next release (0.2.x):** compress PDF, passwords, OCR (all three done on `dev`)
+- [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
 
 ### Design refresh (timing flexible)
 - [x] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. **Owner's choice (Nov 2026): style A.** Icon choice postponed.*
