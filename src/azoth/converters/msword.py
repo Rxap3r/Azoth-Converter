@@ -39,7 +39,6 @@ POWERSHELL_SCRIPT = r"""
 $ErrorActionPreference = 'Stop'
 $word = $null
 $saved = $null
-$missing = [System.Reflection.Missing]::Value
 # One line per finished document ("ok 3" or "failed 3 <reason>"), so the app can show
 # progress and knows which results are complete.
 function Report([string]$line) {
@@ -61,14 +60,19 @@ try {
         try {
             $src = [Environment]::GetEnvironmentVariable("AZOTH_SRC_$i")
             $dst = [Environment]::GetEnvironmentVariable("AZOTH_DST_$i")
-            # Open(FileName, ConfirmConversions, ReadOnly, AddToRecentFiles,
-            #      PasswordDocument, PasswordTemplate, Revert, WritePasswordDocument,
-            #      WritePasswordTemplate, Format, Encoding, Visible, OpenAndRepair,
-            #      DocumentDirection, NoEncodingDialog)
+            # Documents.Open with named options, passed through COM's own call mechanism:
+            # PowerShell can't pass $true/$false to Open's "by reference" parameters
+            # directly (error: "True" of type "bool" can't be converted to "Object").
             # A dummy password makes protected documents fail instead of prompting.
-            $doc = $word.Documents.Open($src, $false, $true, $false,
-                'azoth-no-password', $missing, $false, $missing, $missing, $missing,
-                $missing, $false, $false, $missing, $true)
+            $names = [string[]]@('FileName', 'ConfirmConversions', 'ReadOnly',
+                'AddToRecentFiles', 'PasswordDocument', 'Revert', 'Visible',
+                'OpenAndRepair', 'NoEncodingDialog')
+            $values = [object[]]@($src, $false, $true, $false, 'azoth-no-password',
+                $false, $false, $false, $true)
+            $docs = $word.Documents
+            $doc = $docs.GetType().InvokeMember('Open',
+                [System.Reflection.BindingFlags]::InvokeMethod, $null, $docs, $values,
+                $null, $null, $names)
             $doc.ExportAsFixedFormat($dst, 17)   # wdExportFormatPDF
             $doc.Close(0)                        # wdDoNotSaveChanges
             $doc = $null

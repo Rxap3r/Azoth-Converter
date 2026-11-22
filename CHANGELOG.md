@@ -18,6 +18,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Fixed
 
+- Word → PDF with Microsoft Word never actually worked: Word refused how the options for
+  opening the document were passed, and LibreOffice silently took over. The options are now
+  passed the way Word expects.
 - Settings: the text under "Check for updates", "About" and "Error log" no longer covers
   those buttons with larger Windows text.
 

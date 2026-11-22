@@ -97,6 +97,10 @@ def test_word_conversion_passes_paths_safely(fake_word, sample_docx, tmp_path):
     assert "report.docx" not in env["AZOTH_SRC_0"]  # Word only sees a private copy
     assert "AutomationSecurity = 3" in script  # macros force-disabled
     assert "DisplayAlerts = 0" in script
+    # Open's options go by name through InvokeMember: passing $true/$false directly made
+    # Word fail on every PC ("True" of type "bool" can't be converted to "Object").
+    assert "InvokeMember('Open'" in script and "'ReadOnly'" in script
+    assert ".Documents.Open(" not in script
 
 
 @pytest.mark.skipif(find_soffice() is None, reason="LibreOffice not installed")
