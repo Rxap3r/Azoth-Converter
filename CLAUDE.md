@@ -46,7 +46,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     Merge / Split / Edit pages). Windows "Build and test" passed. Word → PDF never worked
     before (Documents.Open rejected PowerShell's $true/$false); fixed by passing the options
     by name (InvokeMember), **confirmed by the owner on a PC with Word** (Nov 2026, several
-    files at once). Next: release decision, then smaller download;
+    files at once). **0.3.1 prepared on `dev`, pull request into `main` opened (Nov 2026)**;
+    then: smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
