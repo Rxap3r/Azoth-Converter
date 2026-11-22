@@ -87,6 +87,8 @@ def cmd_convert(args: argparse.Namespace) -> int:
             print()
             for out in outcome.outputs:
                 print(f"✓ {path.name} → {out}")
+            for warning in outcome.warnings:
+                print(f"  warning: {warning}")
             for note in outcome.notes:
                 print(f"  note: {note}")
     return 1 if failures else 0

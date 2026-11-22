@@ -71,7 +71,8 @@ class ConversionWorker(QObject):
                     if self._report_failure(rows[i], self.jobs[i][1], outcome):
                         break
                 else:
-                    self.file_done.emit(rows[i], [str(p) for p in outcome.outputs], outcome.notes)
+                    notes = self._notes(self.jobs[i][1], outcome)
+                    self.file_done.emit(rows[i], [str(p) for p in outcome.outputs], notes)
 
     def _run_one_by_one(self) -> None:
         for row, path in self.jobs:
@@ -114,7 +115,16 @@ class ConversionWorker(QObject):
             cancel_event=self.cancel_event,
             name=self.name,
         )
-        return [str(p) for p in result.outputs], result.notes
+        return [str(p) for p in result.outputs], self._notes(path, result)
+
+    def _notes(self, path: Path, result) -> list[str]:
+        """The result's notes, warnings first (marked ⚠). Warnings also go into the local
+        error log, so the details can be looked up later."""
+        for warning in result.warnings:
+            error_log.write(
+                f"Note while converting a {path.suffix or 'file'} to {self.target}", warning
+            )
+        return [*(f"⚠ {w}" for w in result.warnings), *result.notes]
 
     def _clean(self, path: Path) -> tuple[list[str], list[str]]:
         result = metadata.clean_file(path, self.output_dir, name=self.name)

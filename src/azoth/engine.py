@@ -73,6 +73,7 @@ class ConversionResult:
     source: Path
     outputs: list[Path] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)  # see ConversionContext.warnings
 
 
 class Engine:
@@ -433,6 +434,7 @@ class Engine:
                     )
                     ctx.check_cancelled()
                     produced = step.converter.convert(current, step_dst, ctx)
+                    result.warnings.extend(ctx.warnings)
                 if not produced or not all(p.exists() for p in produced):
                     raise ConversionError("The converter did not produce any output")
                 current = produced[0]

@@ -45,7 +45,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     Word: up to 10 files per start; photos: up to 4 at once; PDF restrictions kept in
     Merge / Split / Edit pages). Still to do before releasing: a "Build and test" run on
     Windows, and the owner tries Word → PDF with several files on a PC with Word (GitHub's
-    machines have no Office). Then: smaller download;
+    machines have no Office). **Owner's first test (Nov 2026): Word failed for every file and
+    LibreOffice took over**; cause unknown. The app now shows Word's reason on the file and in
+    the error log: get that message from the owner, then fix. Then: smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with

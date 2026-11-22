@@ -420,6 +420,9 @@ class MainWindow(QMainWindow):
         self._running.pop(row, None)
         self._set_overall()
         text = f"✓ {Path(outputs[0]).name}" if len(outputs) == 1 else f"✓ {len(outputs)} files"
+        warnings = [n for n in notes if n.startswith("⚠")]
+        if warnings:  # e.g. "⚠ Word failed, LibreOffice was used": details in the tooltip
+            text += "  " + warnings[0].split(" (")[0].split(". ")[0]
         self.file_list.set_status(
             row,
             text,

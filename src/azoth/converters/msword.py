@@ -174,9 +174,13 @@ class WordConverter(Converter):
                 raise
             ctx.progress(0.5, "Word failed, using LibreOffice instead")
             try:
-                return self.fallback.convert(src, dst, ctx)
+                produced = self.fallback.convert(src, dst, ctx)
             except ConversionError as fallback_exc:
                 raise ConversionError(f"{exc} LibreOffice also failed: {fallback_exc}") from exc
+            ctx.warnings.append(
+                f"Word failed, LibreOffice was used (the layout may differ slightly). {exc}"
+            )
+            return produced
 
     def batch_key(self, src: str, dst: str) -> tuple[str, str] | None:
         return ("word", dst) if src in WORD_SOURCES and dst == "pdf" else None
@@ -204,8 +208,10 @@ class WordConverter(Converter):
             if done.get(0, "ok") != "ok":
                 detail = done[0]
             else:
-                lines = stderr.decode(errors="replace").strip().splitlines()
-                detail = lines[0] if lines else ""
+                lines = [ln.strip() for ln in stderr.decode(errors="replace").splitlines()]
+                detail = " ".join(ln for ln in lines if ln)[:400]
+                if not detail and returncode:
+                    detail = f"PowerShell stopped with exit code {returncode}"
             detail = f": {detail}" if detail else ""
             raise ConversionError(f"Microsoft Word could not convert the file{detail}")
         shutil.move(local, dst)

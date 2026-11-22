@@ -12,6 +12,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - When LibreOffice isn't installed, a "Download LibreOffice…" button (on the Convert page
   and under Supported formats) opens its official download page in your browser. The app
   itself still never goes online.
+- When Microsoft Word can't convert a file and LibreOffice is used instead, the file now
+  says so ("Word failed, LibreOffice was used"), with Word's reason in the tooltip and in
+  the error log. Before, this happened silently.
+
+### Fixed
+
+- Settings: the text under "Check for updates", "About" and "Error log" no longer covers
+  those buttons with larger Windows text.
 
 ### Changed
 

@@ -183,3 +183,12 @@ def test_a_document_word_fails_in_a_batch_still_falls_back_to_libreoffice(fake_w
     assert b"fake Word" not in outputs[0]  # made by LibreOffice
     assert b"fake Word" in outputs[1] and b"fake Word" in outputs[2]
     assert [c[1]["AZOTH_COUNT"] for c in fake_word.calls] == ["3", "1"]
+
+
+@pytest.mark.skipif(find_soffice() is None, reason="LibreOffice not installed")
+def test_word_fallback_is_shown_with_words_reason(fake_word, sample_docx, tmp_path):
+    fake_word.succeed = False
+    result = Engine(all_converters(use_word=True)).convert(sample_docx, "pdf", tmp_path)
+    [warning] = result.warnings
+    assert warning.startswith("Word failed, LibreOffice was used")
+    assert "Word could not open the document." in warning  # Word's own reason

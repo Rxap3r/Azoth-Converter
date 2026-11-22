@@ -37,6 +37,9 @@ class ConversionContext:
     options: dict[str, Any] = field(default_factory=dict)
     progress: ProgressCallback = lambda fraction, message: None
     cancel_event: threading.Event = field(default_factory=threading.Event)
+    warnings: list[str] = field(default_factory=list)
+    """Things the user should know about this file's result (e.g. a fallback engine was
+    used). Shown on the file and written to the local error log."""
 
     def check_cancelled(self) -> None:
         if self.cancel_event.is_set():
