@@ -29,7 +29,13 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
   should show it next time. Not yet tried with real phone photos: metadata removal.
-- **Next planned work (owner decides the order):**
+- **Next planned work, in this order (owner, 22 Nov 2026):**
+  1. **Image size:** shrink and plain enlarge, choose pixels (width × height, percentage,
+     longest side), while converting or on its own; see Phase 4 "Image size and quality" in
+     `docs/PROJECT_PLAN.md`. AI upscaling / "improve quality" comes later as its own step;
+  2. **Fully portable version** (Phase 4 in `docs/PROJECT_PLAN.md`);
+  3. later: smaller download (owner doesn't worry about size now), design refresh, the rest.
+- **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
   - **0.3.0 released (22 Nov 2026, pull request #8):** compress PDF, passwords, OCR, file

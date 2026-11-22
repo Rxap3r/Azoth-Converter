@@ -193,9 +193,9 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Release 0.3** (0.3.0 and 0.3.1, Nov 2026)
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
-- [ ] **Fully portable version** (runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
+- [ ] **Fully portable version** (NEXT, after image size; runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
 - [ ] Windows Explorer right-click menu: "Convert with Azoth Converter → …"
-- [ ] **Image size and quality (owner's wish, Nov 2026):** choose how many pixels a picture should have (e.g. width × height, a percentage, or "longest side 2000 px"), when converting or on its own (same format).
+- [ ] **Image size and quality (owner's wish, Nov 2026; NEXT, step 1 of 2 with the portable version):** choose how many pixels a picture should have (e.g. width × height, a percentage, or "longest side 2000 px"), when converting or on its own (same format).
   - Smaller: normal high-quality downscaling.
   - Bigger, two options: **plain enlarging** (smooth, adds no detail) or **AI upscaling** that invents plausible detail to fit the new size (a local model, e.g. Real-ESRGAN; must run offline, adds download size). Also "improve quality" at the same size (sharpen, remove JPEG blocks, reduce noise).
   - Never the default: originals stay 1:1 unless the user asks. Say clearly that AI-added detail isn't real (not for documents, evidence or ID photos)
