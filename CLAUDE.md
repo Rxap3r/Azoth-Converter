@@ -28,12 +28,10 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Next planned work (owner decides the order):**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
-  - **done on `dev` (21 Nov 2026), waiting for the owner's test:** OCR polish (sideways pages,
-    progress + Cancel for Make searchable), "Done" card + Windows notification, file names in
-    every PDF tool. After the owner's test: release;
-  - **next release (0.3.0 suggested):** compress PDF, passwords and OCR are all done on `dev`
-    (OCR: full Build and test incl. Windows app passed 21 Nov 2026, not yet tried by the owner
-    on a real PC); ask the owner whether to release;
+  - **0.3.0 prepared (22 Nov 2026):** compress PDF, passwords, OCR, file names in every PDF
+    tool, "Done" card; tested by the owner on Windows (OCR selection fine in Chrome/Edge, good
+    enough in Firefox). Pull request `dev` → `main` opened at the owner's request; after the
+    merge the owner runs Actions → Release;
   - later: a version check inside the app (only on click, after code signing; owner decides),
     see Phase 5 in `docs/PROJECT_PLAN.md`;
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design

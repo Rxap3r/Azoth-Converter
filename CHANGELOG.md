@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-22
+
 ### Added
 
 - **Compress PDF** (PDF tools → Compress, or `azoth pdf compress`): saves a smaller copy. Three
@@ -43,7 +45,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Changed
 
-- **Choose the result's name in every PDF tool** (owner's wish): Merge, Split (folder name),
+- **Choose the result's name in every PDF tool:** Merge, Split (folder name),
   Edit pages, Compress, Password and Make searchable now have a *File name* field next to
   *Save to*, filled in with the suggested name. Existing files are still never overwritten.
 - Edit pages: the buttons "Move earlier" and "Move later" are now "◀ Move" and "Move ▶", the
@@ -53,7 +55,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 - The app no longer freezes ("Not responding") while text recognition reads a page: the
   reading now runs in a helper process of the app, on this computer as before.
-
 - Settings: the buttons under *About* were cut off by the text below them when the window
   was too low (e.g. with larger text in Windows). The page now scrolls instead, like the
   choices next to the format tiles.
@@ -64,7 +65,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   that don't need shrinking keep their original data byte for byte (no second JPG loss).
 - The hidden text follows the page's direction, also on turned pages, and uses a font whose
   height every PDF viewer reads the same way (Firefox, Chrome, Edge and others), so selecting
-  text marks the right words (in Edge and Firefox the selection used to sit too low). Checked letter by letter in the tests.
+  text marks the right words (in Edge and Firefox the selection used to sit too low).
+  Checked letter by letter in the tests.
 - Text recognition never changes the pages: the text is added as an invisible layer, the
   pictures stay byte for byte the same, and pages that already have text are left alone. Pages
   are read at 300 dpi with the most accurate ("best") language models.
@@ -78,8 +80,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 - The OCR language files are not in git: `packaging/fetch_tessdata.py` downloads them (pinned
   version, SHA-256 checked, tried again up to 5 times if the server is busy) for development,
-  tests and the build. The build stops if they are
-  missing, and the built app must read the sample scan before the installer is made.
+  tests and the build. The build stops if they are missing, and the built app must read the
+  sample scan before the installer is made.
 
 ## [0.2.1] - 2026-11-21
 
@@ -220,7 +222,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Rxap3r/Azoth-Converter/releases/tag/v0.1.0
