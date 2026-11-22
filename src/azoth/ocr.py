@@ -13,9 +13,13 @@ left alone.
 from __future__ import annotations
 
 import locale
+import multiprocessing
 import re
+import struct
 import threading
 from collections.abc import Callable, Iterator
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -106,6 +110,11 @@ def needs_ocr(src: Path) -> bool:
         return any(page_needs_ocr(page) for page in doc)
 
 
+# Height of the hidden text's font, as a share of the font size: above and below the
+# baseline. Their distance is exactly 1, so every viewer (some use these two numbers, some
+# the font size alone) draws the same selection box.
+ASCENT, DESCENT = 0.8, -0.2
+
 _FONT: pymupdf.Font | None = None
 MIN_STRETCH, MAX_STRETCH = 0.5, 2.0  # how much a line of hidden text may be squeezed or widened
 
@@ -132,7 +141,6 @@ def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
     their width in the picture: different amounts per word make viewers think the size
     changes and split the line."""
     font = _font()
-    ascender, descender = font.ascender, font.descender
     source = layer[0]
     lines: dict[tuple[int, int], list] = {}
     for x0, y0, x1, y1, word, block, line, _ in source.get_text("words"):
@@ -144,7 +152,7 @@ def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
     for words in lines.values():
         top = min(rect.y0 for rect, _ in words)
         bottom = max(rect.y1 for rect, _ in words)
-        size = (bottom - top) / (ascender - descender)
+        size = (bottom - top) / (ASCENT - DESCENT)
         natural = sum(font.text_length(word, fontsize=size) for _, word in words)
         if size <= 0 or natural <= 0:
             continue
@@ -152,7 +160,7 @@ def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
         stretch = min(max(wide / natural, MIN_STRETCH), MAX_STRETCH)
         for i, (rect, word) in enumerate(words):
             text = word if i == len(words) - 1 else word + " "  # spaces for copy and paste
-            baseline = pymupdf.Point(rect.x0, bottom + descender * size)
+            baseline = pymupdf.Point(rect.x0, bottom + DESCENT * size)
             shape.insert_text(
                 baseline,
                 text,
@@ -163,7 +171,95 @@ def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
             )
     shape.commit()
     out.subset_fonts()  # only the letters used: a few KB instead of the whole font
+    _set_font_height(out)
     return pymupdf.open("pdf", out.tobytes(garbage=3, deflate=True))
+
+
+def _recognise_picture(
+    width: int, height: int, dpi: int, samples: bytes, language: str, tessdata: str
+) -> bytes:
+    """Read the text of a picture: a one-page PDF (picture + invisible text). Runs in the
+    helper process (see ``_recognise_in_helper``)."""
+    pix = pymupdf.Pixmap(pymupdf.csRGB, width, height, samples, False)
+    pix.set_dpi(dpi, dpi)
+    return pix.pdfocr_tobytes(language=language, tessdata=tessdata)
+
+
+_HELPER: ProcessPoolExecutor | None = None
+_HELPER_LOCK = threading.Lock()
+
+
+def _recognise_in_helper(pix: pymupdf.Pixmap, language: str) -> bytes:
+    """Run the text recognition in a helper process of the app.
+
+    The OCR engine blocks all of Python while it reads a page (seconds), so in the app's
+    own process the window would freeze ("Not responding"). The helper is started once
+    and reused; it runs on this computer like the app itself. If it can't run, the text
+    is read here instead."""
+    global _HELPER
+    args = (pix.width, pix.height, pix.xres, pix.samples, language, str(TESSDATA))
+    with _HELPER_LOCK:
+        if _HELPER is None:
+            _HELPER = ProcessPoolExecutor(
+                max_workers=1, mp_context=multiprocessing.get_context("spawn")
+            )
+        helper = _HELPER
+    try:
+        return helper.submit(_recognise_picture, *args).result()
+    except BrokenProcessPool:
+        with _HELPER_LOCK:
+            _HELPER = None
+        return _recognise_picture(*args)
+
+
+def _set_font_height(doc: pymupdf.Document) -> None:
+    """Give the hidden text's font the height ``ASCENT``/``DESCENT``, both in the PDF and
+    in the font file itself (viewers read one or the other). Only the height numbers
+    change; the letters and their widths stay the same."""
+    for xref in range(1, doc.xref_length()):
+        if doc.xref_get_key(xref, "Type")[1] != "/FontDescriptor":
+            continue
+        file_ref = doc.xref_get_key(xref, "FontFile2")
+        if file_ref[0] != "xref":
+            continue
+        font_xref = int(file_ref[1].split()[0])
+        doc.update_stream(font_xref, _truetype_height(doc.xref_stream(font_xref)))
+        x0, _, x1, _ = (float(v) for v in doc.xref_get_key(xref, "FontBBox")[1][1:-1].split())
+        top, bottom = round(ASCENT * 1000), round(DESCENT * 1000)
+        doc.xref_set_key(xref, "Ascent", str(top))
+        doc.xref_set_key(xref, "Descent", str(bottom))
+        doc.xref_set_key(xref, "FontBBox", f"[{x0:g} {bottom} {x1:g} {top}]")
+
+
+def _truetype_height(font: bytes) -> bytes:
+    """``font`` (a TrueType file) with its height set to ``ASCENT``/``DESCENT``: the
+    'head' (bounding box), 'hhea' and 'OS/2' tables, with their checksums."""
+    data = bytearray(font)
+    (count,) = struct.unpack_from(">H", data, 4)
+    tables = {}
+    for i in range(count):
+        tag, _, offset, length = struct.unpack_from(">4sLLL", data, 12 + 16 * i)
+        tables[tag] = (12 + 16 * i, offset, length)
+    head = tables[b"head"][1]
+    (units,) = struct.unpack_from(">H", data, head + 18)
+    top, bottom = round(ASCENT * units), round(DESCENT * units)
+    struct.pack_into(">h", data, head + 38, bottom)  # yMin
+    struct.pack_into(">h", data, head + 42, top)  # yMax
+    if b"hhea" in tables:
+        struct.pack_into(">hhh", data, tables[b"hhea"][1] + 4, top, bottom, 0)
+    if b"OS/2" in tables and tables[b"OS/2"][2] >= 78:
+        os2 = tables[b"OS/2"][1]
+        struct.pack_into(">hhhHH", data, os2 + 68, top, bottom, 0, top, -bottom)
+
+    def checksum(start: int, length: int) -> int:
+        block = bytes(data[start : start + length]) + b"\0" * (-length % 4)
+        return sum(struct.unpack(f">{len(block) // 4}L", block)) & 0xFFFFFFFF
+
+    struct.pack_into(">L", data, head + 8, 0)  # checkSumAdjustment, set below
+    for record, offset, length in tables.values():
+        struct.pack_into(">L", data, record + 4, checksum(offset, length))
+    struct.pack_into(">L", data, head + 8, (0xB1B0AFBA - checksum(0, len(data))) & 0xFFFFFFFF)
+    return bytes(data)
 
 
 def _text_layer(page: pymupdf.Page, language: str, dpi: int) -> pymupdf.Document:
@@ -172,7 +268,7 @@ def _text_layer(page: pymupdf.Page, language: str, dpi: int) -> pymupdf.Document
     if pix.n != 3:  # pragma: no cover - alpha=False gives RGB, keep it that way
         pix = pymupdf.Pixmap(pymupdf.csRGB, pix)
     try:
-        data = pix.pdfocr_tobytes(language=language, tessdata=str(TESSDATA))
+        data = _recognise_in_helper(pix, language)
     except Exception as exc:
         raise ConversionError(f"Text recognition failed: {exc}") from exc
     layer = pymupdf.open("pdf", data)

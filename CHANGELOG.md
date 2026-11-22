@@ -51,6 +51,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Fixed
 
+- The app no longer freezes ("Not responding") while text recognition reads a page: the
+  reading now runs in a helper process of the app, on this computer as before.
+
 - Settings: the buttons under *About* were cut off by the text below them when the window
   was too low (e.g. with larger text in Windows). The page now scrolls instead, like the
   choices next to the format tiles.
@@ -60,8 +63,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - Compress never shrinks pictures below 150 dpi or saves them below JPG quality 75, and photos
   that don't need shrinking keep their original data byte for byte (no second JPG loss).
 - The hidden text follows the page's direction, also on turned pages, and uses a font whose
-  height every PDF viewer reads the same way, so selecting text marks the right words (in
-  Edge the selection used to sit below the words). Checked letter by letter in the tests.
+  height every PDF viewer reads the same way (Firefox, Chrome, Edge and others), so selecting
+  text marks the right words (in Edge and Firefox the selection used to sit too low). Checked letter by letter in the tests.
 - Text recognition never changes the pages: the text is added as an invisible layer, the
   pictures stay byte for byte the same, and pages that already have text are left alone. Pages
   are read at 300 dpi with the most accurate ("best") language models.

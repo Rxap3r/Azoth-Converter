@@ -427,5 +427,28 @@ def test_hidden_text_font_has_one_set_of_measurements(tmp_path):
             descent = float(doc.xref_get_key(descriptor, "Descent")[1])
             assert abs(ascent / 1000 - font.ascender) < 0.01
             assert abs(descent / 1000 - font.descender) < 0.01
+            # Exactly one font size high: Firefox draws the box one font size high from
+            # the ascent, other viewers from ascent to descent. Both then agree.
+            assert abs(font.ascender - font.descender - 1) < 0.01
         text = doc[0].get_text()
         assert "€" in text or "Gr" in text  # accents and symbols survive in the hidden text
+
+
+def test_reading_does_not_freeze_the_app(tmp_path):
+    """The OCR engine blocks Python while it reads a page; it runs in a helper process so
+    the window keeps responding (Windows showed "Not responding" before)."""
+    import time
+
+    scan = scanned_pdf(tmp_path / "scan.pdf", [make_text_scan(tmp_path / "p.png", LETTER)])
+    pauses = []
+    worker = threading.Thread(target=ocr.make_searchable, args=(scan, tmp_path / "o.pdf", "eng"))
+    worker.start()
+    last = time.perf_counter()
+    while worker.is_alive():
+        time.sleep(0.01)
+        now = time.perf_counter()
+        pauses.append(now - last)
+        last = now
+    worker.join()
+    assert (tmp_path / "o.pdf").exists()
+    assert max(pauses) < 0.5  # the window gets to redraw many times a second
