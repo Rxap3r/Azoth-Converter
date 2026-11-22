@@ -6,7 +6,7 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.3.0** (22 Nov 2026; 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.3.1** (22 Nov 2026, pull request #9; 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
@@ -41,13 +41,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
     real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
     edit pages, compress, passwords ✓) → **OCR** ✓ (all released in 0.3.0);
-  - technical improvements: **faster batches ✓ on `dev`, not released** (LibreOffice and
-    Word: up to 10 files per start; photos: up to 4 at once; PDF restrictions kept in
-    Merge / Split / Edit pages). Windows "Build and test" passed. Word → PDF never worked
-    before (Documents.Open rejected PowerShell's $true/$false); fixed by passing the options
-    by name (InvokeMember), **confirmed by the owner on a PC with Word** (Nov 2026, several
-    files at once). **0.3.1 prepared on `dev`, pull request into `main` opened (Nov 2026)**;
-    then: smaller download;
+  - technical improvements: **faster batches ✓ released in 0.3.1** (Word and LibreOffice: up
+    to 10 files per start; photos: up to 4 at once), plus Word → PDF that really uses Word
+    (never worked before 0.3.1) and PDF restrictions kept. Next: smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with

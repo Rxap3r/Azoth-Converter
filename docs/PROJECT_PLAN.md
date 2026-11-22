@@ -190,7 +190,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
 - [ ] Trim, resolution, bitrate, mute; hardware encoding (NVENC, Quick Sync, AMF)
 - [ ] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file
-- [ ] **Release 0.3**
+- [x] **Release 0.3** (0.3.0 and 0.3.1, Nov 2026)
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
 - [ ] **Fully portable version** (runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
