@@ -27,6 +27,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - **"Show metadata" button** (ⓘ) on every photo in the list, so you can see what's hidden
   in it (location, camera, date …) without the right-click menu.
 
+### Changed
+
+- The command-line program in the Windows download is now called **azoth-terminal.exe**
+  (was azoth.exe), so it's clear which one is the app. Double-clicking it shows a short note
+  on how to use it instead of opening the app. Updating removes the old azoth.exe.
+
 ### Quality
 
 - Pictures keep all their pixels unless you choose a size. Making smaller uses Lanczos

@@ -32,10 +32,16 @@ runs:
     - name: Smoke test the built program
       shell: pwsh
       run: |
-        $exe = "packaging/dist/AzothConverter/azoth.exe"
+        $exe = "packaging/dist/AzothConverter/azoth-terminal.exe"
         & $exe --version
         & $exe formats
         if ($LASTEXITCODE -ne 0) { exit 1 }
+        # Without a command it explains itself instead of opening the app
+        $note = & $exe | Out-String
+        if ($LASTEXITCODE -ne 0 -or $note -notmatch "terminal version") {
+          Write-Error "azoth-terminal.exe without a command: note missing"
+          exit 1
+        }
         # Text recognition works with the bundled language files
         $ocr = "$env:RUNNER_TEMP\ocr-smoke"
         & $exe convert samples/pdf/scanned_letter_no_text.pdf --to txt -o $ocr --quiet
@@ -62,7 +68,7 @@ runs:
         $setup = "packaging/Output/AzothConverter-Setup-$env:VERSION.exe"
         $dir = "$env:RUNNER_TEMP\fc-install"
         Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
-        & "$dir\azoth.exe" --version
+        & "$dir\azoth-terminal.exe" --version
         if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
         if (Test-Path "$dir\portable.txt") { throw "the installer must not be portable" }
         # Update over an existing installation: old libraries go, settings stay.
@@ -70,10 +76,12 @@ runs:
         New-Item -ItemType Directory -Force "$data" | Out-Null
         "keep me" | Out-File "$data\settings.ini"
         "x" | Out-File "$dir\_internal\left-from-old-version.dll"
+        "x" | Out-File "$dir\azoth.exe"  # the command-line program's name before 0.4.0
         Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
         if (Test-Path "$dir\_internal\left-from-old-version.dll") { throw "update left an old library behind" }
+        if (Test-Path "$dir\azoth.exe") { throw "update left the old azoth.exe behind" }
         if ((Get-Content "$data\settings.ini") -ne "keep me") { throw "update changed the settings" }
-        & "$dir\azoth.exe" --version
+        & "$dir\azoth-terminal.exe" --version
         if ($LASTEXITCODE -ne 0) { throw "updated program does not start" }
         "Update: old libraries removed, settings kept"
         # Simulate everything the app can leave behind while being used:
@@ -125,7 +133,7 @@ runs:
         $appdata = "$env:APPDATA\Azoth Converter"
         if (Test-Path $appdata) { Remove-Item -Recurse -Force $appdata }
         $tempBefore = @(Get-ChildItem $env:TEMP -Filter "azoth-*" -Name)
-        & "$dir\azoth.exe" convert samples/images/photo.png --to jpg --resize 50% `
+        & "$dir\azoth-terminal.exe" convert samples/images/photo.png --to jpg --resize 50% `
           -o "$env:RUNNER_TEMP\portable-out" --quiet
         if ($LASTEXITCODE -ne 0) { throw "portable program could not convert" }
         $app = Start-Process "$dir\AzothConverter.exe" -PassThru

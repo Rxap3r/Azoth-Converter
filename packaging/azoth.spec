@@ -1,6 +1,6 @@
 # PyInstaller spec: builds a folder with two programs that share one runtime:
 #   AzothConverter.exe  - the window (no console)
-#   azoth.exe       - the command-line tool
+#   azoth-terminal.exe  - the command-line tool (typed commands; double-clicked: a short note)
 # Build with:  pyinstaller packaging/azoth.spec --noconfirm
 from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
@@ -54,7 +54,7 @@ cli = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name="azoth",
+    name="azoth-terminal",
     console=True,
     icon="icon.ico",
     upx=False,

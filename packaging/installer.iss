@@ -51,6 +51,8 @@ Source: "dist\AzothConverter\*"; DestDir: "{app}"; Flags: ignoreversion recurses
 ; Updates: remove the old version's program libraries first, so files a newer version no
 ; longer uses can't linger and get loaded by mistake. Settings (in %APPDATA%) are not touched.
 Type: filesandordirs; Name: "{app}\_internal"
+; Before 0.4.0 the command-line program was called azoth.exe (now azoth-terminal.exe).
+Type: files; Name: "{app}\azoth.exe"
 
 [Icons]
 Name: "{autoprograms}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"

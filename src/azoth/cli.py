@@ -315,7 +315,8 @@ def _bounded(low: int, high: int):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="azoth",
+        # The packaged Windows program is azoth-terminal.exe; installed with pip: azoth.
+        prog="azoth-terminal" if getattr(sys, "frozen", False) else "azoth",
         description="Offline file converter. Your files never leave this computer.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")

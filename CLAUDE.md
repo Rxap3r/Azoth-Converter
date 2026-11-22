@@ -199,7 +199,7 @@ src/azoth/
                       error_log.py (local error log + crash dump, Settings → Error log…)
   resources/          icon.png (drawn by packaging/make_icon.py)
 tests/                pytest; conftest.py blocks all network access in every test
-packaging/            PyInstaller spec (AzothConverter.exe + azoth.exe), installer.iss (Inno Setup),
+packaging/            PyInstaller spec (AzothConverter.exe + azoth-terminal.exe), installer.iss (Inno Setup),
                       make_icon.py; the automatic build creates and tests the installer
 .github/workflows/    only two workflows: build-and-test.yml and release.yml (shown in the Actions tab)
 .github/actions/      their shared steps: run-tests, build-windows (composite actions, not listed)

@@ -71,7 +71,9 @@ and leaves no files, settings or registry entries behind.
 tile on the right and click **Convert**. It remembers your format, output folder and quality setting.
 Under **Settings** you can choose a light or dark look, or let it follow Windows.
 
-**The command line:**
+**The command line:** in the Windows download the command-line program is
+`azoth-terminal.exe` (next to `AzothConverter.exe`; type `azoth-terminal` instead of `azoth`
+in the examples). Installed from source with pip, the command is `azoth`.
 
 ```bash
 azoth convert report.docx --to pdf
@@ -177,7 +179,7 @@ cd packaging
 pyinstaller azoth.spec --noconfirm
 ```
 
-The result is in `packaging/dist/AzothConverter/`: `AzothConverter.exe` (the app) and `azoth.exe` (command line).
+The result is in `packaging/dist/AzothConverter/`: `AzothConverter.exe` (the app) and `azoth-terminal.exe` (command line).
 The installer is made from that folder with [Inno Setup](https://jrsoftware.org/isinfo.php):
 
 ```bash
