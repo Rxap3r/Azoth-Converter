@@ -229,3 +229,13 @@ def test_all_image_readers_are_loaded_up_front():
     import azoth.converters.images  # noqa: F401
 
     assert Image._initialized == 2
+
+
+def test_picture_size_as_shown(tmp_path):
+    assert resize.picture_size(_photo(tmp_path / "p.png", (640, 480))) == (640, 480)
+    exif = Image.Exif()
+    exif[0x0112] = 6  # stored sideways: shown 300 × 400
+    assert resize.picture_size(_photo(tmp_path / "t.jpg", (400, 300), exif=exif)) == (300, 400)
+    broken = tmp_path / "broken.jpg"
+    broken.write_bytes(b"not a picture")
+    assert resize.picture_size(broken) is None

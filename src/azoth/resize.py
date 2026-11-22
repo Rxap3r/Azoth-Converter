@@ -132,6 +132,20 @@ def parse(text: str, enlarge: bool = True) -> Resize:
     return Resize(HEIGHT, height=int(height), enlarge=enlarge)
 
 
+def picture_size(path) -> tuple[int, int] | None:
+    """Width × height of a picture as it is shown (turned per its EXIF orientation), or
+    None if it can't be read. Only the file's header is read, so this is fast."""
+    from .converters import images  # noqa: F401 - registers HEIC/AVIF reading
+
+    try:
+        with Image.open(path) as im:
+            width, height = im.size
+            orientation = im.getexif().get(0x0112, 1)
+    except Exception:  # noqa: BLE001 - damaged or unknown files simply show no size
+        return None
+    return (height, width) if orientation in (5, 6, 7, 8) else (width, height)
+
+
 # Pillow modes that resize directly; others are converted first. Transparent pictures
 # are resized "premultiplied" (RGBa, La), so edges don't get dark fringes.
 _PREMULTIPLIED = {"RGBA": "RGBa", "LA": "La"}

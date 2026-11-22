@@ -360,6 +360,8 @@ def test_metadata_button_on_photo_cards(window, monkeypatch, sample_pdf, tmp_pat
     window.add_files([photo, sample_pdf])
     cards = window.file_list.cards
     assert not cards[0].metadata_btn.isHidden()  # a photo: the button is there
+    assert cards[0].size.text().startswith("40 × 30 px · ")  # pixels shown for photos
+    assert " px" not in cards[1].size.text()
     assert cards[1].metadata_btn.isHidden()  # a PDF: nothing to show
     shown = []
     monkeypatch.setattr(

@@ -24,6 +24,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   notification is off by default there (Windows remembers every app that shows one).
   The portable ZIP now contains this file (the installer never does), so it is fully
   portable.
+- Photos in the list show their size in pixels next to the file size
+  (e.g. "4032 × 3024 px · 3.2 MB").
 - **"Show metadata" button** (ⓘ) on every photo in the list, so you can see what's hidden
   in it (location, camera, date …) without the right-click menu.
 

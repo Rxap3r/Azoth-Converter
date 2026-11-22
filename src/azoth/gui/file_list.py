@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import formats, metadata
+from .. import formats, metadata, resize
 from ..converters import ConversionError
 from . import icons
 from .settings import forget_file_dialog_history
@@ -68,6 +68,9 @@ class FileCard(QFrame):
             size = human_size(path.stat().st_size)
         except OSError:
             size = ""
+        pixels = resize.picture_size(path) if fmt and fmt.category == formats.IMAGE else None
+        if pixels:  # photos: "4032 × 3024 px · 3.2 MB", handy for choosing a new size
+            size = " · ".join(part for part in (f"{pixels[0]} × {pixels[1]} px", size) if part)
         self.size = label(size, "small")
 
         self.status = label("", "status")
