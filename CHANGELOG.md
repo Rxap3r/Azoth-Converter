@@ -16,6 +16,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - Converting many photos is much faster: up to 4 are converted at the same time (one
   processor core stays free so the window stays responsive). 16 large photos to PNG: about
   4 times faster in our test. The files are exactly the same as before.
+- Converting many Word files to PDF with Microsoft Word is faster: Word now starts once
+  for up to 10 files instead of once per file. A file Word can't convert is tried again
+  on its own and then with LibreOffice, as before.
 
 ### Privacy and safety
 
