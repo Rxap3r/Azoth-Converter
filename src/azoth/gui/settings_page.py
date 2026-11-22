@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from . import error_log, theme
-from .widgets import label
+from .widgets import label, scrollable
 
 METADATA_DETAILS = (
     "When this is off (recommended), converted photos no longer contain:\n"
@@ -90,10 +90,23 @@ class SettingsPage(QWidget):
         self.word_check.setChecked(use_word)
         self.word_check.setVisible(word_installed)  # only when Word is installed
         self.word_check.toggled.connect(self.use_word_changed)
+        self.notify_check = QCheckBox(
+            "Show a Windows notification when work finishes while the app is in the background"
+        )
+        self.notify_check.setChecked(True)
+        self.turn_check = QCheckBox(
+            "Text recognition: turn sideways or upside-down pages the right way up"
+        )
+        self.turn_check.setToolTip(
+            "Only the page's direction changes; the picture itself stays exactly the same."
+        )
+        self.turn_check.setChecked(True)
         conversion = [
             label("Converting", "h2"),
             self.metadata_check,
             self.word_check,
+            self.turn_check,
+            self.notify_check,
         ]
 
         self.about_btn = QPushButton("About Azoth Converter…")
@@ -144,7 +157,11 @@ class SettingsPage(QWidget):
         if uninstaller() is not None:  # only in the installed app, not the portable one
             groups.append(uninstall)
 
-        layout = QVBoxLayout(self)
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scrollable(content))  # scrolls instead of squeezing when too small
         layout.setContentsMargins(28, 24, 28, 20)
         layout.setSpacing(14)
         layout.addWidget(label("Settings", "h1"))

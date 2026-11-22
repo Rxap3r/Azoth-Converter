@@ -92,6 +92,31 @@ def make_docx(path: Path, title: str = "Quarterly Report") -> Path:
 
 
 @pytest.fixture
+def ocr_ready() -> None:
+    """Text recognition tests need the language files (python packaging/fetch_tessdata.py).
+    Skipped on a developer's machine without them, but they must run in the automatic
+    build, so there a missing file is a failure."""
+    from azoth import ocr
+
+    if not set(ocr.LANGUAGES) <= set(ocr.available_languages()):
+        message = "OCR language files missing: run python packaging/fetch_tessdata.py"
+        if os.environ.get("CI"):
+            pytest.fail(message)
+        pytest.skip(message)
+
+
+def make_text_scan(path: Path, lines: list[str], *, dpi: int = 300) -> Path:
+    """A picture of printed text, like a scan or a photo of a letter (PNG)."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=500, height=300)
+    for i, line in enumerate(lines):
+        page.insert_text((40, 60 + 34 * i), line, fontsize=18)
+    page.get_pixmap(dpi=dpi, colorspace=pymupdf.csGRAY).save(path)
+    doc.close()
+    return path
+
+
+@pytest.fixture
 def sample_png(tmp_path) -> Path:
     path = tmp_path / "logo.png"
     img = Image.new("RGBA", (120, 80), (0, 128, 255, 255))

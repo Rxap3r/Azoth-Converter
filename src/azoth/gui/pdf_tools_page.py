@@ -1,4 +1,5 @@
-"""The "PDF tools" page: Merge, Split and Edit pages (rotate, delete, reorder).
+"""The "PDF tools" page: Merge, Split, Edit pages (rotate, delete, reorder), Compress,
+Password and Make searchable (text recognition).
 
 The work itself is in ``azoth.pdf_tools`` (lossless, no Qt). This page only collects the
 choices, runs the job in a background thread and shows the result.
@@ -22,6 +23,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
+    QCheckBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -29,6 +31,7 @@ from PySide6.QtWidgets import (
     QListView,
     QListWidget,
     QListWidgetItem,
+    QProgressBar,
     QPushButton,
     QRadioButton,
     QStackedWidget,
@@ -37,16 +40,24 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import formats, pdf_tools
-from ..converters import ConversionError
+from .. import formats, ocr, pdf_tools, quality
+from ..converters import ConversionCancelled, ConversionError
 from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
-from .output_folder import OutputFolderRow
-from .settings import forget_file_dialog_history
+from .options_panel import LanguageBox
+from .output_folder import FileNameRow, OutputFolderRow
+from .settings import Preferences, forget_file_dialog_history
 from .theme import Colors, repolish
 from .widgets import label
 
-TOOLS = [("merge", "Merge"), ("split", "Split"), ("edit", "Edit pages")]
+TOOLS = [
+    ("merge", "Merge"),
+    ("split", "Split"),
+    ("edit", "Edit pages"),
+    ("compress", "Compress"),
+    ("password", "Password"),
+    ("ocr", "Make searchable"),
+]
 THUMB_WIDTH = 110
 ROLE_PATH = Qt.ItemDataRole.UserRole
 ROLE_PAGE = Qt.ItemDataRole.UserRole + 1  # original page index
@@ -74,11 +85,17 @@ class Task(QObject):
 
     done = Signal(object)  # list[Path]
     failed = Signal(str)
+    nothing = Signal(str)  # nothing to do (e.g. the PDF can't get smaller)
+    progress = Signal(float, str)  # how far (0 to 1) and a status text while the job runs
 
     def start(self, job: Callable[[], list[Path]]) -> None:
         def run() -> None:
             try:
                 result = job()
+            except ConversionCancelled:
+                self.nothing.emit("Cancelled. Nothing was saved.")
+            except pdf_tools.NotSmaller as exc:
+                self.nothing.emit(str(exc))
             except ConversionError as exc:
                 self.failed.emit(str(exc))
             except Exception as exc:  # never let a bad file kill the app
@@ -226,16 +243,10 @@ class MergeTool(QWidget):
         self.down_btn.clicked.connect(lambda: _move_selected(self.list, 1) or self.changed.emit())
         self.remove_btn = QPushButton("Remove")
         self.remove_btn.clicked.connect(self.remove_selected)
-        self.name = QLineEdit("Merged.pdf")
-        self.name.setAccessibleName("Name of the merged PDF")
-        self.name.textChanged.connect(lambda _: self.changed.emit())
         buttons = QHBoxLayout()
         for button in (self.add_btn, self.up_btn, self.down_btn, self.remove_btn):
             buttons.addWidget(button)
         buttons.addStretch(1)
-        name_row = QHBoxLayout()
-        name_row.addWidget(label("Name of the new PDF", "caption"))
-        name_row.addWidget(self.name, 1)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
@@ -244,7 +255,6 @@ class MergeTool(QWidget):
         )
         layout.addWidget(self.list, 1)
         layout.addLayout(buttons)
-        layout.addLayout(name_row)
 
     def files(self) -> list[Path]:
         return [Path(self.list.item(i).data(ROLE_PATH)) for i in range(self.list.count())]
@@ -289,18 +299,16 @@ class MergeTool(QWidget):
             self.list.takeItem(self.list.row(item))
         self.changed.emit()
 
-    def target_name(self) -> str:
-        name = self.name.text().strip() or "Merged"
-        name = "".join("_" if c in '<>:"/\\|?*' else c for c in name)
-        return name if name.lower().endswith(".pdf") else f"{name}.pdf"
-
     def action(self) -> str | None:
         n = len(self.files())
         return f"Merge {n} PDFs" if n >= 2 else None
 
-    def job(self, folder: Path | None):
+    def result_name(self) -> str | None:
+        return "Merged" if len(self.files()) >= 2 else None
+
+    def job(self, folder: Path | None, name: str):
         sources = self.files()
-        target = (folder or sources[0].parent) / self.target_name()
+        target = (folder or sources[0].parent) / f"{name}.pdf"
         return lambda: [pdf_tools.merge(sources, target)]
 
 
@@ -375,9 +383,15 @@ class SplitTool(QWidget):
         self.hint.setText("Each part keeps the pages exactly as they are.")
         return f"Split into {count} PDF{'s' if count != 1 else ''}"
 
-    def job(self, folder: Path | None):
+    name_caption = "Folder name"
+    name_extension = ""
+
+    def result_name(self) -> str | None:
+        return pdf_tools.split_folder(self.source).name if self.source else None
+
+    def job(self, folder: Path | None, name: str):
         src, groups = self.source, self.groups()
-        out_dir = pdf_tools.split_folder(src, folder)
+        out_dir = (folder or src.parent) / name
         return lambda: pdf_tools.split(src, out_dir, groups)
 
 
@@ -404,8 +418,13 @@ class EditTool(QWidget):
         self.pages.model().rowsMoved.connect(lambda *_: self.changed.emit())
         self.left_btn = QPushButton("Turn left")
         self.right_btn = QPushButton("Turn right")
-        self.earlier_btn = QPushButton("Move earlier")
-        self.later_btn = QPushButton("Move later")
+        # Pages are shown left to right, so the buttons point the way the page moves.
+        self.earlier_btn = QPushButton("◀ Move")
+        self.later_btn = QPushButton("Move ▶")
+        self.earlier_btn.setToolTip("Move the selected pages one place towards the start")
+        self.later_btn.setToolTip("Move the selected pages one place towards the end")
+        self.earlier_btn.setAccessibleName("Move pages towards the start")
+        self.later_btn.setAccessibleName("Move pages towards the end")
         self.delete_btn = QPushButton("Delete")
         self.reset_btn = QPushButton("Start over")
         self.left_btn.clicked.connect(lambda: self.turn(-90))
@@ -541,10 +560,300 @@ class EditTool(QWidget):
         changed = self.edits() != [pdf_tools.PageEdit(i) for i in range(self.pages.count())]
         return "Save as new PDF" if changed else None
 
-    def job(self, folder: Path | None):
+    def result_name(self) -> str | None:
+        return pdf_tools.edited_path(self.source).stem if self.source else None
+
+    def job(self, folder: Path | None, name: str):
         src, edits = self.source, self.edits()
-        target = pdf_tools.edited_path(src, folder)
+        target = (folder or src.parent) / f"{name}.pdf"
         return lambda: [pdf_tools.edit_pages(src, target, edits)]
+
+
+SIGNED_WARNING = (
+    "⚠ This PDF is digitally signed. The new copy can't keep a valid signature; "
+    "keep the original for that."
+)
+
+
+class _SinglePdfTool(QWidget):
+    """A tool that works on one PDF: shows its name and size, warns about signatures."""
+
+    changed = Signal()
+
+    def __init__(self, intro: str) -> None:
+        super().__init__()
+        self.source: Path | None = None
+        self.size = 0
+        row, self.file_label, self.choose_btn = _single_pdf_row(self)
+        self.choose_btn.clicked.connect(lambda: self.add_files(choose_pdfs(self, many=False)))
+        self.signed = label(SIGNED_WARNING, "banner", wrap=True)
+        self.signed.setVisible(False)
+        self.body = QVBoxLayout(self)
+        self.body.setContentsMargins(0, 0, 0, 0)
+        self.body.setSpacing(10)
+        self.body.addWidget(label(intro, "muted", wrap=True))
+        self.body.addWidget(row)
+
+    def check(self, pdf: Path) -> str | None:
+        """Why this PDF can't be used here, or None. Raises ConversionError."""
+        return None
+
+    def add_files(self, paths: Iterable[Path]) -> None:
+        pdf = next((p for p in paths if is_pdf(p)), None)
+        if pdf is None:
+            return
+        self.source = None
+        try:
+            problem = self.check(pdf)
+            if problem:
+                raise ConversionError(problem)
+            self.size = pdf.stat().st_size
+        except (ConversionError, OSError) as exc:
+            if isinstance(exc, OSError):
+                exc = ConversionError(f"Could not read {pdf.name}: {exc.strerror or exc}")
+            self.file_label.setText(str(exc))
+            self.file_label.setProperty("role", "muted")
+            self.signed.setVisible(False)
+        else:
+            self.source = pdf
+            self.file_label.setText(f"{pdf.name}   ·   {pdf_tools.size_text(self.size)}")
+            self.file_label.setProperty("role", "")
+            self.signed.setVisible(pdf_tools.is_signed(pdf))
+        repolish(self.file_label)
+        self.loaded()
+        self.changed.emit()
+
+    def loaded(self) -> None:
+        """Called after a new PDF was chosen (or refused)."""
+
+
+class CompressTool(_SinglePdfTool):
+    def __init__(self) -> None:
+        super().__init__(
+            "Saves a smaller copy. Text, links and form fields stay exactly as they are; "
+            "only pictures can get smaller."
+        )
+        self.levels = QButtonGroup(self)
+        self.level_buttons: dict[str, QRadioButton] = {}
+        for level in quality.COMPRESS_LEVELS:
+            button = QRadioButton(level.label)
+            button.setChecked(level is quality.DEFAULT_COMPRESS)
+            self.levels.addButton(button)
+            self.level_buttons[level.id] = button
+            about = label(level.description, "small", wrap=True)
+            about.setContentsMargins(26, 0, 0, 4)
+            self.body.addWidget(button)
+            self.body.addWidget(about)
+        self.body.addWidget(self.signed)
+        self.body.addStretch(1)
+        self.before = 0
+
+    def check(self, pdf: Path) -> str | None:
+        if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
+            return "This PDF is password-protected. Remove the password first (Password)."
+        return None
+
+    def level(self) -> str:
+        return next(k for k, b in self.level_buttons.items() if b.isChecked())
+
+    def action(self) -> str | None:
+        return "Compress" if self.source else None
+
+    def result_name(self) -> str | None:
+        return pdf_tools.compressed_path(self.source).stem if self.source else None
+
+    def job(self, folder: Path | None, name: str):
+        src, level, self.before = self.source, self.level(), self.size
+        target = (folder or src.parent) / f"{name}.pdf"
+        return lambda: [pdf_tools.compress(src, target, level)]
+
+    def done_text(self, outputs: list[Path]) -> str:
+        after = outputs[0].stat().st_size
+        saved = round(100 * (1 - after / self.before)) if self.before else 0
+        size = pdf_tools.size_text
+        return f"✓ Saved {outputs[0].name}: {size(self.before)} → {size(after)} ({saved}% smaller)"
+
+
+FORGET_WARNING = (
+    "⚠ Keep the password safe. If you forget it, nobody can open the copy, "
+    "not even with this app. Your original stays as it is, without a password."
+)
+
+
+class PasswordTool(_SinglePdfTool):
+    submit = Signal()  # Enter pressed in a password field
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Lock a PDF with a password (AES-256 encryption), or remove the password "
+            "from your own PDF. The password is never saved."
+        )
+        self.state: str | None = None
+        self.mode = label("", "", wrap=True)
+        self.password = QLineEdit()
+        self.repeat = QLineEdit()
+        for field, name in ((self.password, "Password"), (self.repeat, "Repeat password")):
+            field.setEchoMode(QLineEdit.EchoMode.Password)
+            field.setPlaceholderText(name)
+            field.setAccessibleName(name)
+            field.setMaximumWidth(360)
+            field.textChanged.connect(self._update_hint)
+            field.returnPressed.connect(self.submit.emit)
+        self.show_check = QCheckBox("Show password")
+        self.show_check.toggled.connect(self._show)
+        self.hint = label("", "small", wrap=True)
+        self.forget = label(FORGET_WARNING, "banner", wrap=True)
+        for widget in (self.mode, self.password, self.repeat, self.show_check, self.hint):
+            self.body.addWidget(widget)
+        self.body.addWidget(self.forget)
+        self.body.addWidget(self.signed)
+        self.body.addStretch(1)
+        self.loaded()
+
+    def check(self, pdf: Path) -> str | None:
+        self.state = pdf_tools.lock_state(pdf)
+        return None
+
+    def adding(self) -> bool:
+        return self.state == pdf_tools.UNLOCKED
+
+    def loaded(self) -> None:
+        ready = self.source is not None
+        self.clear()
+        if not ready:
+            self.state = None
+        texts = {
+            pdf_tools.UNLOCKED: "Choose a password for the copy:",
+            pdf_tools.NEEDS_PASSWORD: "This PDF is locked. Enter its password to save an "
+            "unlocked copy:",
+            pdf_tools.RESTRICTED: "This PDF opens without a password, but an owner password "
+            "limits printing, copying or changes. Enter the owner password to remove it:",
+        }
+        self.mode.setText(texts.get(self.state, ""))
+        for widget in (self.mode, self.password, self.show_check, self.hint):
+            widget.setVisible(ready)
+        self.repeat.setVisible(ready and self.adding())
+        self.forget.setVisible(ready and self.adding())
+        self.signed.setVisible(ready and not self.signed.isHidden())
+
+    def clear(self) -> None:
+        """Forget the typed passwords."""
+        self.password.clear()
+        self.repeat.clear()
+        self.show_check.setChecked(False)
+
+    def _show(self, visible: bool) -> None:
+        mode = QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password
+        self.password.setEchoMode(mode)
+        self.repeat.setEchoMode(mode)
+
+    def _update_hint(self) -> None:
+        self.hint.setText(self._hint())
+        self.changed.emit()
+
+    def _hint(self) -> str:
+        password = self.password.text()
+        if not self.adding() or not password:
+            return ""
+        problem = pdf_tools.password_problem(password)
+        if problem:
+            return problem
+        warning = pdf_tools.password_warning(password) or ""
+        if self.repeat.text() and self.repeat.text() != password:
+            return ("The passwords don't match. " + warning).strip()
+        return warning
+
+    def action(self) -> str | None:
+        if self.source is None:
+            return None
+        password = self.password.text()
+        if not self.adding():
+            return "Remove password" if password else None
+        if pdf_tools.password_problem(password) or self.repeat.text() != password:
+            return None
+        return "Add password"
+
+    def idle_text(self) -> str | None:
+        if self.source is None:
+            return None
+        return "Add password" if self.adding() else "Remove password"
+
+    def result_name(self) -> str | None:
+        if not self.source:
+            return None
+        made = pdf_tools.protected_path if self.adding() else pdf_tools.unlocked_path
+        return made(self.source).stem
+
+    def job(self, folder: Path | None, name: str):
+        src, password, adding = self.source, self.password.text(), self.adding()
+        target = (folder or src.parent) / f"{name}.pdf"
+        self.clear()
+        if adding:
+            return lambda: [pdf_tools.add_password(src, target, password)]
+        return lambda: [pdf_tools.remove_password(src, target, password)]
+
+    def done_text(self, outputs: list[Path]) -> str:
+        name = outputs[0].name
+        if pdf_tools.lock_state(outputs[0]) == pdf_tools.UNLOCKED:
+            return f"✓ Saved {name} without a password"
+        return f"✓ Saved {name}. It now needs the password to open."
+
+
+class SearchableTool(_SinglePdfTool):
+    """Make searchable: recognise the text of scanned pages (OCR)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Reads the text in scanned pages and adds it invisibly, so you can search, "
+            "select and copy it. The pages look exactly the same. Pages that already "
+            "have text are left as they are."
+        )
+        self.report: Callable[[float, str], None] = lambda fraction, text: None
+        self.cancel = threading.Event()
+        self.language = LanguageBox()
+        self.body.addWidget(label("Language of the text", "caption"))
+        self.body.addWidget(self.language, 0, Qt.AlignmentFlag.AlignLeft)
+        self.body.addWidget(self.signed)
+        if not ocr.is_available():
+            self.body.addWidget(label(f"⚠ {OCR_MISSING}", "banner", wrap=True))
+        self.body.addStretch(1)
+
+    def check(self, pdf: Path) -> str | None:
+        if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
+            return "This PDF is password-protected. Remove the password first (Password)."
+        if not ocr.needs_ocr(pdf):
+            return f"{pdf.name} already has selectable text, so there is nothing to recognise."
+        return None
+
+    def action(self) -> str | None:
+        return "Make searchable" if self.source and ocr.is_available() else None
+
+    def result_name(self) -> str | None:
+        return ocr.searchable_path(self.source).stem if self.source else None
+
+    cancellable = True
+
+    def job(self, folder: Path | None, name: str):
+        src, language, report, cancel = (
+            self.source,
+            self.language.language(),
+            self.report,
+            self.cancel,
+        )
+        target = (folder or src.parent) / f"{name}.pdf"
+        turn = Preferences().ocr_turn_pages  # Settings: turn pages the right way up
+
+        def progress(fraction: float, message: str) -> None:
+            report(fraction, f"{message}…")
+
+        return lambda: [
+            ocr.make_searchable(
+                src, target, language, progress=progress, cancel=cancel, turn_pages=turn
+            )
+        ]
+
+
+OCR_MISSING = "Text recognition is missing its language files. Reinstall Azoth Converter to use it."
 
 
 class PdfToolsPage(QWidget):
@@ -553,12 +862,26 @@ class PdfToolsPage(QWidget):
         self.task = Task()
         self.task.done.connect(self._done)
         self.task.failed.connect(self._failed)
+        self.task.nothing.connect(self._nothing)
         self.busy = False
 
         self.merge = MergeTool()
         self.split = SplitTool()
         self.edit = EditTool()
-        self.tools = {"merge": self.merge, "split": self.split, "edit": self.edit}
+        self.compress = CompressTool()
+        self.password = PasswordTool()
+        self.password.submit.connect(self.run)
+        self.searchable = SearchableTool()
+        self.searchable.report = self.task.progress.emit
+        self.task.progress.connect(self._progress)
+        self.tools = {
+            "merge": self.merge,
+            "split": self.split,
+            "edit": self.edit,
+            "compress": self.compress,
+            "password": self.password,
+            "ocr": self.searchable,
+        }
         self.stack = QStackedWidget()
         for tool in self.tools.values():
             self.stack.addWidget(tool)
@@ -581,7 +904,18 @@ class PdfToolsPage(QWidget):
         self.tool_buttons["merge"].setChecked(True)
 
         self.output_row = OutputFolderRow()
+        self.name_row = FileNameRow()
         self.result = ResultBar()
+        self.progress = QProgressBar()
+        self.progress.setProperty("role", "overall")
+        self.progress.setRange(0, 1000)
+        self.progress.setTextVisible(False)
+        self.progress.setAccessibleName("Progress")
+        self.progress.setVisible(False)
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setMinimumHeight(44)
+        self.cancel_btn.setVisible(False)
+        self.cancel_btn.clicked.connect(self.cancel)
         self.action_btn = QPushButton("Merge")
         self.action_btn.setProperty("role", "primary")
         self.action_btn.setMinimumWidth(240)
@@ -589,6 +923,8 @@ class PdfToolsPage(QWidget):
         bottom = QHBoxLayout()
         bottom.setSpacing(16)
         bottom.addWidget(self.output_row, 1)
+        bottom.addWidget(self.name_row, 1)
+        bottom.addWidget(self.cancel_btn, 0, Qt.AlignmentFlag.AlignBottom)
         bottom.addWidget(self.action_btn, 0, Qt.AlignmentFlag.AlignBottom)
 
         titles = QVBoxLayout()
@@ -596,8 +932,10 @@ class PdfToolsPage(QWidget):
         titles.addWidget(label("PDF tools", "h1"))
         titles.addWidget(
             label(
-                "Merge, split and edit PDFs. Pages are copied as they are: no quality loss.",
+                "Merge, split, edit, compress, lock and make PDFs searchable. Only Compress "
+                "changes pictures; everything else copies pages as they are.",
                 "muted",
+                wrap=True,
             )
         )
         layout = QVBoxLayout(self)
@@ -607,6 +945,7 @@ class PdfToolsPage(QWidget):
         layout.addLayout(switcher)
         layout.addWidget(self.stack, 1)
         layout.addWidget(self.result)
+        layout.addWidget(self.progress)
         layout.addLayout(bottom)
         self._update()
 
@@ -626,8 +965,14 @@ class PdfToolsPage(QWidget):
 
     def _update(self) -> None:
         tool = self.tools[self.current_tool()]
+        self.name_row.set_name(
+            tool.result_name(),
+            getattr(tool, "name_extension", "pdf"),
+            getattr(tool, "name_caption", "File name"),
+        )
         text = tool.action()
-        self.action_btn.setText(text or dict(TOOLS)[self.current_tool()])
+        idle = getattr(tool, "idle_text", lambda: None)()
+        self.action_btn.setText(text or idle or dict(TOOLS)[self.current_tool()])
         self.action_btn.setEnabled(bool(text) and not self.busy)
 
     def run(self) -> None:
@@ -635,13 +980,30 @@ class PdfToolsPage(QWidget):
         if self.busy or not tool.action():
             return
         try:
-            job = tool.job(self.output_row.folder)
+            name = self.name_row.name(getattr(tool, "name_extension", "pdf"))
+            job = tool.job(self.output_row.folder, name)
         except ConversionError as exc:
             self.result.show_state(FAILED, f"✗ {exc}")
             return
+        if hasattr(tool, "cancel"):
+            tool.cancel.clear()
         self._set_busy(True)
         self.result.show_state(WORKING, "Working…")
         self.task.start(job)
+
+    def cancel(self) -> None:
+        tool = self.tools[self.current_tool()]
+        if self.busy and hasattr(tool, "cancel"):
+            tool.cancel.set()
+            self.cancel_btn.setEnabled(False)
+            self.result.show_state(WORKING, "Cancelling after this page…")
+
+    def _progress(self, fraction: float, text: str) -> None:
+        if self.busy:
+            self.progress.setVisible(True)
+            self.progress.setValue(int(fraction * 1000))
+            if self.cancel_btn.isEnabled():  # keep "Cancelling…" once asked
+                self.result.show_state(WORKING, text)
 
     def apply_colors(self, colors: Colors) -> None:
         self.merge.apply_colors(colors)
@@ -653,15 +1015,29 @@ class PdfToolsPage(QWidget):
         for tool in self.tools.values():
             tool.setEnabled(not busy)
         self.output_row.set_busy(busy)
+        self.name_row.set_busy(busy)
+        tool = self.tools[self.current_tool()]
+        self.cancel_btn.setVisible(busy and getattr(tool, "cancellable", False))
+        self.cancel_btn.setEnabled(True)
+        if not busy:
+            self.progress.setVisible(False)
+            self.progress.setValue(0)
         self._update()
 
     def _done(self, outputs: list[Path]) -> None:
         self._set_busy(False)
-        if len(outputs) == 1:
+        tool = self.tools[self.current_tool()]
+        if hasattr(tool, "done_text"):
+            text = tool.done_text(outputs)
+        elif len(outputs) == 1:
             text = f"✓ Saved {outputs[0].name}"
         else:
             text = f"✓ Saved {len(outputs)} PDFs in {outputs[0].parent.name}"
         self.result.show_state(DONE, text, outputs)
+
+    def _nothing(self, message: str) -> None:
+        self._set_busy(False)
+        self.result.show_state(INFO, message)
 
     def _failed(self, message: str) -> None:
         self._set_busy(False)

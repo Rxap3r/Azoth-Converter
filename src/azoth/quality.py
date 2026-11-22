@@ -14,6 +14,7 @@ MIN_IMAGE_QUALITY = 75  # below this, compression artefacts become clearly visib
 MAX_IMAGE_QUALITY = 100
 MIN_DPI = 150  # below this, text in PDF page images gets blurry
 MAX_DPI = 600
+OCR_DPI = 300  # pages are read (not saved) at this sharpness; less makes small print unreadable
 
 
 @dataclass(frozen=True)
@@ -72,3 +73,60 @@ def resolve_options(options: dict[str, Any] | None) -> dict[str, Any]:
     result["dpi"] = _clamp(level.dpi if dpi is None else dpi, MIN_DPI, MAX_DPI)
     result["level"] = level.id
     return result
+
+
+# --- Compress PDF ------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class CompressLevel:
+    """How strongly "Compress PDF" shrinks a file.
+
+    ``dpi`` 0 means pictures stay exactly as they are (only the file structure is
+    tidied up). Otherwise pictures sharper than ``1.5 × dpi`` are reduced to about
+    ``dpi`` (never below it, never enlarged) and saved with ``image_quality``.
+    ``photos_to_jpeg`` also turns lossless pictures (PNG-like) into JPG.
+    """
+
+    id: str
+    label: str
+    description: str
+    dpi: int
+    image_quality: int
+    photos_to_jpeg: bool
+
+    @property
+    def threshold_dpi(self) -> int:
+        return self.dpi * 3 // 2
+
+
+COMPRESS_LEVELS = [
+    CompressLevel(
+        "light",
+        "Light: no quality loss",
+        "Tidies up the file. Text and pictures stay exactly as they are. Saves less.",
+        0,
+        0,
+        False,
+    ),
+    CompressLevel(
+        "balanced",
+        "Balanced (recommended)",
+        "Very sharp pictures are reduced to 200 dpi: still sharp on screen and in print. "
+        "Text stays exactly as it is.",
+        200,
+        85,
+        False,
+    ),
+    CompressLevel(
+        "strong",
+        "Strong",
+        "Smallest file, good for e-mail. Pictures are reduced to 150 dpi and saved as JPG; "
+        "fine details and screenshots may soften. Text stays sharp.",
+        MIN_DPI,
+        MIN_IMAGE_QUALITY,
+        True,
+    ),
+]
+COMPRESS_BY_ID = {level.id: level for level in COMPRESS_LEVELS}
+DEFAULT_COMPRESS = COMPRESS_BY_ID["balanced"]

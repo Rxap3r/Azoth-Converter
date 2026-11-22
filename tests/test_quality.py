@@ -245,3 +245,93 @@ def test_pdf_tools_copy_pages_without_redrawing(tmp_path):
     assert pages(merged) == original * 2
     [part] = pdf_tools.split(src, tmp_path / "s", [[1]])
     assert pages(part) == [original[1]]
+
+
+# --- Compress PDF ------------------------------------------------------------------
+
+
+def test_compress_levels_respect_the_minimums():
+    from azoth.quality import COMPRESS_LEVELS, MIN_DPI, MIN_IMAGE_QUALITY
+
+    assert COMPRESS_LEVELS[0].dpi == 0  # the lightest level never touches pictures
+    for level in COMPRESS_LEVELS[1:]:
+        assert level.dpi >= MIN_DPI and level.image_quality >= MIN_IMAGE_QUALITY
+        assert level.threshold_dpi > level.dpi
+
+
+@pytest.mark.parametrize("level", ["balanced", "strong"])
+def test_compressed_pictures_never_drop_below_the_level_dpi(tmp_path, level):
+    """Even compressing again and again never makes pictures blurrier than promised."""
+    from azoth import pdf_tools
+    from azoth.quality import COMPRESS_BY_ID
+
+    target = COMPRESS_BY_ID[level].dpi
+    src = tmp_path / "photos.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page()
+    for i, px in enumerate((600, 1000, 1500, 2200, 4000)):
+        buf = io.BytesIO()
+        Image.effect_noise((px, px), 60).convert("RGB").save(buf, "JPEG", quality=95)
+        page.insert_image(pymupdf.Rect(20 + i * 110, 50, 120 + i * 110, 150), stream=buf.getvalue())
+    doc.save(src)
+    doc.close()
+    current = src
+    for n in range(3):
+        try:
+            current = pdf_tools.compress(current, tmp_path / f"c{n}.pdf", level)
+        except pdf_tools.NotSmaller:
+            break
+        with pymupdf.open(current) as result:
+            for info in result[0].get_image_info():
+                width_inch = (info["bbox"][2] - info["bbox"][0]) / 72
+                assert info["width"] / width_inch >= target - 1
+
+
+def test_compress_keeps_small_jpg_photos_byte_for_byte(tmp_path):
+    """Photos that are not reduced in size are not re-saved as a worse JPG either."""
+    from azoth import pdf_tools
+
+    src = tmp_path / "mixed.pdf"
+    small = io.BytesIO()
+    Image.effect_noise((300, 200), 60).convert("RGB").save(small, "JPEG", quality=92)
+    big = io.BytesIO()
+    Image.effect_noise((3000, 2000), 60).convert("RGB").save(big, "JPEG", quality=95)
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_image(pymupdf.Rect(50, 50, 350, 250), stream=small.getvalue())
+    page.insert_image(pymupdf.Rect(50, 300, 250, 433), stream=big.getvalue())
+    doc.save(src)
+    doc.close()
+    for level in ("balanced", "strong"):
+        out = pdf_tools.compress(src, tmp_path / f"{level}.pdf", level)
+        with pymupdf.open(out) as result:
+            first = result[0].get_image_info(xrefs=True)[0]
+            assert result.extract_image(first["xref"])["image"] == small.getvalue()
+
+
+def test_ocr_reads_pages_sharp_enough():
+    from azoth import quality
+
+    assert quality.OCR_DPI >= 300  # small print becomes unreadable below this
+
+
+def test_searchable_pdf_keeps_jpg_scans_byte_for_byte(tmp_path, ocr_ready):
+    """Text recognition only adds invisible text: scanned JPG pages are never re-saved."""
+    from conftest import make_text_scan
+
+    from azoth import ocr
+
+    scan = make_text_scan(tmp_path / "page.png", ["Searchable but unchanged"])
+    jpg = io.BytesIO()
+    Image.open(scan).convert("RGB").save(jpg, "JPEG", quality=85)
+    src = tmp_path / "scan.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=500, height=300)
+    page.insert_image(page.rect, stream=jpg.getvalue())
+    doc.save(src)
+    doc.close()
+    out = ocr.make_searchable(src, tmp_path / "out.pdf", "eng")
+    with pymupdf.open(out) as result:
+        [image] = result[0].get_images()
+        assert result.extract_image(image[0])["image"] == jpg.getvalue()
+        assert "Searchable but unchanged" in result[0].get_text()

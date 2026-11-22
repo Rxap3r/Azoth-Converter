@@ -244,6 +244,8 @@ QPushButton[role="link"]:focus {{ border: 1px solid {c.accent}; }}
 QPushButton[role="filter"] {{ border-radius: 15px; min-height: 18px; padding: 5px 14px; font-size: 13px; }}
 QPushButton[role="filter"]:checked {{ background: {c.accent}; color: {c.accent_text}; border: 0; font-weight: 600; }}
 
+QFrame#DoneCard {{ background: {c.note}; border-radius: 10px; }}
+QLabel#DoneText {{ color: {c.text}; font-weight: 600; }}
 QFrame#DropZone {{ background: {c.drop}; border: 2px dashed {c.drop_border}; border-radius: 10px; }}
 QFrame#DropZone[active="true"] {{ border-color: {c.accent}; background: {c.accent_soft}; }}
 QFrame[role="card"] {{ background: {c.surface}; border: 1px solid {c.border}; border-radius: 8px; }}

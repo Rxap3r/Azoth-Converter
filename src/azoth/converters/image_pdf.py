@@ -5,6 +5,8 @@
   is applied by rotating the picture on the page, not by re-encoding it.
 * Other formats are stored losslessly (PNG/Flate), including transparency.
 * Multi-page TIFFs and animated GIFs become one page per frame.
+* With the ``ocr`` option the recognised text is added as an invisible layer, so the
+  PDF is searchable; the pictures stay the same.
 """
 
 from __future__ import annotations
@@ -68,6 +70,18 @@ class ImageToPdfConverter(Converter):
                         ctx.progress(i / n_frames * 0.9, f"Page {i + 1}/{n_frames}")
                         self._add_lossless(doc, frame.copy(), dpi)
             ctx.check_cancelled()
+            if ctx.option("ocr", False):
+                from .. import ocr
+                from . import ocr as ocr_converter
+
+                ctx.progress(0.5, "Reading the text")
+                ocr.add_text_layer(
+                    doc,
+                    ocr_converter.language(ctx),
+                    progress=lambda f, m: ctx.progress(0.5 + f * 0.45, m),
+                    cancel=ctx.cancel_event,
+                    turn_pages=bool(ctx.option("ocr_turn_pages", True)),
+                )
             doc.save(dst, garbage=3, deflate=True)
         except ConversionError:
             raise

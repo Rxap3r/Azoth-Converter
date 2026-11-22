@@ -1,7 +1,9 @@
-"""PDF tools: merge, split and edit pages (rotate, delete, reorder).
+"""PDF tools: merge, split, edit pages (rotate, delete, reorder), compress, passwords.
 
-All of these are lossless: pages are copied as they are (text, pictures, fonts, links,
-form fields), never rendered or re-compressed. Bookmarks are kept where their pages are.
+Merge, split, edit pages and passwords are lossless: pages are copied as they are (text,
+pictures, fonts, links, form fields), never rendered or re-compressed. Bookmarks are kept
+where their pages are. Compress only shrinks pictures as far as the chosen level allows
+(see ``quality.COMPRESS_LEVELS``).
 Results are first saved in a private temporary folder and only then moved to their
 place, so a failure never leaves a half-written file. Originals are never changed and
 existing files are never overwritten unless asked.
@@ -18,6 +20,7 @@ from pathlib import Path
 
 import pymupdf
 
+from . import quality
 from .converters import ConversionError
 from .converters.pdf import open_pdf, page_file_name
 from .engine import TEMP_PREFIX, unique_path
@@ -50,22 +53,71 @@ def _target(path: Path, overwrite: bool, protect: Iterable[Path] = ()) -> Path:
     return path
 
 
-def _save(doc: pymupdf.Document, dst: Path) -> Path:
-    """Save via a private temporary folder, then move into place."""
+def _save(
+    doc: pymupdf.Document,
+    dst: Path,
+    *,
+    compact: bool = False,
+    smaller_than: int | None = None,
+    check: Callable[[Path], None] | None = None,
+    **options,
+) -> Path:
+    """Save via a private temporary folder, then move into place.
+
+    ``compact`` packs the file structure tighter (lossless). With ``smaller_than``
+    nothing is saved unless the result is smaller than that many bytes (raises
+    :class:`NotSmaller`). ``check`` looks at the finished temporary file before it is
+    moved into place and raises ConversionError if something is wrong.
+    """
+    if compact:
+        # garbage=4 also merges duplicate objects; object streams pack the small
+        # objects. Both are lossless and understood by every reader since PDF 1.5.
+        options = {"garbage": 4, "use_objstms": 1, "deflate_images": True, **options}
+    options = {"garbage": 3, "deflate": True, **options}
     dst.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=TEMP_PREFIX) as tmp:
         temp = Path(tmp) / "result.pdf"
         try:
-            # garbage=3 drops unused objects; deflate only packs streams that were not
-            # compressed at all, so pictures are not touched.
-            doc.save(temp, garbage=3, deflate=True)
+            # deflate only packs streams that were not compressed at all, so pictures
+            # are not touched.
+            doc.save(temp, **options)
         except Exception as exc:
             raise ConversionError(f"Could not save the PDF: {exc}") from exc
+        if smaller_than is not None and temp.stat().st_size >= smaller_than:
+            raise NotSmaller("This PDF can't be made any smaller. Nothing was saved.")
+        if check is not None:
+            check(temp)
         try:
             shutil.move(str(temp), dst)
         except OSError as exc:
             raise ConversionError(f"Could not save {dst.name}: {exc.strerror or exc}") from exc
     return dst
+
+
+class NotSmaller(ConversionError):
+    """Compressing would not make the file smaller, so nothing was saved."""
+
+
+def is_signed(path: Path | str) -> bool:
+    """True if the PDF carries a digital signature (a new copy can't keep it valid)."""
+    try:
+        with pymupdf.open(Path(path), filetype="pdf") as doc:
+            return not doc.needs_pass and doc.get_sigflags() > 0
+    except Exception:
+        return False
+
+
+def _same_pages(expected: int) -> Callable[[Path], None]:
+    def check(path: Path) -> None:
+        try:
+            with pymupdf.open(path, filetype="pdf") as doc:
+                ok = doc.page_count == expected
+        except Exception:
+            ok = False
+        if not ok:
+            raise ConversionError("Something went wrong while saving. Nothing was saved.")
+
+    return check
 
 
 # --- merge -------------------------------------------------------------------------
@@ -218,6 +270,253 @@ def edit_pages(
         except Exception as exc:
             raise ConversionError(f"Could not change the pages: {exc}") from exc
         return _save(doc, _target(Path(dst), overwrite, [src]))
+
+
+# --- compress ----------------------------------------------------------------------
+
+
+def size_text(size: int) -> str:
+    """1234567 → "1.2 MB", 45000 → "45 KB"."""
+    return f"{size / 1_000_000:.1f} MB" if size >= 100_000 else f"{max(1, round(size / 1000))} KB"
+
+
+def compressed_path(src: Path, output_dir: Path | None = None) -> Path:
+    return (output_dir or src.parent) / f"{src.stem} (compressed).pdf"
+
+
+def _rewriter_options(level: quality.CompressLevel):
+    """MuPDF settings: shrink pictures sharper than the threshold to the level's dpi.
+
+    Black-and-white pictures (scanned text) are never touched: they are tiny already
+    and reducing them makes text hard to read.
+    """
+    mupdf = pymupdf.mupdf
+    opts = mupdf.PdfImageRewriterOptions()
+    lossless_method = mupdf.FZ_RECOMPRESS_JPEG if level.photos_to_jpeg else mupdf.FZ_RECOMPRESS_SAME
+    for colour in ("color", "gray"):
+        for kind, method in (("lossy", mupdf.FZ_RECOMPRESS_JPEG), ("lossless", lossless_method)):
+            prefix = f"{colour}_{kind}_image_"
+            setattr(opts, prefix + "recompress_method", method)
+            setattr(opts, prefix + "recompress_quality", str(level.image_quality))
+            setattr(opts, prefix + "subsample_method", mupdf.FZ_SUBSAMPLE_AVERAGE)
+            setattr(opts, prefix + "subsample_threshold", level.threshold_dpi)
+            setattr(opts, prefix + "subsample_to", level.dpi)
+    opts.recompress_when = mupdf.FZ_RECOMPRESS_WHEN_SMALLER
+    return opts
+
+
+def _draws(doc: pymupdf.Document) -> list[tuple[int, int, int]]:
+    """Every picture drawn on every page, in drawing order: (xref, width, height)."""
+    return [
+        (info["xref"], info["width"], info["height"])
+        for page in doc
+        for info in page.get_image_info(xrefs=True)
+    ]
+
+
+def _keep_unshrunk_pictures(doc: pymupdf.Document, before: list, level) -> None:
+    """MuPDF also re-saves pictures it did not make smaller in size (width × height). For
+    JPG photos that only loses quality, so those get their original data back. Lossless
+    pictures turned into JPG on purpose (Strong) stay converted.
+
+    MuPDF writes changed pictures as new objects and keeps the drawing order, so the
+    pictures before and after are matched one by one."""
+    after = _draws(doc)
+    if len(after) != len(before):  # pragma: no cover - MuPDF keeps every picture
+        return
+    restored = set()
+    for (old, *old_size), (new, *new_size) in zip(before, after, strict=True):
+        if old == new or new in restored or old <= 0 or new <= 0 or old_size != new_size:
+            continue
+        if level.photos_to_jpeg and not _is_jpeg(doc, old):
+            continue
+        doc.update_stream(new, doc.xref_stream_raw(old), compress=False)
+        doc.update_object(new, doc.xref_object(old, compressed=True))
+        restored.add(new)
+
+
+def _is_jpeg(doc: pymupdf.Document, xref: int) -> bool:
+    return "DCTDecode" in doc.xref_get_key(xref, "Filter")[1]
+
+
+def compress(
+    src: Path,
+    dst: Path,
+    level: str = quality.DEFAULT_COMPRESS.id,
+    *,
+    overwrite: bool = False,
+) -> Path:
+    """Save a smaller copy of ``src``. Text, fonts, links, bookmarks and form fields are
+    kept as they are; only pictures are reduced, as far as ``level`` allows. Raises
+    :class:`NotSmaller` (and saves nothing) unless the copy is at least 1 % smaller."""
+    src = Path(src)
+    chosen = quality.COMPRESS_BY_ID.get(level)
+    if chosen is None:
+        raise ConversionError(f"Unknown compression level “{level}”.")
+    size = src.stat().st_size
+    with open_pdf(src) as doc:
+        if chosen.dpi:
+            before = _draws(doc)
+            try:
+                doc.rewrite_images(options=_rewriter_options(chosen))
+                _keep_unshrunk_pictures(doc, before, chosen)
+            except ConversionError:
+                raise
+            except Exception as exc:
+                raise ConversionError(f"Could not shrink the pictures in this PDF: {exc}") from exc
+        try:
+            return _save(
+                doc,
+                _target(Path(dst), overwrite, [src]),
+                compact=True,
+                smaller_than=size - max(size // 100, 1),  # at least 1 % smaller
+                check=_same_pages(doc.page_count),
+                encryption=pymupdf.PDF_ENCRYPT_KEEP,  # an owner's restrictions stay
+            )
+        except NotSmaller:
+            stronger = chosen is not quality.COMPRESS_LEVELS[-1]
+            raise NotSmaller(
+                "This PDF can't be made smaller at this level. Nothing was saved."
+                + (" Try a stronger level." if stronger else "")
+            ) from None
+
+
+# --- passwords ---------------------------------------------------------------------
+
+MAX_PASSWORD_BYTES = 127  # the PDF standard only uses the first 127 bytes
+GOOD_PASSWORD_LENGTH = 12
+_ALL_PERMISSIONS = (
+    pymupdf.PDF_PERM_PRINT
+    | pymupdf.PDF_PERM_MODIFY
+    | pymupdf.PDF_PERM_COPY
+    | pymupdf.PDF_PERM_ANNOTATE
+    | pymupdf.PDF_PERM_FORM
+    | pymupdf.PDF_PERM_ACCESSIBILITY
+    | pymupdf.PDF_PERM_ASSEMBLE
+    | pymupdf.PDF_PERM_PRINT_HQ
+)
+UNLOCKED, NEEDS_PASSWORD, RESTRICTED = "unlocked", "needs password", "restricted"
+
+
+def lock_state(path: Path | str) -> str:
+    """UNLOCKED, NEEDS_PASSWORD (can't be opened without one) or RESTRICTED (opens, but an
+    owner password limits printing, copying or changes)."""
+    try:
+        doc = pymupdf.open(Path(path), filetype="pdf")
+    except Exception as exc:
+        raise ConversionError(
+            "Could not open the PDF. The file is damaged or isn't a real PDF."
+        ) from exc
+    with doc:
+        if doc.needs_pass:
+            return NEEDS_PASSWORD
+        encrypted = bool((doc.metadata or {}).get("encryption"))
+        if encrypted and doc.permissions & _ALL_PERMISSIONS != _ALL_PERMISSIONS:
+            return RESTRICTED
+        return UNLOCKED
+
+
+def password_problem(password: str) -> str | None:
+    """Why this password can't be used, or None."""
+    if not password:
+        return "Enter a password."
+    if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        return "That password is too long for a PDF (at most about 120 characters)."
+    if password != password.strip():
+        return "The password can't start or end with a space."
+    return None
+
+
+def password_warning(password: str) -> str | None:
+    """A gentle warning for passwords that are easy to guess, or None."""
+    if password_problem(password):
+        return None
+    kinds = sum(
+        any(test(c) for c in password)
+        for test in (str.islower, str.isupper, str.isdigit, lambda c: not c.isalnum())
+    )
+    if len(password) < 8 or (len(password) < GOOD_PASSWORD_LENGTH and kinds < 3):
+        return (
+            "This password is easy to guess. Use at least 12 characters, "
+            "or mix letters, numbers and symbols."
+        )
+    return None
+
+
+def protected_path(src: Path, output_dir: Path | None = None) -> Path:
+    return (output_dir or src.parent) / f"{src.stem} (protected).pdf"
+
+
+def unlocked_path(src: Path, output_dir: Path | None = None) -> Path:
+    return (output_dir or src.parent) / f"{src.stem} (unlocked).pdf"
+
+
+def add_password(src: Path, dst: Path, password: str, *, overwrite: bool = False) -> Path:
+    """Save a copy of ``src`` that needs ``password`` to open (AES-256, the strongest
+    encryption in the PDF standard). Nothing else changes: whoever has the password can
+    print, copy and edit as before. The password is not stored anywhere."""
+    src = Path(src)
+    problem = password_problem(password)
+    if problem:
+        raise ConversionError(problem)
+    if lock_state(src) != UNLOCKED:
+        raise ConversionError("This PDF already has a password. Remove it first.")
+    with open_pdf(src) as doc:
+        pages = doc.page_count
+
+        def check(path: Path) -> None:
+            _same_pages(pages)(path)
+            with pymupdf.open(path, filetype="pdf") as locked:
+                ok = locked.needs_pass and locked.authenticate(password) and not locked.is_encrypted
+            if not ok:
+                raise ConversionError("Something went wrong while saving. Nothing was saved.")
+
+        return _save(
+            doc,
+            _target(Path(dst), overwrite, [src]),
+            check=check,
+            encryption=pymupdf.PDF_ENCRYPT_AES_256,
+            user_pw=password,
+            owner_pw=password,
+            permissions=-1,  # everything allowed once it's open
+        )
+
+
+def remove_password(src: Path, dst: Path, password: str, *, overwrite: bool = False) -> Path:
+    """Save an unlocked copy of ``src``. Needs the PDF's own password: this is not a tool
+    for opening other people's files. The original stays locked."""
+    src = Path(src)
+    state = lock_state(src)
+    if state == UNLOCKED:
+        raise ConversionError("This PDF has no password.")
+    if not password:
+        raise ConversionError("Enter the PDF's password.")
+    doc = pymupdf.open(src, filetype="pdf")
+    try:
+        result = doc.authenticate(password)
+        full_access = result & 4 or doc.permissions & _ALL_PERMISSIONS == _ALL_PERMISSIONS
+        if not result or (state == RESTRICTED and not result & 4):
+            raise ConversionError("That password isn't right. Nothing was saved.")
+        if not full_access:
+            raise ConversionError(
+                "This password opens the PDF, but a second (owner) password limits printing "
+                "or copying. Enter the owner password to remove both."
+            )
+        pages = doc.page_count
+
+        def check(path: Path) -> None:
+            _same_pages(pages)(path)
+            if lock_state(path) != UNLOCKED:  # pragma: no cover - MuPDF always decrypts
+                raise ConversionError("Something went wrong while saving. Nothing was saved.")
+
+        return _save(
+            doc,
+            _target(Path(dst), overwrite, [src]),
+            check=check,
+            encryption=pymupdf.PDF_ENCRYPT_NONE,
+        )
+    finally:
+        doc.close()
 
 
 def thumbnails(src: Path, width: int = 120):

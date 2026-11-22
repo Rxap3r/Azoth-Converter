@@ -7,6 +7,82 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-22
+
+### Added
+
+- **Compress PDF** (PDF tools → Compress, or `azoth pdf compress`): saves a smaller copy. Three
+  levels: *Light* (no quality loss, only tidies up the file), *Balanced* (very sharp pictures
+  reduced to 200 dpi) and *Strong* (pictures at 150 dpi as JPG). Text, links, bookmarks and form
+  fields stay as they are. Shows how much smaller the file got; if it can't get smaller,
+  nothing is saved.
+- **Password** (PDF tools → Password, or `azoth pdf password add/remove`): lock a copy of a PDF
+  with a password (AES-256, the strongest encryption in the PDF standard), or save an unlocked
+  copy of your own PDF with its password. The password is never saved, the fields are cleared
+  right after use, and the app warns about passwords that are easy to guess.
+- **Text recognition (OCR), fully offline**, in English, German, French and Italian:
+  - scanned PDFs → Word or text (before, a scan gave an error);
+  - photos and scans (JPG, PNG, TIFF, HEIC …) → Word or text;
+  - photos → PDF can now make the text searchable (*Make the text searchable* on the Convert page,
+    or `azoth convert --ocr`);
+  - **Make searchable** in PDF tools (or `azoth pdf ocr`): adds the recognised text to a scanned
+    PDF invisibly, so you can search, select and copy it.
+  - a searchable scan (picture with invisible text) → Word now gives the text, not one big
+    picture.
+  - pages that are sideways or upside down are read and **turned the right way up** (only the
+    page's direction changes, the picture stays exactly the same). Can be turned off in
+    Settings, or with `--keep-rotation`. Normal pages are not slowed down by this check;
+  - Make searchable shows a progress bar and has a **Cancel** button (nothing is saved when
+    cancelled).
+  The language is chosen next to the format tiles and remembered; the first time it follows the
+  computer's language.
+- **"Done" card** on the Convert page when a conversion finishes: "Done! 4 files converted"
+  (or how many failed), with **Open file** (one result) and **Open folder** buttons. It fades in
+  gently.
+- **Windows notification** when a conversion or a PDF tool finishes while the app is in the
+  background. Can be turned off in Settings. Shown by Windows itself; nothing is sent anywhere.
+- PDF tools warn when a PDF is digitally signed, because a new copy can't keep the signature valid.
+
+### Changed
+
+- **Choose the result's name in every PDF tool:** Merge, Split (folder name),
+  Edit pages, Compress, Password and Make searchable now have a *File name* field next to
+  *Save to*, filled in with the suggested name. Existing files are still never overwritten.
+- Edit pages: the buttons "Move earlier" and "Move later" are now "◀ Move" and "Move ▶", the
+  direction the page moves in the page grid.
+
+### Fixed
+
+- The app no longer freezes ("Not responding") while text recognition reads a page: the
+  reading now runs in a helper process of the app, on this computer as before.
+- Settings: the buttons under *About* were cut off by the text below them when the window
+  was too low (e.g. with larger text in Windows). The page now scrolls instead, like the
+  choices next to the format tiles.
+
+### Quality
+
+- Compress never shrinks pictures below 150 dpi or saves them below JPG quality 75, and photos
+  that don't need shrinking keep their original data byte for byte (no second JPG loss).
+- The hidden text follows the page's direction, also on turned pages, and uses a font whose
+  height every PDF viewer reads the same way (Firefox, Chrome, Edge and others), so selecting
+  text marks the right words (in Edge and Firefox the selection used to sit too low).
+  Checked letter by letter in the tests.
+- Text recognition never changes the pages: the text is added as an invisible layer, the
+  pictures stay byte for byte the same, and pages that already have text are left alone. Pages
+  are read at 300 dpi with the most accurate ("best") language models.
+
+### Privacy and safety
+
+- Removing a password needs the PDF's own password; restrictions set with an owner password
+  (no printing or copying) need the owner password. Compress keeps such restrictions.
+
+### Development
+
+- The OCR language files are not in git: `packaging/fetch_tessdata.py` downloads them (pinned
+  version, SHA-256 checked, tried again up to 5 times if the server is busy) for development,
+  tests and the build. The build stops if they are missing, and the built app must read the
+  sample scan before the installer is made.
+
 ## [0.2.1] - 2026-11-21
 
 ### Added
@@ -146,7 +222,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Rxap3r/Azoth-Converter/releases/tag/v0.1.0

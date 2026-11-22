@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..engine import check_file_name
 from .settings import forget_file_dialog_history
 from .widgets import label
 
@@ -89,9 +90,29 @@ class FileNameRow(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
-        layout.addWidget(label("File name", "caption"))
+        self.caption = label("File name", "caption")
+        layout.addWidget(self.caption)
         layout.addLayout(row)
         self.set_sources([])
+
+    def set_name(
+        self, default: str | None, extension: str = "", caption: str = "File name"
+    ) -> None:
+        """One result with the suggested name ``default`` (keeping a name already typed for
+        it), or no choice (None)."""
+        default = default or ""
+        if default != self._default:
+            self._default = default
+            self.edit.setText(default)
+        self.caption.setText(caption)
+        self.edit.setEnabled(bool(default))
+        self.edit.setPlaceholderText("")
+        self.set_extension(extension)
+        self.extension.setVisible(bool(default and extension))
+
+    def name(self, extension: str = "") -> str:
+        """The typed name, checked (raises ConversionError), or the suggested one."""
+        return check_file_name(self.edit.text() or self._default, extension)
 
     def set_sources(self, paths: list[Path]) -> None:
         """One file: offer its name (keeping a name already typed for it). Else: no choice."""

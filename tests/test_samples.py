@@ -45,7 +45,6 @@ def test_samples_detected(name, expected):
 @pytest.mark.parametrize(
     ("name", "target", "message"),
     [
-        ("pdf/scanned_letter_no_text.pdf", "docx", "scan"),
         ("pdf/password_protected_test123.pdf", "docx", "password"),
         ("other/broken_not_really.pdf", "png", "damaged"),
     ],

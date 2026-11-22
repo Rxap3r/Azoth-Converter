@@ -1,0 +1,444 @@
+"""Text recognition (OCR): read the text in scans and photos, fully offline.
+
+Uses the Tesseract engine built into PyMuPDF with the language files in
+``resources/tessdata`` (fetched by ``packaging/fetch_tessdata.py`` and shipped with the app).
+
+A searchable PDF keeps every picture exactly as it is: the recognised text is laid on top
+as an invisible layer (like the text layer of a scanner's "searchable PDF"), so pictures are
+never re-drawn or re-compressed. Pages that are sideways or upside down are turned the
+right way up (only the page's rotation setting changes). Pages that already have text are
+left alone.
+"""
+
+from __future__ import annotations
+
+import locale
+import multiprocessing
+import re
+import struct
+import threading
+from collections.abc import Callable, Iterator
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
+from contextlib import contextmanager
+from pathlib import Path
+
+import pymupdf
+
+from . import quality
+from .converters import ConversionCancelled, ConversionError
+from .converters.pdf import open_pdf
+
+Progress = Callable[[float, str], None]
+
+TESSDATA = Path(__file__).resolve().parent / "resources" / "tessdata"
+
+# Tesseract code → name shown in the app. Order: as offered in the app.
+LANGUAGES = {
+    "eng": "English",
+    "deu": "German (Deutsch)",
+    "fra": "French (Français)",
+    "ita": "Italian (Italiano)",
+}
+_BY_LOCALE = {"en": "eng", "de": "deu", "fr": "fra", "it": "ita"}
+_BY_WINDOWS_NAME = {"english": "eng", "german": "deu", "french": "fra", "italian": "ita"}
+
+MIN_TEXT_CHARS = 20
+"""A page with fewer characters of real text than this (and with pictures) is a scan."""
+
+GOOD_READING = 0.6
+"""Share of the recognised characters that form real words (3+ letters). Below this the
+page may be sideways or upside down, so the other directions are tried."""
+QUICK_DPI = 100  # only to find out which way up a page is
+_WORD = re.compile(r"[^\W\d_]{3,}[.,:;!?]?")
+
+_TEXT_OBJECT = re.compile(rb"BT\b.*\bET\b", re.S)
+
+QUALITY_NOTE = (
+    "The text is read from the picture (OCR). Check names and numbers: unclear print "
+    "or handwriting can be misread."
+)
+
+
+def available_languages() -> list[str]:
+    """Language codes whose files are installed, in the order of ``LANGUAGES``."""
+    return [code for code in LANGUAGES if (TESSDATA / f"{code}.traineddata").is_file()]
+
+
+def is_available() -> bool:
+    return bool(available_languages())
+
+
+def default_language(locale_name: str | None = None) -> str:
+    """The OCR language matching the computer's language (e.g. "de_CH" → "deu"),
+    or English."""
+    if locale_name is None:
+        try:
+            locale_name = locale.getlocale()[0] or ""
+        except ValueError:  # pragma: no cover - odd locale settings
+            locale_name = ""
+    name = locale_name.lower()
+    if len(name) == 2 or name[2:3] in ("_", "-", "."):  # "de", "de_CH", "fr-FR"
+        code = _BY_LOCALE.get(name[:2])
+    else:  # Windows names such as "German_Switzerland"
+        code = _BY_WINDOWS_NAME.get(name.split("_")[0])
+    available = available_languages()
+    if code in available:
+        return code
+    return "eng" if "eng" in available or not available else available[0]
+
+
+def check_language(language: str) -> str:
+    """Raise a readable error unless ``language`` can be used; returns it."""
+    if not is_available():
+        raise ConversionError(
+            "Text recognition (OCR) isn't installed with this copy of Azoth Converter."
+        )
+    if language not in available_languages():
+        raise ConversionError(f"Text recognition doesn't know the language “{language}”.")
+    return language
+
+
+def page_needs_ocr(page: pymupdf.Page) -> bool:
+    """True for a page that shows pictures but has (almost) no selectable text."""
+    return len(page.get_text("text").strip()) < MIN_TEXT_CHARS and bool(page.get_images())
+
+
+def needs_ocr(src: Path) -> bool:
+    """True if any page of the PDF is a scan without text."""
+    with open_pdf(src) as doc:
+        return any(page_needs_ocr(page) for page in doc)
+
+
+# Height of the hidden text's font, as a share of the font size: above and below the
+# baseline. Their distance is exactly 1, so every viewer (some use these two numbers, some
+# the font size alone) draws the same selection box.
+ASCENT, DESCENT = 0.8, -0.2
+
+_FONT: pymupdf.Font | None = None
+MIN_STRETCH, MAX_STRETCH = 0.5, 2.0  # how much a line of hidden text may be squeezed or widened
+
+
+def _font() -> pymupdf.Font:
+    """A Unicode font built into PyMuPDF (Droid Sans Fallback: Latin, accents, œ, ’, € …).
+    Its height measurements are the same inside the font and in the PDF, so every viewer
+    puts the selection box in the same place."""
+    global _FONT
+    if _FONT is None:
+        _FONT = pymupdf.Font("cjk")
+    return _FONT
+
+
+def _selectable_layer(layer: pymupdf.Document) -> pymupdf.Document:
+    """The recognised text again, as invisible text sized so that the selection box covers
+    the words in the picture, in every PDF viewer.
+
+    MuPDF's own OCR text uses a font without real height measurements, and viewers guess
+    them differently (Edge put the selection below the words). Here all words of a line get
+    the same font size and baseline from the line's box. Each word starts exactly where it
+    is in the picture (programs that swap the font, like LibreOffice Draw, then can't drift
+    along the line). The words of a line are stretched together, by the same amount, to
+    their width in the picture: different amounts per word make viewers think the size
+    changes and split the line."""
+    font = _font()
+    source = layer[0]
+    lines: dict[tuple[int, int], list] = {}
+    for x0, y0, x1, y1, word, block, line, _ in source.get_text("words"):
+        lines.setdefault((block, line), []).append((pymupdf.Rect(x0, y0, x1, y1), word))
+    out = pymupdf.open()
+    page = out.new_page(width=source.rect.width, height=source.rect.height)
+    page.insert_font(fontname="ocr", fontbuffer=font.buffer)
+    shape = page.new_shape()
+    for words in lines.values():
+        top = min(rect.y0 for rect, _ in words)
+        bottom = max(rect.y1 for rect, _ in words)
+        size = (bottom - top) / (ASCENT - DESCENT)
+        natural = sum(font.text_length(word, fontsize=size) for _, word in words)
+        if size <= 0 or natural <= 0:
+            continue
+        wide = sum(rect.width for rect, _ in words)
+        stretch = min(max(wide / natural, MIN_STRETCH), MAX_STRETCH)
+        for i, (rect, word) in enumerate(words):
+            text = word if i == len(words) - 1 else word + " "  # spaces for copy and paste
+            baseline = pymupdf.Point(rect.x0, bottom + DESCENT * size)
+            shape.insert_text(
+                baseline,
+                text,
+                fontsize=size,
+                fontname="ocr",
+                render_mode=3,
+                morph=(baseline, pymupdf.Matrix(stretch, 1)),
+            )
+    shape.commit()
+    out.subset_fonts()  # only the letters used: a few KB instead of the whole font
+    _set_font_height(out)
+    return pymupdf.open("pdf", out.tobytes(garbage=3, deflate=True))
+
+
+def _recognise_picture(
+    width: int, height: int, dpi: int, samples: bytes, language: str, tessdata: str
+) -> bytes:
+    """Read the text of a picture: a one-page PDF (picture + invisible text). Runs in the
+    helper process (see ``_recognise_in_helper``)."""
+    pix = pymupdf.Pixmap(pymupdf.csRGB, width, height, samples, False)
+    pix.set_dpi(dpi, dpi)
+    return pix.pdfocr_tobytes(language=language, tessdata=tessdata)
+
+
+_HELPER: ProcessPoolExecutor | None = None
+_HELPER_LOCK = threading.Lock()
+
+
+def _recognise_in_helper(pix: pymupdf.Pixmap, language: str) -> bytes:
+    """Run the text recognition in a helper process of the app.
+
+    The OCR engine blocks all of Python while it reads a page (seconds), so in the app's
+    own process the window would freeze ("Not responding"). The helper is started once
+    and reused; it runs on this computer like the app itself. If it can't run, the text
+    is read here instead."""
+    global _HELPER
+    args = (pix.width, pix.height, pix.xres, pix.samples, language, str(TESSDATA))
+    with _HELPER_LOCK:
+        if _HELPER is None:
+            _HELPER = ProcessPoolExecutor(
+                max_workers=1, mp_context=multiprocessing.get_context("spawn")
+            )
+        helper = _HELPER
+    try:
+        return helper.submit(_recognise_picture, *args).result()
+    except BrokenProcessPool:
+        with _HELPER_LOCK:
+            _HELPER = None
+        return _recognise_picture(*args)
+
+
+def _set_font_height(doc: pymupdf.Document) -> None:
+    """Give the hidden text's font the height ``ASCENT``/``DESCENT``, both in the PDF and
+    in the font file itself (viewers read one or the other). Only the height numbers
+    change; the letters and their widths stay the same."""
+    for xref in range(1, doc.xref_length()):
+        if doc.xref_get_key(xref, "Type")[1] != "/FontDescriptor":
+            continue
+        file_ref = doc.xref_get_key(xref, "FontFile2")
+        if file_ref[0] != "xref":
+            continue
+        font_xref = int(file_ref[1].split()[0])
+        doc.update_stream(font_xref, _truetype_height(doc.xref_stream(font_xref)))
+        x0, _, x1, _ = (float(v) for v in doc.xref_get_key(xref, "FontBBox")[1][1:-1].split())
+        top, bottom = round(ASCENT * 1000), round(DESCENT * 1000)
+        doc.xref_set_key(xref, "Ascent", str(top))
+        doc.xref_set_key(xref, "Descent", str(bottom))
+        doc.xref_set_key(xref, "FontBBox", f"[{x0:g} {bottom} {x1:g} {top}]")
+
+
+def _truetype_height(font: bytes) -> bytes:
+    """``font`` (a TrueType file) with its height set to ``ASCENT``/``DESCENT``: the
+    'head' (bounding box), 'hhea' and 'OS/2' tables, with their checksums."""
+    data = bytearray(font)
+    (count,) = struct.unpack_from(">H", data, 4)
+    tables = {}
+    for i in range(count):
+        tag, _, offset, length = struct.unpack_from(">4sLLL", data, 12 + 16 * i)
+        tables[tag] = (12 + 16 * i, offset, length)
+    head = tables[b"head"][1]
+    (units,) = struct.unpack_from(">H", data, head + 18)
+    top, bottom = round(ASCENT * units), round(DESCENT * units)
+    struct.pack_into(">h", data, head + 38, bottom)  # yMin
+    struct.pack_into(">h", data, head + 42, top)  # yMax
+    if b"hhea" in tables:
+        struct.pack_into(">hhh", data, tables[b"hhea"][1] + 4, top, bottom, 0)
+    if b"OS/2" in tables and tables[b"OS/2"][2] >= 78:
+        os2 = tables[b"OS/2"][1]
+        struct.pack_into(">hhhHH", data, os2 + 68, top, bottom, 0, top, -bottom)
+
+    def checksum(start: int, length: int) -> int:
+        block = bytes(data[start : start + length]) + b"\0" * (-length % 4)
+        return sum(struct.unpack(f">{len(block) // 4}L", block)) & 0xFFFFFFFF
+
+    struct.pack_into(">L", data, head + 8, 0)  # checkSumAdjustment, set below
+    for record, offset, length in tables.values():
+        struct.pack_into(">L", data, record + 4, checksum(offset, length))
+    struct.pack_into(">L", data, head + 8, (0xB1B0AFBA - checksum(0, len(data))) & 0xFFFFFFFF)
+    return bytes(data)
+
+
+def _text_layer(page: pymupdf.Page, language: str, dpi: int) -> pymupdf.Document:
+    """A one-page PDF the size of ``page`` holding only the recognised text (invisible)."""
+    pix = page.get_pixmap(dpi=dpi, alpha=False, annots=False)
+    if pix.n != 3:  # pragma: no cover - alpha=False gives RGB, keep it that way
+        pix = pymupdf.Pixmap(pymupdf.csRGB, pix)
+    try:
+        data = _recognise_in_helper(pix, language)
+    except Exception as exc:
+        raise ConversionError(f"Text recognition failed: {exc}") from exc
+    layer = pymupdf.open("pdf", data)
+    lpage = layer[0]
+    # MuPDF's OCR page = the rendered picture + invisible text. Keep only the text.
+    for xref in lpage.get_contents():
+        found = _TEXT_OBJECT.search(layer.xref_stream(xref))
+        layer.update_stream(xref, found.group(0) if found else b"")
+    layer.xref_set_key(lpage.xref, "Resources/XObject", "<<>>")
+    return layer
+
+
+def reading_score(text: str) -> float:
+    """How much of ``text`` looks like real words (0 to 1). Text read from a sideways or
+    upside-down page is mostly short scraps and symbols."""
+    words = text.split()
+    total = sum(len(w) for w in words)
+    return sum(len(w) for w in words if _WORD.fullmatch(w)) / total if total else 0.0
+
+
+@contextmanager
+def _read_page(
+    page: pymupdf.Page, language: str, keep_turn: bool = False
+) -> Iterator[pymupdf.Document]:
+    """The page's text layer (see ``_text_layer``). A page that reads badly is tried the
+    other three ways up, and read that way if it's clearly better: inside the ``with``
+    block the page is turned so the layer fits it. Afterwards it is turned back, unless
+    ``keep_turn``: then the page stays the right way up (only its rotation setting
+    changes; the picture itself is not touched)."""
+    original = page.rotation
+    keep = False
+    layer = _text_layer(page, language, quality.OCR_DPI)
+    try:
+        text = layer[0].get_text()
+        score = reading_score(text)
+        if text.strip() and score < GOOD_READING:
+            tries = {}
+            for turn in (90, 180, 270):
+                page.set_rotation((original + turn) % 360)
+                with _text_layer(page, language, QUICK_DPI) as quick:
+                    tries[turn] = reading_score(quick[0].get_text())
+            page.set_rotation(original)
+            best = max(tries, key=tries.__getitem__)
+            if tries[best] >= max(score + 0.2, 0.4):
+                page.set_rotation((original + best) % 360)
+                layer.close()
+                layer = _text_layer(page, language, quality.OCR_DPI)
+        yield layer
+        keep = keep_turn
+    finally:
+        if not keep:
+            page.set_rotation(original)
+        layer.close()
+
+
+def _run_pages(
+    doc: pymupdf.Document,
+    language: str,
+    each: Callable[[pymupdf.Page, pymupdf.Document], None],
+    progress: Progress | None,
+    cancel: threading.Event | None,
+    only_scans: bool,
+    keep_turn: bool = False,
+) -> int:
+    check_language(language)
+    report = progress or (lambda f, m: None)
+    total = doc.page_count
+    done = 0
+    for i, page in enumerate(doc):
+        if cancel is not None and cancel.is_set():
+            raise ConversionCancelled()
+        if only_scans and not page_needs_ocr(page):
+            continue
+        report(i / max(total, 1), f"Reading text on page {i + 1}/{total}")
+        with _read_page(page, language, keep_turn) as layer:
+            each(page, layer)
+        done += 1
+    return done
+
+
+def add_text_layer(
+    doc: pymupdf.Document,
+    language: str,
+    *,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+    turn_pages: bool = True,
+) -> int:
+    """Add invisible recognised text to every scanned page of ``doc`` (in memory). With
+    ``turn_pages``, sideways or upside-down scanned pages are turned the right way up.
+    Returns how many pages were recognised."""
+
+    def overlay(page: pymupdf.Page, layer: pymupdf.Document) -> None:
+        # The layer is the page as you see it (turned). show_pdf_page works on the page's
+        # unturned layout, so place the layer there and turn it the same way as the page;
+        # otherwise the hidden text runs sideways on turned pages.
+        unturned = page.rect * page.derotation_matrix
+        with _selectable_layer(layer) as text:
+            page.show_pdf_page(unturned, text, 0, overlay=True, rotate=page.rotation)
+
+    return _run_pages(
+        doc, language, overlay, progress, cancel, only_scans=True, keep_turn=turn_pages
+    )
+
+
+def page_texts(
+    doc: pymupdf.Document,
+    language: str,
+    *,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> list[list[str]]:
+    """The text of every page as paragraphs. Scanned pages are recognised, the others
+    keep their real text."""
+    result: list[list[str]] = [[] for _ in range(doc.page_count)]
+    scanned: dict[int, list[str]] = {}
+
+    def collect(page: pymupdf.Page, layer: pymupdf.Document) -> None:
+        scanned[page.number] = _paragraphs(layer[0])
+
+    if any(page_needs_ocr(page) for page in doc):
+        _run_pages(doc, language, collect, progress, cancel, only_scans=True)
+    for page in doc:
+        result[page.number] = scanned.get(page.number) or _paragraphs(page)
+    return result
+
+
+def _paragraphs(page: pymupdf.Page) -> list[str]:
+    """Text blocks of a page, top to bottom, each block's lines joined into one paragraph."""
+    paragraphs = []
+    for block in page.get_text("blocks", sort=True):
+        if block[6] != 0:  # 1 = picture block
+            continue
+        text = " ".join(line.strip() for line in block[4].splitlines() if line.strip())
+        if text:
+            paragraphs.append(text)
+    return paragraphs
+
+
+def searchable_path(src: Path, output_dir: Path | None = None) -> Path:
+    return (output_dir or src.parent) / f"{src.stem} (searchable).pdf"
+
+
+def make_searchable(
+    src: Path,
+    dst: Path,
+    language: str,
+    *,
+    overwrite: bool = False,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+    turn_pages: bool = True,
+) -> Path:
+    """Save a copy of the PDF ``src`` whose scanned pages have selectable, searchable text.
+    The pages themselves stay exactly as they are."""
+    from .pdf_tools import _same_pages, _save, _target
+
+    src = Path(src)
+    check_language(language)
+    with open_pdf(src) as doc:
+        if not any(page_needs_ocr(page) for page in doc):
+            raise ConversionError(
+                "This PDF already has selectable text, so there is nothing to recognise."
+            )
+        add_text_layer(doc, language, progress=progress, cancel=cancel, turn_pages=turn_pages)
+        if progress:
+            progress(0.97, "Saving")
+        return _save(
+            doc,
+            _target(Path(dst), overwrite, [src]),
+            check=_same_pages(doc.page_count),
+            encryption=pymupdf.PDF_ENCRYPT_KEEP,
+        )

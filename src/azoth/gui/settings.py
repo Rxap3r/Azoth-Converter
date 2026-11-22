@@ -108,6 +108,40 @@ class Preferences:
     def keep_metadata(self) -> bool:
         return self._get("keep_metadata", False, bool)
 
+    @property
+    def notify(self) -> bool:
+        """Windows notification when work finishes in the background (on by default)."""
+        return self._get("notify_when_done", True, bool)
+
+    def save_notify(self, on: bool) -> None:
+        self.store.setValue("notify_when_done", on)
+        self.store.sync()
+
+    @property
+    def ocr_turn_pages(self) -> bool:
+        """Text recognition turns sideways or upside-down pages upright (on by default)."""
+        return self._get("ocr_turn_pages", True, bool)
+
+    def save_ocr_turn_pages(self, on: bool) -> None:
+        self.store.setValue("ocr_turn_pages", on)
+        self.store.sync()
+
+    @property
+    def ocr_language(self) -> str | None:
+        return self._get("ocr_language", "") or None
+
+    @property
+    def ocr_searchable(self) -> bool:
+        """Images → PDF: also recognise the text (off by default: it takes longer)."""
+        return self._get("ocr_searchable", False, bool)
+
+    def save_ocr(self, *, language: str | None = None, searchable: bool | None = None) -> None:
+        if language is not None:
+            self.store.setValue("ocr_language", language)
+        if searchable is not None:
+            self.store.setValue("ocr_searchable", searchable)
+        self.store.sync()
+
     def save(
         self,
         *,

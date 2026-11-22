@@ -87,8 +87,8 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | **PDF → images / text** | PDF → PNG, JPG, WebP, BMP, multi-page TIFF; PDF → TXT | PyMuPDF | ✅ |
 | **Images → PDF** | any image → PDF | Pillow | ✅ |
 | PDF tools | merge, split (by page or range), rotate, delete, reorder pages; in the app and the command line | PyMuPDF | ✅ |
-| PDF tools | compress, password | PyMuPDF | 🔜 |
-| Scanned PDFs | OCR → searchable PDF, then Word | Tesseract | 🔜 |
+| PDF tools | compress (3 levels), add or remove a password (AES-256) | PyMuPDF | ✅ |
+| Scanned PDFs, photos of text | OCR → searchable PDF, Word, TXT (English, German, French, Italian) | Tesseract (inside PyMuPDF) | ✅ |
 | Spreadsheets | XLSX, XLS, ODS, CSV ↔ each other, → PDF | LibreOffice | ✅ |
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
 | Images | JPG, PNG, WebP, BMP, TIFF, GIF, ICO, HEIC, AVIF | Pillow, pillow-heif | ✅ |
@@ -134,15 +134,23 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 
 ### Phase 2: PDF power tools and OCR (≈ 4–6 weeks)
 - [x] PDF tools in the GUI: merge (with drag-to-reorder), split by range, rotate, delete or reorder pages, page thumbnails. *Done (Nov 2026): lossless (pages copied, not redrawn), bookmarks kept; `pdf_tools.py`, `gui/pdf_tools_page.py`, `azoth pdf split --ranges`, `azoth pdf edit`.*
-- [ ] Compress PDF (downsample images)
-- [ ] Add or remove a password (only with the user's own password)
-- [ ] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs)
+- [x] Compress PDF (downsample images). *Done (Nov 2026): Light / Balanced / Strong, never below `MIN_DPI` and `MIN_IMAGE_QUALITY`, nothing saved unless at least 1 % smaller; `azoth pdf compress`.*
+- [x] Add or remove a password (only with the user's own password). *Done (Nov 2026): AES-256, password never stored, weak-password warning; `azoth pdf password add/remove`.*
+  - [ ] Later: Merge, Split and Edit pages drop an owner's "no printing / no copying" restrictions in the copy; keep them like Compress does.
+- [x] OCR: scanned PDF or photo → searchable PDF, then → Word (bundled Tesseract with German, English, French and Italian language packs). *Done (Nov 2026, owner's choices): on the Convert page (scans/photos → Word, TXT; photos → searchable PDF as an option) and as PDF tools → Make searchable / `azoth pdf ocr`; "best" language models (37 MB, fetched by `packaging/fetch_tessdata.py`); the text is an invisible layer, pages stay byte for byte the same.*
+  - [x] Turn sideways or upside-down scans automatically before reading. *Done (Nov 2026): only when a page reads badly are the other three directions tried (quick, 100 dpi); such pages are also turned upright (only the rotation setting; owner's wish: a Settings option, on by default).*
+  - [ ] Later: Word from scans with layout and pictures (now: the text as plain paragraphs)
+  - [ ] Later: several languages in one document (e.g. German + English), more languages
+  - [x] A Cancel button and page progress bar for Make searchable on long PDFs
+  - [ ] Later: check OCR speed on long PDFs (a few seconds per page now) and make it faster if needed
+  - [ ] **Owner's wish (Nov 2026):** OCR → a "real" text PDF like one made from Word (visible, selectable text with exact selection boxes, editable in Word with formatting), as an option next to the 1:1 searchable PDF (picture + invisible text). Needs layout rebuilding (fonts, sizes, columns); the picture would no longer be kept 1:1
+- [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
 - [ ] PDF → Excel for tables
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
   - [ ] With the design refresh: a "Show metadata" button on each file card instead of the right-click menu
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
-- [ ] **Next release (0.2.x):** compress PDF, passwords, OCR
+- [ ] **Next release (0.2.x):** compress PDF, passwords, OCR (all three done on `dev`)
 
 ### Design refresh (timing flexible)
 - [x] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. **Owner's choice (Nov 2026): style A.** Icon choice postponed.*
@@ -156,7 +164,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Bin button on every PDF in the Merge list** (owner's wish, Nov 2026), like on the Convert page; "Remove" below the list and the Delete key still work
 - [x] **Plain-language quality texts** (owner's wish, Nov 2026): "quality 95 / 300 DPI" replaced by what it means for the user; the numbers are in the tooltip
 - [x] Target format picker as a grid of format tiles, with the most used ones first
-- [ ] "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Each finished file now has **Open** and **Show in folder**; a notification and animations are still open.*
+- [x] "Done" notification with **Open file** / **Open folder** buttons; subtle animations. *Done (Nov 2026): a "Done" card that fades in on the Convert page, plus a Windows notification when the app is in the background (Settings can turn it off). Not yet seen on a real Windows PC.*
 - [ ] **Rework the app icon** (ideas 1–3 on the design canvas; owner postponed the choice, Nov 2026): the current one (document with a golden seal, design "F1") is fine for now, but from a distance the yellow circle with the two arrows looks like a smiley. Keep the idea (document + transformation), change the seal so it can't be read as a face
 - [x] Consistent icon set inside the app (bundled, no web fonts or online assets): line icons drawn in `gui/icons.py`
 - [x] **Redesign the "Supported formats" section** to match the new look: cleaner and easier to scan (e.g. format tiles or chips per category, clear "needs LibreOffice" marking, better search)
@@ -186,6 +194,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [ ] Watch folders (files dropped in a folder are converted automatically)
 - [ ] Data formats (CSV/JSON/XML/YAML/XLSX), Markdown/HTML/EPUB, archives, Camera RAW, SVG
 - [ ] Saved presets, optional local conversion history (can be cleared or turned off)
+- [ ] **Much later (only when everything else works well):** a preview window: look at a file's pages before converting and the result afterwards (side by side, zoom, select text to check OCR). Viewing only
 
 ### Phase 5: Production release 1.0 (≈ 3–4 weeks)
 - [ ] **Bundled "Office pack"** so users don't need to install LibreOffice separately (offline installer)

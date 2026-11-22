@@ -14,7 +14,7 @@ def test_targets_common_to_all_files():
     choices = targets.choices(ENGINE, [F["png"], F["pdf"]])
     ids = [f.id for f in choices.formats]
     assert "jpg" in ids and "pdf" in ids  # PDF is offered: the PDF itself is just skipped
-    assert "docx" not in ids  # PNG can't become Word
+    assert "xlsx" not in ids  # neither can become Excel
     assert not choices.can_clean  # PDFs have no photo metadata to remove
 
 
@@ -167,7 +167,7 @@ def test_target_picker(qtbot):
         picker.tiles[2].click()
     assert signal.args == [picker.tiles[2].target]
     assert picker.select(targets.CLEAN_TARGET) and picker.current() == targets.CLEAN_TARGET
-    assert not picker.select("docx")  # not offered for photos
+    assert not picker.select("xlsx")  # not offered for photos
     assert picker.tiles[0].accessibleName() == "PNG: Lossless"
 
     picker.set_choices(targets.choices(ENGINE, [F["pdf"]]))
@@ -201,3 +201,35 @@ def test_output_folder_row(qtbot, tmp_path):
     assert row.folder is None and row.label.text() == SAME_FOLDER
     row.set_busy(True)
     assert not row.choose_btn.isEnabled()
+
+
+def test_ocr_choices_follow_the_files_and_target():
+    assert targets.ocr_mode([F["jpg"]], "docx") == "always"
+    assert targets.ocr_mode([F["pdf"]], "txt") == "always"  # used for scanned pages
+    assert targets.ocr_mode([F["png"], F["heic"]], "pdf") == "optional"
+    assert targets.ocr_mode([F["pdf"]], "png") is None
+    assert targets.ocr_mode([F["docx"]], "pdf") is None
+    assert targets.ocr_mode([], "pdf") is None
+
+
+def test_ocr_options_panel(qtbot, ocr_ready):
+    from azoth.gui.options_panel import OcrOptions
+    from azoth.gui.settings import Preferences
+
+    panel = OcrOptions()
+    qtbot.addWidget(panel)
+    panel.show()
+    panel.set_mode(None)
+    assert not panel.isVisible()
+    panel.set_mode("always")
+    assert panel.isVisible() and not panel.searchable.isVisible()
+    assert panel.options()["ocr"] is True
+    panel.language.set_language("ita")
+    assert panel.options()["ocr_language"] == "ita"
+    assert Preferences().ocr_language == "ita"  # remembered
+    panel.set_mode("optional")
+    assert panel.searchable.isVisible() and not panel.searchable.isChecked()
+    assert panel.options()["ocr"] is False and not panel.language.isVisible()
+    panel.searchable.setChecked(True)
+    assert panel.options()["ocr"] is True and panel.language.isVisible()
+    assert Preferences().ocr_searchable

@@ -20,20 +20,24 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
      build → sign the `.exe` files → build the installer → sign the installer, with manual
      approval per release in SignPath.
-- **Version 0.2.1** prepared (21 Nov 2026): error log, Uninstall button, clean updates,
-  open-folder fix. The owner publishes it with the Release workflow after the pull request is
-  merged. Later work goes under `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
+- **Version 0.2.1** (error log, Uninstall button, clean updates, open-folder fix) is on `main`
+  (pull request #7, merged 21 Nov 2026) and **released** as v0.2.1 on GitHub Releases. Later work goes under
+  `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
   should show it next time. Not yet tried with real phone photos: metadata removal.
 - **Next planned work (owner decides the order):**
-  - design refresh: slicker look, a remove button per file, icon rework (the seal looks like a
-    smiley from afar), a cleaner "Supported formats" section;
-  - PDF compress and passwords, then OCR (release 0.2; metadata tool and the first PDF tools
-    are done);
+  - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
+    choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
+  - **0.3.0 prepared (22 Nov 2026):** compress PDF, passwords, OCR, file names in every PDF
+    tool, "Done" card; tested by the owner on Windows (OCR selection fine in Chrome/Edge, good
+    enough in Firefox). Pull request #8 `dev` → `main` is open (22 Nov 2026); after the
+    owner merges it, they run Actions → Release on `main`;
+  - later: a version check inside the app (only on click, after code signing; owner decides),
+    see Phase 5 in `docs/PROJECT_PLAN.md`;
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
     real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
-    edit pages; compress and passwords next) → OCR;
+    edit pages, compress, passwords ✓ on `dev`, not released yet) → **OCR** ✓ (on `dev`);
   - technical improvements: faster batches, smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
@@ -159,13 +163,17 @@ src/azoth/
   converters/base.py  Converter plugin interface
   converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
   cli.py              `azoth` command line
-  pdf_tools.py        merge, split, edit pages (lossless; used by the app and `azoth pdf`)
+  pdf_tools.py        merge, split, edit pages, compress, passwords (used by the app and `azoth pdf`)
+  ocr.py              text recognition (Tesseract inside PyMuPDF): searchable PDF, page texts;
+                      converters/ocr.py = images → TXT/DOCX; language files in
+                      resources/tessdata (not in git: `python packaging/fetch_tessdata.py`)
   metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py
                       (format tiles), options_panel.py (quality), output_folder.py,
-                      formats_panel.py, settings_page.py, pdf_tools_page.py (Merge / Split /
-                      Edit pages), worker.py (background thread),
+                      formats_panel.py, settings_page.py, done_card.py ("Done" card +
+                      Windows notification), pdf_tools_page.py (Merge / Split /
+                      Edit pages / Compress / Password), worker.py (background thread),
                       targets.py (which targets are offered, no Qt), theme.py (light/dark
                       colours + stylesheet; widgets only set a "role" property), icons.py
                       (line icons drawn from SVG), About dialog, settings.py (QSettings)
@@ -191,6 +199,10 @@ pip install --require-hashes -r requirements-dev.lock
 
 ```bash
 pip install --no-deps -e .
+```
+
+```bash
+python packaging/fetch_tessdata.py
 ```
 
 Library versions are locked (with hashes) in `requirements.lock` (app) and
@@ -227,6 +239,10 @@ GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftes
 Office tests are skipped when LibreOffice isn't installed. Install it to run them.
 
 ## Look and feel
+
+Pages and panels whose content can grow are wrapped in `widgets.scrollable()`, so a low window
+(or larger Windows text) scrolls instead of squeezing buttons on top of each other;
+`test_no_page_squeezes_its_buttons` checks every page.
 
 All colours are in `gui/theme.py` (one set for light, one for dark); widgets never hard-code
 colours, they set a `role` property that the stylesheet styles. `tests/test_theme.py` checks

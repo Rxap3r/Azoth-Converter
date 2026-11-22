@@ -14,12 +14,13 @@ from PySide6.QtWidgets import (
 )
 
 from . import icons
+from .done_card import DoneCard
 from .file_list import FileList
-from .options_panel import QualitySelector
+from .options_panel import OcrOptions, QualitySelector
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .theme import Colors, repolish
-from .widgets import label
+from .widgets import label, scrollable
 
 
 class ConvertPage(QWidget):
@@ -28,6 +29,8 @@ class ConvertPage(QWidget):
         self.file_list = FileList()
         self.target_picker = TargetPicker()
         self.quality = QualitySelector()
+        self.ocr = OcrOptions()
+        self.ocr.set_mode(None)
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()
 
@@ -78,9 +81,7 @@ class ConvertPage(QWidget):
         self.progress.setRange(0, 1000)
         self.progress.setTextVisible(False)
         self.progress.setAccessibleName("Overall progress")
-        self.open_btn = QPushButton("Open output folder")
-        self.open_btn.setProperty("role", "link")
-        self.open_btn.setVisible(False)  # shown once something was saved
+        self.done_card = DoneCard()  # shown when a run has finished
         self.progress.setVisible(False)  # shown while converting
         self.convert_btn = QPushButton("Convert")
         self.convert_btn.setProperty("role", "primary")
@@ -92,19 +93,33 @@ class ConvertPage(QWidget):
         self.right = QFrame()
         self.right.setObjectName("RightPanel")
         self.right.setFixedWidth(350)
+        # The choices scroll when the window is too low for all of them, so nothing is
+        # squeezed; the button stays at the bottom.
+        choices = QWidget()
+        column = QVBoxLayout(choices)
+        column.setContentsMargins(22, 24, 22, 0)
+        column.setSpacing(14)
+        column.addWidget(label("Convert to", "h2"))
+        column.addWidget(self.target_picker)
+        column.addWidget(self.notes_label)
+        column.addWidget(self.ocr)
+        column.addWidget(self.quality)
+        column.addWidget(self.output_row)
+        column.addWidget(self.name_row)
+        column.addStretch(1)
+        self.choices_scroll = scrollable(choices)
         right = QVBoxLayout(self.right)
-        right.setContentsMargins(22, 24, 22, 20)
+        right.setContentsMargins(0, 0, 0, 20)
         right.setSpacing(14)
-        right.addWidget(label("Convert to", "h2"))
-        right.addWidget(self.target_picker)
-        right.addWidget(self.notes_label)
-        right.addWidget(self.quality)
-        right.addWidget(self.output_row)
-        right.addWidget(self.name_row)
-        right.addStretch(1)
+        right.addWidget(self.choices_scroll, 1)
+        bottom = QVBoxLayout()
+        bottom.setContentsMargins(22, 0, 22, 0)
+        bottom.setSpacing(14)
+        right.addLayout(bottom)
+        right = bottom
         right.addWidget(self.status_label)
         right.addWidget(self.progress)
-        right.addWidget(self.open_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        right.addWidget(self.done_card)
         right.addWidget(self.convert_btn)
         right.addWidget(self.cancel_btn)
 
@@ -122,3 +137,4 @@ class ConvertPage(QWidget):
         self.drop_icon.setPixmap(icons.pixmap("upload", colors.accent, 24))
         self.file_list.apply_colors(colors)
         self.target_picker.apply_colors(colors)
+        self.done_card.apply_colors(colors)

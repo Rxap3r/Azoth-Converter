@@ -22,7 +22,7 @@ def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_pa
     # Only targets that work for both a PNG and a PDF are offered.
     targets = window.target_picker.ids()
     assert "jpg" in targets and "pdf" in targets
-    assert "docx" not in targets  # PNG can't become Word
+    assert "xlsx" not in targets  # neither can become Excel
 
     window.output_dir = tmp_path / "out"
     window.set_quality_level("compact")
@@ -316,18 +316,22 @@ def test_open_folder_only_for_one_folder_and_result_clears(window, qtbot, sample
 
     window.add_files([one])
     convert()
-    assert window.open_btn.isVisibleTo(window) and window.last_output == a
+    card = window.done_card
+    assert card.isVisibleTo(window) and card.message.text() == "Done! 1 file converted."
+    assert card.folder_btn.isVisibleTo(window) and window.last_output == a
+    assert card.file_btn.isVisibleTo(window) and card.file == a / "one.webp"
 
     window.add_files([two])  # list changed: the old result is cleared
-    assert not window.open_btn.isVisibleTo(window)
+    assert not card.isVisibleTo(window)
     assert not window.progress.isVisibleTo(window) and window.status_label.text() == ""
 
     convert()  # results in two folders: each file has its own "Show in folder" instead
-    assert window.status_label.text() == "Finished"
-    assert not window.open_btn.isVisibleTo(window) and window.last_output is None
+    assert card.message.text() == "Done! 2 files converted."
+    assert not card.folder_btn.isVisibleTo(window) and window.last_output is None
+    assert not card.file_btn.isVisibleTo(window)  # several results: no single file to open
 
     window.file_list.remove_rows(range(window.file_list.count()))  # empty list
-    assert window.status_label.text() == "" and not window.progress.isVisibleTo(window)
+    assert not card.isVisibleTo(window) and not window.progress.isVisibleTo(window)
 
 
 def test_uninstall_button_only_in_installed_app(qtbot, monkeypatch, tmp_path):
@@ -369,3 +373,73 @@ def test_uninstall_button_only_in_installed_app(qtbot, monkeypatch, tmp_path):
 
 def test_no_uninstall_button_when_run_from_source(window):
     assert not window.settings_page.uninstall_btn.isVisibleTo(window.settings_page)
+
+
+def test_done_messages():
+    from azoth.gui.done_card import done_message
+
+    assert done_message(1, 0, False) == "Done! 1 file converted."
+    assert done_message(3, 0, False, cleaning=True) == "Done! Metadata removed from 3 files."
+    assert done_message(2, 1, False).startswith("2 done, 1 failed.")
+    assert done_message(0, 2, False).startswith("Nothing was saved: 2 files failed.")
+    assert done_message(2, 0, True) == "Cancelled after 2 files."
+    assert done_message(0, 0, True) == "Cancelled."
+
+
+def test_notification_only_in_the_background(window, monkeypatch):
+    from PySide6.QtWidgets import QSystemTrayIcon
+
+    shown = []
+    monkeypatch.setattr(QSystemTrayIcon, "isSystemTrayAvailable", staticmethod(lambda: True))
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", lambda self, *a: shown.append(a[1]))
+    notifier = window.notifier
+    monkeypatch.setattr(window, "isActiveWindow", lambda: True)
+    assert not notifier.notify("Done!") and not shown  # the user is looking at the app
+    monkeypatch.setattr(window, "isActiveWindow", lambda: False)
+    assert notifier.notify("Done! 2 files converted.") and shown == ["Done! 2 files converted."]
+    window.settings_page.notify_check.setChecked(False)  # turned off in Settings
+    assert not notifier.notify("Done!") and len(shown) == 1
+    from azoth.gui.settings import Preferences
+
+    assert Preferences().notify is False
+
+
+def test_turn_pages_setting(window):
+    from azoth.gui.settings import Preferences
+
+    assert window.settings_page.turn_check.isChecked()  # on by default
+    window.settings_page.turn_check.setChecked(False)
+    assert Preferences().ocr_turn_pages is False
+
+
+def test_no_page_squeezes_its_buttons(qtbot, tmp_path, sample_png):
+    """In a window that is too low, every page scrolls instead of squeezing buttons and
+    checkboxes (they would be cut off or overlap): each one is as tall as in a big window."""
+    from PySide6.QtWidgets import QAbstractButton, QApplication
+
+    from azoth.gui.main_window import MainWindow
+
+    w = MainWindow()
+    qtbot.addWidget(w)
+    w.show()
+    w.add_files([sample_png])  # the Convert page with its format tiles
+
+    def heights(page: str) -> dict:
+        w.show_page(page)
+        QApplication.processEvents()
+        return {
+            id(b): (b.text(), b.height())
+            for b in w.findChildren(QAbstractButton)
+            if b.isVisible() and b.window() is w
+        }
+
+    for page in w.nav_buttons:
+        w.resize(1600, 1400)
+        roomy = heights(page)
+        # Lower than the window allows: like larger text (Windows scaling) on a small screen.
+        w.setMinimumSize(0, 0)
+        w.resize(960, 420)
+        small = heights(page)
+        for key, (text, height) in small.items():
+            if key in roomy:
+                assert height >= roomy[key][1], (page, text, height, roomy[key][1])

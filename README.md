@@ -14,12 +14,21 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 | Excel (XLSX, XLS), ODS, CSV | PDF, other spreadsheet formats, images |
 | PowerPoint (PPTX, PPT), ODP | PDF, other presentation formats, images |
 | JPG, PNG, WebP, HEIC, AVIF, BMP, TIFF, GIF, ICO | each other, and PDF |
+| Scans and photos of text (images, scanned PDFs) | Word (DOCX) and TXT by text recognition (OCR), searchable PDF |
 
 **Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).** The app shows the same list under **Supported formats**.
 
 **PDF tools:** merge PDFs, split them (every page, or ranges like 1-3, 5), and turn, delete or
 reorder pages with page previews. Pages are copied as they are, so there's no quality loss and
-the original is never changed. In the app under **PDF tools**, or `azoth pdf` on the command line.
+the original is never changed. **Compress** saves a smaller copy (three levels, from "no quality
+loss" to "smallest file"; only pictures get smaller, text stays sharp). **Password** locks a copy
+with AES-256 encryption, or removes the password from your own PDF. **Make searchable** reads
+the text in scanned pages (OCR) and adds it invisibly, so you can search and copy it; the pages
+look exactly the same. In the app under **PDF tools**, or `azoth pdf` on the command line.
+
+**Text recognition (OCR), offline:** scanned PDFs and photos of letters become Word or text
+files; photos can also become a searchable PDF. English, German, French and Italian are
+included. Recognition runs on your computer; nothing is uploaded.
 
 **Remove photo metadata:** save a copy of your photos without the hidden information
 (GPS location, camera, date, author, comments, preview pictures) before you share them. The
@@ -91,6 +100,18 @@ azoth pdf split contract.pdf --ranges "1-3, 4-"
 azoth pdf edit scan.pdf --delete 2 --rotate 1=90
 ```
 
+```bash
+azoth pdf compress big.pdf --level strong
+```
+
+```bash
+azoth pdf ocr scan.pdf --language deu
+```
+
+```bash
+azoth pdf password add contract.pdf
+```
+
 ## Development
 
 Requires Python 3.11 or newer.
@@ -109,6 +130,13 @@ pip install --require-hashes -r requirements-dev.lock
 
 ```bash
 pip install --no-deps -e .
+```
+
+Download the text recognition language files (37 MB, checked against fixed checksums;
+the app itself never downloads anything):
+
+```bash
+python packaging/fetch_tessdata.py
 ```
 
 This installs the exact, hash-checked library versions from the lock file.
@@ -156,7 +184,8 @@ GitHub Actions builds it automatically for pull requests into `main` and for `ma
 src/azoth/
   formats.py        known formats, detection by file content
   engine.py         finds conversion routes, runs them safely
-  converters/       one plugin per engine (images, pdf, office)
+  converters/       one plugin per engine (images, pdf, office, ocr)
+  ocr.py            text recognition (Tesseract inside PyMuPDF)
   cli.py            command line
   gui/              PySide6 app
 tests/              pytest suite (blocks network access in every test)
