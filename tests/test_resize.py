@@ -34,8 +34,9 @@ def _photo(path, size=(400, 300), **save):
         (Resize(HEIGHT, height=100), (400, 300), (133, 100)),
         (Resize(FIT, width=100, height=100), (400, 300), (100, 75)),
         (Resize(FIT, width=1000, height=150), (400, 300), (200, 150)),
-        (Resize(LONGEST, width=2000), (400, 300), (400, 300)),  # never enlarged unasked
-        (Resize(LONGEST, width=800, enlarge=True), (400, 300), (800, 600)),
+        (Resize(LONGEST, width=800), (400, 300), (800, 600)),  # smaller ones get bigger
+        (Resize(LONGEST, width=2000, enlarge=False), (400, 300), (400, 300)),  # unless off
+        (Resize(FIT, width=1920, height=1080), (3000, 4000), (1080, 1440)),  # portrait: box turned
         (Resize(WIDTH, width=1), (400, 3), (1, 1)),  # at least one pixel
     ],
 )
@@ -44,9 +45,9 @@ def test_new_size_keeps_proportions(spec, size, expected):
 
 
 def test_would_enlarge():
-    assert Resize(LONGEST, width=2000).would_enlarge(400, 300)
-    assert not Resize(LONGEST, width=400).would_enlarge(400, 300)
-    assert not Resize(LONGEST, width=2000, enlarge=True).would_enlarge(400, 300)
+    assert Resize(LONGEST, width=2000, enlarge=False).would_enlarge(400, 300)
+    assert not Resize(LONGEST, width=400, enlarge=False).would_enlarge(400, 300)
+    assert not Resize(LONGEST, width=2000).would_enlarge(400, 300)
 
 
 @pytest.mark.parametrize(
@@ -139,10 +140,13 @@ def test_size_is_refused_where_it_cannot_apply(engine, tmp_path, sample_pdf):
 
 def test_smaller_pictures_stay_and_the_user_is_told(engine, tmp_path):
     src = _photo(tmp_path / "small.png", (300, 200))
-    out = engine.convert(src, "webp", options={"resize": parse("1000")})
+    out = engine.convert(src, "webp", options={"resize": parse("1000", enlarge=False)})
     with Image.open(out.outputs[0]) as im:
         assert im.size == (300, 200)
     assert any("already smaller" in w for w in out.warnings)
+    bigger = engine.convert(src, "webp", options={"resize": parse("1000")})
+    with Image.open(bigger.outputs[0]) as im:
+        assert im.size == (1000, 667)  # by default, smaller pictures get the size too
 
 
 def test_width_means_the_upright_picture(engine, tmp_path):
@@ -195,17 +199,20 @@ def test_cli_resize(tmp_path):
     assert main(["convert", str(src), "--to", "png", "--resize", "100", "-o", str(out), "-q"]) == 0
     with Image.open(out / "p.png") as im:
         assert im.size == (100, 75)
-    args = ["convert", str(src), "--to", "jpg", "--resize", "800", "--enlarge", "-q"]
+    args = ["convert", str(src), "--to", "jpg", "--resize", "800", "-q"]
     assert main(args) == 0
     with Image.open(tmp_path / "p (resized).jpg") as im:
         assert im.size == (800, 600)
+    assert main([*args, "--only-shrink"]) == 0
+    with Image.open(tmp_path / "p (resized) (1).jpg") as im:
+        assert im.size == (400, 300)
 
 
 def test_cli_rejects_bad_sizes(tmp_path, capsys):
     src = _photo(tmp_path / "p.jpg")
     assert main(["convert", str(src), "--to", "png", "--resize", "huge"]) == 2
     assert "not a size" in capsys.readouterr().err
-    assert main(["convert", str(src), "--to", "png", "--enlarge"]) == 2
+    assert main(["convert", str(src), "--to", "png", "--only-shrink"]) == 2
 
 
 def test_the_new_size_is_reported(engine, tmp_path):

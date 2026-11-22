@@ -584,6 +584,9 @@ def test_ready_made_picture_sizes(qtbot):
     panel = ResizeOptions()
     qtbot.addWidget(panel)
     assert panel.spec() is None and panel.preset.isHidden()
+    modes = [panel.mode.itemData(i) for i in range(panel.mode.count())]
+    assert resize.LONGEST not in modes  # "Screen size" covers it, simpler to choose
+    assert not panel.only_shrink.isChecked()  # a chosen size is what you get
     panel.set_mode(resize.FIT)
     items = [panel.preset.itemText(i) for i in range(panel.preset.count())]
     assert items[2] == "3840 × 2160 (4K UHD)" and items[-1] == panel.CUSTOM

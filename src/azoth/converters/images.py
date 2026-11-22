@@ -142,8 +142,7 @@ class ImageConverter(Converter):
             if resized.size == frame.size and size.would_enlarge(*frame.size) and not kept:
                 kept.append(
                     f"Kept the original size ({frame.width} × {frame.height} px): the picture "
-                    "is already smaller. Choose “Also enlarge smaller pictures” to make it "
-                    "bigger."
+                    "is already smaller and “Don't enlarge smaller pictures” is on."
                 )
             return resized
 

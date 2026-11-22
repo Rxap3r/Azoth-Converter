@@ -1,12 +1,13 @@
 """Changing a picture's size in pixels (smaller, or plainly bigger).
 
-Pictures always keep their proportions: a size is a limit (width, height, a box both
-must fit in, the longest side) or a percentage. Smaller pictures are only made bigger
-when the user asks for it (``enlarge``, or a percentage above 100). Enlarging is smooth
-and adds no detail. Nothing changes unless the user chooses a size.
+Pictures always keep their proportions: a size is a width, a height, a screen size (a
+box the picture fits in, turned for portrait pictures), the longest side, or a
+percentage. Pictures get the chosen size, smaller ones too, unless ``enlarge`` is off
+("Don't enlarge smaller pictures"). Enlarging is smooth and adds no detail. Nothing
+changes unless the user chooses a size.
 
 Option ``resize`` (a :class:`Resize`) is read by the image converter; the command line
-writes it as ``50%``, ``2000`` (longest side), ``1920x1080`` (fit inside), ``1920x``
+writes it as ``50%``, ``2000`` (longest side), ``1920x1080`` (screen size), ``1920x``
 (width) or ``x1080`` (height).
 """
 
@@ -43,9 +44,9 @@ class Resize:
     height: int = 0
     """Pixels for HEIGHT and FIT."""
     percent: float = 100
-    enlarge: bool = False
-    """Also make pictures bigger that are smaller than the chosen size (not for PERCENT,
-    where the number itself says whether the picture gets smaller or bigger)."""
+    enlarge: bool = True
+    """Make pictures bigger that are smaller than the chosen size. Off: they stay as they
+    are. (Not for PERCENT, where the number says whether the picture gets bigger.)"""
 
     def __post_init__(self) -> None:
         if self.mode not in MODES:
@@ -69,7 +70,7 @@ class Resize:
             LONGEST: f"longest side {self.width} px",
             WIDTH: f"{self.width} px wide",
             HEIGHT: f"{self.height} px high",
-            FIT: f"fit inside {self.width} × {self.height} px",
+            FIT: f"screen size {self.width} × {self.height} px",
         }[self.mode]
         return text
 
@@ -81,6 +82,9 @@ class Resize:
 
     def new_size(self, width: int, height: int) -> tuple[int, int]:
         """The size a ``width`` × ``height`` picture gets (the same size if it stays)."""
+        box_w, box_h = self.width, self.height
+        if self.mode == FIT and (height > width) != (box_h > box_w) and width != height:
+            box_w, box_h = box_h, box_w  # a screen size turned for portrait pictures
         if self.mode == PERCENT:
             scale = self.percent / 100
         else:
@@ -88,7 +92,7 @@ class Resize:
                 LONGEST: lambda: self.width / max(width, height),
                 WIDTH: lambda: self.width / width,
                 HEIGHT: lambda: self.height / height,
-                FIT: lambda: min(self.width / width, self.height / height),
+                FIT: lambda: min(box_w / width, box_h / height),
             }[self.mode]()
             if scale > 1 and not self.enlarge:
                 return width, height
@@ -108,7 +112,7 @@ class Resize:
 _SPEC = re.compile(r"^\s*(?:(\d+(?:\.\d+)?)\s*%|(\d+)|(\d*)\s*[x×]\s*(\d*))\s*$", re.IGNORECASE)
 
 
-def parse(text: str, enlarge: bool = False) -> Resize:
+def parse(text: str, enlarge: bool = True) -> Resize:
     """Read a size typed on the command line (see the module help for the forms)."""
     match = _SPEC.match(text or "")
     if not match or (match.group(3) == "" and match.group(4) == ""):

@@ -36,9 +36,10 @@ picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC
 in the app, choose **Remove metadata only**; right-click a file and choose
 **Show metadata…** to see what it contains first.
 
-**Change picture size:** make photos smaller (or plainly bigger) while converting, or keep
-the format and only change the size. Choose the longest side, width, height, a box to fit in,
-or a percentage; proportions are always kept, and nothing is resized unless you choose a size.
+**Change picture size:** make photos smaller or bigger while converting, or keep the format
+and only change the size. Choose a screen size like Full HD or 4K (turned for portrait
+photos), a width, a height or a percentage; proportions are always kept, and nothing is
+resized unless you choose a size.
 In the app under **Picture size** (or the **Change size only** tile); on the command line
 `azoth convert *.jpg --to jpg --resize 2000`.
 

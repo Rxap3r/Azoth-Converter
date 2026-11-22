@@ -339,7 +339,7 @@ def test_searchable_pdf_keeps_jpg_scans_byte_for_byte(tmp_path, ocr_ready):
 
 def test_picture_size_only_changes_when_asked(tmp_path):
     """Pictures keep all their pixels by default; a chosen size shrinks them cleanly, and
-    smaller pictures are only enlarged when the user asks."""
+    with "Don't enlarge smaller pictures" small ones stay exactly as they are."""
     from azoth import resize
 
     src = tmp_path / "flat.png"
@@ -352,7 +352,9 @@ def test_picture_size_only_changes_when_asked(tmp_path):
     with Image.open(small.outputs[0]) as im:
         assert im.size == (320, 240)
         assert im.getextrema() == ((12, 12), (120, 120), (200, 200))  # no colour shift
-    kept = engine.convert(src, "bmp", tmp_path / "c", options={"resize": resize.parse("1000")})
+    kept = engine.convert(
+        src, "bmp", tmp_path / "c", options={"resize": resize.parse("1000", enlarge=False)}
+    )
     with Image.open(kept.outputs[0]) as im, Image.open(src) as original:
         assert im.size == (640, 480)
         assert not ImageChops.difference(im.convert("RGB"), original.convert("RGB")).getbbox()

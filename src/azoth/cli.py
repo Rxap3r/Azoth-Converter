@@ -48,11 +48,11 @@ def cmd_convert(args: argparse.Namespace) -> int:
     from .converters import all_converters
 
     engine = Engine(all_converters(use_word=not args.no_word))
-    if args.enlarge and args.resize is None:
-        print("--enlarge needs --resize", file=sys.stderr)
+    if args.only_shrink and args.resize is None:
+        print("--only-shrink needs --resize", file=sys.stderr)
         return 2
     try:
-        size = None if args.resize is None else resize.parse(args.resize, args.enlarge)
+        size = None if args.resize is None else resize.parse(args.resize, not args.only_shrink)
     except resize.ResizeError as exc:
         print(exc, file=sys.stderr)
         return 2
@@ -350,13 +350,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--resize",
         metavar="SIZE",
         help="new picture size, keeping proportions: 50%% (percentage), 2000 (longest "
-        "side in pixels), 1920x1080 (fit inside), 1920x (width), x1080 (height). "
+        "side in pixels), 1920x1080 (screen size: fits inside, turned for portrait pictures), "
+        "1920x (width), x1080 (height). Smaller pictures are enlarged (smooth, adds no "
+        "detail). "
         "With the same format as the file (e.g. --to jpg for a JPG) a resized copy is saved",
     )
     p.add_argument(
-        "--enlarge",
+        "--only-shrink",
         action="store_true",
-        help="with --resize: also make smaller pictures bigger (smooth, adds no detail)",
+        help="with --resize: don't enlarge pictures that are smaller than the size",
     )
     p.add_argument(
         "--keep-metadata",

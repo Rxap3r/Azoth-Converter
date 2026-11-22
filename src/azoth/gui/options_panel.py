@@ -169,8 +169,7 @@ class ResizeOptions(QWidget):
 
     CHOICES = [
         (None, "Keep original size"),
-        (resize.FIT, "Fit inside width × height"),
-        (resize.LONGEST, "Longest side"),
+        (resize.FIT, "Screen size"),
         (resize.WIDTH, "Width"),
         (resize.HEIGHT, "Height"),
         (resize.PERCENT, "Percentage"),
@@ -196,10 +195,10 @@ class ResizeOptions(QWidget):
         for widget in (self.width_box, self.times, self.height_box, self.percent_box):
             boxes.addWidget(widget)
         boxes.addStretch(1)
-        self.enlarge = QCheckBox("Also enlarge smaller pictures")
-        self.enlarge.setToolTip(
-            "Pictures smaller than the chosen size are made bigger. Enlarging is smooth "
-            "but adds no detail, so they won't get sharper."
+        self.only_shrink = QCheckBox("Don't enlarge smaller pictures")
+        self.only_shrink.setToolTip(
+            "Pictures that are already smaller than the chosen size stay as they are. "
+            "Useful to make big photos smaller (e.g. for e-mail) without blowing up small ones."
         )
         self.hint = label("", "small", wrap=True)
         layout = QVBoxLayout(self)
@@ -209,11 +208,11 @@ class ResizeOptions(QWidget):
         layout.addWidget(self.mode)
         layout.addWidget(self.preset)
         layout.addLayout(boxes)
-        layout.addWidget(self.enlarge)
+        layout.addWidget(self.only_shrink)
         layout.addWidget(self.hint)
         self.mode.currentIndexChanged.connect(self._mode_changed)
         self.preset.currentIndexChanged.connect(self._preset_changed)
-        self.enlarge.toggled.connect(self._update)
+        self.only_shrink.toggled.connect(self._update)
         for box in (self.width_box, self.height_box, self.percent_box):
             box.valueChanged.connect(self._update)
         self._mode_changed()
@@ -243,7 +242,7 @@ class ResizeOptions(QWidget):
             mode,
             width=self.width_box.value(),
             height=self.height_box.value(),
-            enlarge=self.enlarge.isChecked(),
+            enlarge=not self.only_shrink.isChecked(),
         )
 
     def set_mode(self, mode: str | None) -> None:
@@ -263,7 +262,7 @@ class ResizeOptions(QWidget):
     def set_busy(self, busy: bool) -> None:
         for widget in (
             self.mode, self.preset, self.width_box, self.height_box, self.percent_box,
-            self.enlarge,
+            self.only_shrink,
         ):  # fmt: skip
             widget.setEnabled(not busy)
 
@@ -295,25 +294,25 @@ class ResizeOptions(QWidget):
         mode = self.mode.currentData()
         custom = mode is not None and self.is_custom()
         self.preset.setVisible(mode is not None)
-        self.width_box.setVisible(custom and mode in (resize.LONGEST, resize.WIDTH, resize.FIT))
+        self.width_box.setVisible(custom and mode in (resize.WIDTH, resize.FIT))
         self.height_box.setVisible(custom and mode in (resize.HEIGHT, resize.FIT))
         self.times.setVisible(custom and mode == resize.FIT)
         self.percent_box.setVisible(custom and mode == resize.PERCENT)
-        self.enlarge.setVisible(mode not in (None, resize.PERCENT))
+        self.only_shrink.setVisible(mode not in (None, resize.PERCENT))
         if mode is None:
             hint = "Pictures keep all their pixels."
-        elif mode == resize.PERCENT and self.percent_box.value() > 100:
-            hint = "Pictures are enlarged smoothly. This adds no detail."
-        elif mode == resize.PERCENT:
-            hint = "Proportions are kept."
-        elif self.enlarge.isChecked():
+        elif mode == resize.FIT:
             hint = (
-                "Proportions are kept. Smaller pictures are enlarged smoothly, "
-                "which adds no detail."
+                "The picture fits inside this size with its proportions kept, so one side "
+                "may come out smaller. Portrait pictures are turned: 1920 × 1080 becomes "
+                "1080 × 1920."
             )
         else:
-            hint = "Proportions are kept. Pictures that are already smaller stay as they are."
-        if mode == resize.FIT:
-            hint += " The picture fits inside the box, so one side may come out smaller."
+            hint = "Proportions are kept."
+        if mode is not None and (mode != resize.PERCENT or self.percent_box.value() > 100):
+            if not self.only_shrink.isChecked() or mode == resize.PERCENT:
+                hint += " Enlarging is smooth but adds no detail."
+            else:
+                hint += " Pictures that are already smaller stay as they are."
         self.hint.setText(hint)
         self.changed.emit()
