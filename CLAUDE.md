@@ -39,7 +39,11 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
     real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
     edit pages, compress, passwords ✓) → **OCR** ✓ (all released in 0.3.0);
-  - technical improvements: faster batches, smaller download;
+  - technical improvements: **faster batches ✓ on `dev`, not released** (LibreOffice and
+    Word: up to 10 files per start; photos: up to 4 at once; PDF restrictions kept in
+    Merge / Split / Edit pages). Still to do before releasing: a "Build and test" run on
+    Windows, and the owner tries Word → PDF with several files on a PC with Word (GitHub's
+    machines have no Office). Then: smaller download;
   - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
