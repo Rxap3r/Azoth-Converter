@@ -30,8 +30,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
   - **0.3.0 prepared (22 Nov 2026):** compress PDF, passwords, OCR, file names in every PDF
     tool, "Done" card; tested by the owner on Windows (OCR selection fine in Chrome/Edge, good
-    enough in Firefox). Next: the pull request `dev` → `main` (waiting for the owner's
-    explicit "pull it"); after the merge the owner runs Actions → Release;
+    enough in Firefox). Pull request #8 `dev` → `main` is open (22 Nov 2026); after the
+    owner merges it, they run Actions → Release on `main`;
   - later: a version check inside the app (only on click, after code signing; owner decides),
     see Phase 5 in `docs/PROJECT_PLAN.md`;
   - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
