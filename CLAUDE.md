@@ -32,8 +32,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
 - **Next planned work, in this order (owner, 22 Nov 2026):**
   1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
-     (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Not yet
-     seen by the owner on Windows. AI upscaling / "improve quality" comes later as its own step;
+     (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Owner tested
+     the Windows test build on 22 Nov 2026: works (with portable mode and the crash fix). AI upscaling / "improve quality" comes later as its own step;
   2. ✓ **Fully portable version** (on `dev`, not released): `portable.txt` only in the
      ZIP (owner: never in the installer); the Windows build tests the unzipped app;
   3. later: smaller download (owner doesn't worry about size now), design refresh, the rest.
