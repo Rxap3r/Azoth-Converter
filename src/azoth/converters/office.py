@@ -1,7 +1,8 @@
 """Office documents (Word, Excel, PowerPoint, OpenDocument) via LibreOffice.
 
 LibreOffice runs headless as a separate process, with a throwaway user profile
-for every job. The profile is hardened before LibreOffice starts:
+for every job (the files of a batch share one start and one profile). The profile is
+hardened before LibreOffice starts:
 
 * macros are disabled completely,
 * links to external content are never updated when a document is loaded,
@@ -21,7 +22,7 @@ import time
 from collections.abc import Iterable
 from pathlib import Path
 
-from .base import ConversionContext, ConversionError, Converter
+from .base import ConversionContext, ConversionError, Converter, RetryAlone
 
 TEXT_DOCS = ["docx", "doc", "odt", "rtf", "txt"]
 SHEETS = ["xlsx", "xls", "ods", "csv"]
@@ -168,19 +169,36 @@ class OfficeConverter(Converter):
             return "Complex Microsoft Office layouts may shift slightly."
         return None
 
+    def batch_key(self, src: str, dst: str) -> tuple[str, str] | None:
+        family = FAMILY.get(src)
+        return (family, dst) if family and dst in FILTERS[family] else None
+
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
+        (error,) = self.convert_batch([(src, dst)], ctx)
+        if error is not None:
+            raise error
+        return [dst]
+
+    def convert_batch(
+        self, jobs: list[tuple[Path, Path]], ctx: ConversionContext
+    ) -> list[ConversionError | None]:
+        """One LibreOffice start for all ``jobs`` (same family and target). It works
+        through the files in order; if it fails or stops early, the files it didn't
+        finish are handed back to be tried on their own."""
         soffice = self.soffice
         if soffice is None:
             raise ConversionError(self.unavailable_reason())
+        keys = {self.batch_key(src.suffix.lower().lstrip("."), dst.suffix.lower().lstrip("."))
+                for src, dst in jobs}  # fmt: skip
+        if len(keys) != 1 or None in keys:
+            src, dst = jobs[0]
+            raise ConversionError(
+                f"LibreOffice cannot convert {src.suffix.lstrip('.')} to {dst.suffix.lstrip('.')}"
+            )
+        ((family, dst_id),) = keys
 
-        src_id = src.suffix.lower().lstrip(".")
-        dst_id = dst.suffix.lower().lstrip(".")
-        family = FAMILY.get(src_id)
-        if family is None or dst_id not in FILTERS[family]:
-            raise ConversionError(f"LibreOffice cannot convert {src_id} to {dst_id}")
-
-        # Work on a copy with a plain name: avoids problems with unusual
-        # characters and with files that are open in another program.
+        # Work on copies with plain names: avoids problems with unusual characters and
+        # with files that are open in another program.
         in_dir = ctx.work_dir / "lo-in"
         out_dir = ctx.work_dir / "lo-out"
         profile = ctx.work_dir / "lo-profile"
@@ -189,8 +207,12 @@ class OfficeConverter(Converter):
         (profile / "user" / "registrymodifications.xcu").write_text(
             hardened_profile_xml(), encoding="utf-8"
         )
-        local_src = in_dir / f"input.{src_id}"
-        shutil.copyfile(src, local_src)
+        inputs = []
+        for n, (src, _) in enumerate(jobs):
+            local = in_dir / f"input{n}{src.suffix.lower()}"
+            shutil.copyfile(src, local)
+            inputs.append(local)
+        produced = [out_dir / f"{local.stem}.{dst_id}" for local in inputs]
 
         cmd = [
             str(soffice),
@@ -206,7 +228,7 @@ class OfficeConverter(Converter):
             FILTERS[family][dst_id],
             "--outdir",
             str(out_dir),
-            str(local_src),
+            *map(str, inputs),
         ]
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         ctx.progress(0.1, "Starting LibreOffice")
@@ -223,30 +245,57 @@ class OfficeConverter(Converter):
             env=env,
             creationflags=creationflags,
         )
+        # The time limit is per document: it starts again whenever a file is finished.
         timeout = float(ctx.option("timeout", DEFAULT_TIMEOUT))
-        started = time.monotonic()
+        started = last_done = time.monotonic()
+        done = 0
+        timed_out = False
         try:
             while proc.poll() is None:
                 if ctx.cancel_event.is_set():
                     proc.kill()
                     ctx.check_cancelled()
-                if time.monotonic() - started > timeout:
+                now_done = sum(p.exists() for p in produced)
+                now = time.monotonic()
+                if now_done != done:
+                    done, last_done = now_done, now
+                if now - last_done > timeout:
                     proc.kill()
-                    raise ConversionError(
-                        f"LibreOffice took longer than {int(timeout)} s and was stopped"
-                    )
-                elapsed = time.monotonic() - started
-                ctx.progress(min(0.9, 0.1 + elapsed / 60), "Converting with LibreOffice")
+                    timed_out = True
+                    break
+                part = done + min(0.9, (now - started) / 60 if len(jobs) == 1 else 0.5)
+                ctx.progress(0.1 + 0.8 * part / len(jobs), "Converting with LibreOffice")
                 time.sleep(0.2)
         finally:
             if proc.poll() is None:
                 proc.kill()
             _, stderr = proc.communicate()
 
-        produced = out_dir / f"input.{dst_id}"
-        if proc.returncode != 0 or not produced.exists():
-            detail = stderr.decode(errors="replace").strip().splitlines()
-            hint = f": {detail[-1]}" if detail else ""
-            raise ConversionError(f"LibreOffice could not convert the file{hint}")
-        shutil.move(produced, dst)
-        return [dst]
+        if len(jobs) == 1:
+            if timed_out:
+                return [
+                    ConversionError(
+                        f"LibreOffice took longer than {int(timeout)} s and was stopped"
+                    )
+                ]
+            if proc.returncode != 0 or not produced[0].exists():
+                detail = stderr.decode(errors="replace").strip().splitlines()
+                hint = f": {detail[-1]}" if detail else ""
+                return [ConversionError(f"LibreOffice could not convert the file{hint}")]
+            shutil.move(produced[0], jobs[0][1])
+            return [None]
+
+        # LibreOffice converts the files in order. If it didn't end normally, the last
+        # file it wrote may be incomplete: only the ones before it are certainly finished.
+        trusted = len(jobs)
+        if proc.returncode != 0 or timed_out:
+            written = [n for n, out in enumerate(produced) if out.exists()]
+            trusted = written[-1] if written else 0
+        results: list[ConversionError | None] = []
+        for n, ((_, dst), out) in enumerate(zip(jobs, produced, strict=True)):
+            if n < trusted and out.exists():
+                shutil.move(out, dst)
+                results.append(None)
+            else:
+                results.append(RetryAlone())  # tried again alone, with a clear message
+        return results

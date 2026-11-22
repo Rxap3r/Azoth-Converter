@@ -175,7 +175,10 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Uninstall button in Settings** (owner's wish, Nov 2026): only in the installed app; starts the normal uninstaller
 - [x] **Error log** (owner's wish, Nov 2026, after a crash with mixed PNG and other photos that couldn't be reproduced): details of unexpected errors and hard crashes go to `error-log.txt` in the app's folder; Settings → Error log…; never sent anywhere
 - [ ] Find the crash the owner saw in 0.2.0 (several photos, some already PNG, then Convert) once the error log shows it
-- [ ] **Faster large batches:** keep one LibreOffice (and one Word) instance running for a whole batch instead of starting it for every file (~1 s overhead per file today); convert several files in parallel where the engine allows it (images, PDF → images)
+- [ ] **Faster large batches:**
+  - [x] LibreOffice: up to 10 files per start instead of one start per file (`Engine.convert_many`, `Converter.convert_batch`); about 4× faster for 10 Word files
+  - [ ] Word (Windows): one Word start for a whole batch instead of one per file
+  - [ ] Convert several files in parallel where the engine allows it (images, PDF → images)
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
 - [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)

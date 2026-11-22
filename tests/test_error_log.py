@@ -90,7 +90,7 @@ def test_failed_conversion_is_logged(log, sample_png, monkeypatch):
         raise RuntimeError("decoder crashed")
 
     engine = Engine()
-    monkeypatch.setattr(engine, "convert", boom)
+    monkeypatch.setattr(engine, "_run", boom)  # the step that converts each file
     worker = ConversionWorker(engine, [(0, sample_png)], "jpg", None, {}, threading.Event())
     failed = []
     worker.file_failed.connect(lambda row, msg: failed.append(msg))

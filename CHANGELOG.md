@@ -7,6 +7,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Changed
+
+- Converting many Word, Excel or PowerPoint files with LibreOffice is much faster: up to
+  10 files are now done in one LibreOffice start instead of one start per file (10 Word
+  files to PDF: about 4 times faster in our test). The results are the same; a file that
+  fails is tried again on its own, so its error message stays clear.
+
 ### Privacy and safety
 
 - Merge, Split and Edit pages now keep a PDF's restrictions (for example "no printing" or
