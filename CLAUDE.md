@@ -32,8 +32,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
 - **0.4.0 prepared on `dev` (22 Nov 2026):** picture size, fully portable ZIP, "Show
   metadata" button, crash fix, cached format list. Version, changelog and
-  `docs/releases/v0.4.0.md` done; waiting for the owner's "pull it", then the owner merges
-  and runs the Release workflow.
+  `docs/releases/v0.4.0.md` done; pull request #10 (`dev` → `main`) opened 22 Nov 2026.
+  Next: the owner merges it and runs Actions → Release on `main`. Also in 0.4.0:
+  `azoth-terminal.exe` (renamed CLI), pixel size on photo cards.
 - **Next planned work, in this order (owner, 22 Nov 2026):**
   1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
      (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Owner tested
