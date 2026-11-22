@@ -1,8 +1,9 @@
 """Remembers a few choices between launches.
 
 Everything the app stores lives in ONE folder, so uninstalling can remove it
-completely: on Windows ``%APPDATA%\\Azoth Converter``. Nothing goes into the
-registry. Only preferences are kept: no file names, no history.
+completely: on Windows ``%APPDATA%\\Azoth Converter`` (the portable version: a
+``data`` folder next to the program, see portable.py). Nothing goes into the registry.
+Only preferences are kept: no file names, no history.
 
 Qt's file dialogs normally remember visited folders in a registry area shared by
 all Qt programs. ``configure_storage`` redirects that into our folder too, and
@@ -17,6 +18,8 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings
 
+from .. import portable
+
 ORGANIZATION = "Azoth Converter"
 APPLICATION = "Azoth Converter"
 FOLDER_NAME = "Azoth Converter"
@@ -25,6 +28,9 @@ _storage_dir: Path | None = None
 
 
 def default_storage_dir() -> Path:
+    portable_data = portable.data_dir()
+    if portable_data is not None:  # portable version: next to the program, not on the PC
+        return portable_data
     if sys.platform == "win32":
         base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
     elif sys.platform == "darwin":
@@ -111,7 +117,9 @@ class Preferences:
     @property
     def notify(self) -> bool:
         """Windows notification when work finishes in the background (on by default)."""
-        return self._get("notify_when_done", True, bool)
+        # Portable: off unless switched on, because Windows itself remembers every app
+        # that showed a notification (in the registry), which a portable app must not cause.
+        return self._get("notify_when_done", not portable.is_portable(), bool)
 
     def save_notify(self, on: bool) -> None:
         self.store.setValue("notify_when_done", on)

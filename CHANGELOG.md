@@ -15,6 +15,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   percentage. Proportions are always kept; smaller pictures are only enlarged when you
   choose "Also enlarge smaller pictures". Command line: `--resize 2000`, `--resize 50%`,
   `--resize 1920x1080`, `--enlarge`.
+- **Portable mode:** when a file `portable.txt` lies next to the program, the app keeps its
+  settings and error log in a `data` folder beside it, and its temporary files in
+  `data\temp`, instead of on the PC. Nothing to uninstall: delete the folder. The "Done"
+  notification is off by default there (Windows remembers every app that shows one).
 
 ### Quality
 

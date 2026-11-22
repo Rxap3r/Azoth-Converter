@@ -8,6 +8,9 @@ import sys
 
 
 def main() -> int:
+    from azoth import portable
+
+    portable.activate()  # portable version: data and temp files stay next to the program
     if len(sys.argv) > 1:
         from azoth.cli import main as cli_main
 

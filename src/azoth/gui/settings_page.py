@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import __version__
+from .. import __version__, portable
 from . import error_log, theme
 from .widgets import label, scrollable
 
@@ -125,10 +125,18 @@ class SettingsPage(QWidget):
         row.addWidget(self.about_btn)
         row.addWidget(self.log_btn)
         row.addStretch(1)
+        data = portable.data_dir()
+        where = (
+            f" Portable version: settings and the error log are kept next to the program "
+            f"in {data}, nothing is saved on this computer."
+            if data is not None
+            else ""
+        )
         about = [
             label("About", "h2"),
             label(
-                f"Version {__version__}. Works offline: your files never leave this computer.",
+                f"Version {__version__}. Works offline: your files never leave this "
+                f"computer.{where}",
                 "small",
                 wrap=True,
             ),
@@ -154,7 +162,7 @@ class SettingsPage(QWidget):
             self.uninstall_btn,
         ]
         groups = [appearance, conversion, about]
-        if uninstaller() is not None:  # only in the installed app, not the portable one
+        if uninstaller() is not None and data is None:  # installed app only: not portable
             groups.append(uninstall)
 
         content = QWidget()
