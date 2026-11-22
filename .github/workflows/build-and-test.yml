@@ -68,3 +68,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-windows
+        with:
+          # Manual test builds also offer the portable ZIP for download.
+          portable: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}

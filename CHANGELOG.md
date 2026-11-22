@@ -19,6 +19,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   settings and error log in a `data` folder beside it, and its temporary files in
   `data\temp`, instead of on the PC. Nothing to uninstall: delete the folder. The "Done"
   notification is off by default there (Windows remembers every app that shows one).
+  The portable ZIP now contains this file (the installer never does), so it is fully
+  portable.
+
+### Development
+
+- The Windows build also makes and tests the portable ZIP: unzipped, it must convert, start
+  and leave nothing in `%APPDATA%`, the temp folder or the registry. Manual test builds
+  offer the ZIP for download too.
 
 ### Quality
 

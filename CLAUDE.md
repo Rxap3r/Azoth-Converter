@@ -33,8 +33,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
      (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Not yet
      seen by the owner on Windows. AI upscaling / "improve quality" comes later as its own step;
-  2. **Fully portable version**: app side done on `dev` (`portable.py`); waiting for the
-     owner's OK to add `portable.txt` to the ZIP and a test to the Windows build;
+  2. ✓ **Fully portable version** (on `dev`, not released): `portable.txt` only in the
+     ZIP (owner: never in the installer); the Windows build tests the unzipped app;
   3. later: smaller download (owner doesn't worry about size now), design refresh, the rest.
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the

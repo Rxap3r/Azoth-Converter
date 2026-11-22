@@ -1,8 +1,9 @@
 name: Build Windows app
 description: >-
   Builds the app and the installer, tests install -> run -> uninstall (including leftover
-  checks) and uploads the installer. With `portable: "true"` it also uploads the portable
-  ZIP (used by the Release workflow, which publishes exactly these tested files).
+  checks), makes and tests the portable ZIP (with portable.txt, which the installer never
+  has) and uploads the installer. With `portable: "true"` it also uploads the portable ZIP
+  (used by the Release workflow, which publishes exactly these tested files).
   Runs on windows-latest; check out the code first.
 inputs:
   portable:
@@ -63,6 +64,7 @@ runs:
         Start-Process $setup -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$dir"
         & "$dir\azoth.exe" --version
         if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
+        if (Test-Path "$dir\portable.txt") { throw "the installer must not be portable" }
         # Update over an existing installation: old libraries go, settings stay.
         $data = "$env:APPDATA\Azoth Converter"
         New-Item -ItemType Directory -Force "$data" | Out-Null
@@ -100,11 +102,46 @@ runs:
         compression-level: 0  # already compressed
         retention-days: ${{ inputs.portable == 'true' && 30 || 7 }}
     - name: Make portable ZIP
-      if: inputs.portable == 'true'
       shell: pwsh
       run: |
-        Compress-Archive -Path "packaging/dist/AzothConverter/*" `
+        # Same program as the installer, plus portable.txt (only in the ZIP, never in the
+        # installer): it tells the app to keep its data next to itself (see portable.py).
+        $stage = "$env:RUNNER_TEMP\portable-stage"
+        Copy-Item -Recurse "packaging/dist/AzothConverter" $stage
+        @(
+          "This file makes Azoth Converter portable.",
+          "Settings, the error log and temporary files are kept in the 'data' folder here,",
+          "not on the computer. To remove the app, delete this folder.",
+          "Delete this file to use the normal settings folder (%APPDATA%) instead."
+        ) | Out-File -Encoding utf8 "$stage\portable.txt"
+        Compress-Archive -Path "$stage\*" `
           -DestinationPath "packaging/Output/AzothConverter-portable-$env:VERSION.zip"
+    - name: Test portable ZIP (unzip, run, nothing left on the PC)
+      shell: pwsh
+      run: |
+        $dir = "$env:RUNNER_TEMP\portable test\Azoth Converter"
+        Expand-Archive "packaging/Output/AzothConverter-portable-$env:VERSION.zip" $dir
+        if (-not (Test-Path "$dir\portable.txt")) { throw "portable.txt missing in the ZIP" }
+        $appdata = "$env:APPDATA\Azoth Converter"
+        if (Test-Path $appdata) { Remove-Item -Recurse -Force $appdata }
+        $tempBefore = @(Get-ChildItem $env:TEMP -Filter "azoth-*" -Name)
+        & "$dir\azoth.exe" convert samples/images/photo.png --to jpg --resize 50% `
+          -o "$env:RUNNER_TEMP\portable-out" --quiet
+        if ($LASTEXITCODE -ne 0) { throw "portable program could not convert" }
+        $app = Start-Process "$dir\AzothConverter.exe" -PassThru
+        Start-Sleep -Seconds 15
+        if ($app.HasExited) { throw "portable app closed by itself (exit code $($app.ExitCode))" }
+        Stop-Process -Id $app.Id -Force
+        Start-Sleep -Seconds 3
+        $left = @()
+        if (-not (Test-Path "$dir\data\temp")) { $left += "no data folder: not portable" }
+        if (Test-Path $appdata) { $left += "settings folder in %APPDATA%" }
+        $tempAfter = @(Get-ChildItem $env:TEMP -Filter "azoth-*" -Name)
+        $newTemp = @($tempAfter | Where-Object { $tempBefore -notcontains $_ })
+        if ($newTemp.Count -gt 0) { $left += "temp folder in %TEMP%" }
+        if (Test-Path "HKCU:\Software\Azoth Converter") { $left += "registry key" }
+        if ($left.Count -gt 0) { throw "portable app: $($left -join ', ')" }
+        "Portable app: data next to the program, nothing left on the PC"
     - name: Upload portable ZIP
       if: inputs.portable == 'true'
       uses: actions/upload-artifact@v4

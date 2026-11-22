@@ -56,7 +56,9 @@ PDF → Word, PDF ↔ images and the image conversions work without it.
 
 Each release offers two versions of the same app:
 - **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry and clean uninstall.
-- **AzothConverter-portable-<version>.zip**: no installation; unzip and run `AzothConverter.exe`, delete the folder to remove it.
+- **AzothConverter-portable-<version>.zip**: no installation; unzip anywhere (also a USB
+  stick) and run `AzothConverter.exe`. It keeps its settings and temporary files in a `data`
+  folder next to itself, so nothing is left on the computer; delete the folder to remove it.
 
 The "Source code" archives that GitHub adds to every release are only needed by developers.
 
