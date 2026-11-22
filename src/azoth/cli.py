@@ -58,15 +58,22 @@ def cmd_convert(args: argparse.Namespace) -> int:
     failures = 0
     paths = [Path(f) for f in args.files]
     printers = [None if args.quiet else _progress_printer(p.name) for p in paths]
+    current = [0]  # photos run in parallel: only show the progress of the file shown next
+
+    def show(i: int, fraction: float, message: str) -> None:
+        if i == current[0]:
+            printers[i](fraction, message)
+
     results = engine.convert_many(
         paths,
         args.to,
         args.output,
         options=options,
         overwrite=args.overwrite,
-        progress=None if args.quiet else lambda i, f, m: printers[i](f, m),
+        progress=None if args.quiet else show,
     )
     for i, outcome in results:
+        current[0] = i + 1
         path = paths[i]
         if isinstance(outcome, ConversionError):
             failures += 1

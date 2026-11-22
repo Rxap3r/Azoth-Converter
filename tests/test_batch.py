@@ -227,3 +227,117 @@ def test_libreoffice_does_not_trust_the_last_file_after_a_crash(tmp_path, monkey
     assert results[0] is None and jobs[0][1].exists()
     assert isinstance(results[1], RetryAlone) and not jobs[1][1].exists()
     assert isinstance(results[2], RetryAlone)
+
+
+# --- photos in parallel ------------------------------------------------------------
+
+
+def _photos(tmp_path, count, stem=None):
+    import numpy as np
+    from PIL import Image
+
+    folder = tmp_path / "photos"
+    folder.mkdir(exist_ok=True)
+    exts = ["png", "bmp", "gif", "tiff", "jpg", "webp"]
+    paths = []
+    for i in range(count):
+        pixels = np.random.default_rng(i).integers(0, 255, (60, 80, 3), dtype=np.uint8)
+        path = folder / f"{stem or f'photo{i}'}.{exts[i % len(exts)] if stem else 'png'}"
+        Image.fromarray(pixels).save(path)
+        paths.append(path)
+    return paths
+
+
+def test_photos_in_parallel_give_exactly_the_same_files(tmp_path):
+    photos = _photos(tmp_path, 8)
+    one = dict(Engine().convert_many(photos, "webp", tmp_path / "one", parallel=1))
+    many = dict(Engine().convert_many(photos, "webp", tmp_path / "many", parallel=4))
+    for i in range(len(photos)):
+        a, b = one[i].outputs[0], many[i].outputs[0]
+        assert a.name == b.name == f"photo{i}.webp"
+        assert a.read_bytes() == b.read_bytes()
+
+
+def test_photos_in_parallel_never_take_the_same_name(tmp_path):
+    photos = _photos(tmp_path, 6, stem="holiday")  # holiday.png, holiday.bmp, ...
+    photos = [p for p in photos if p.suffix != ".webp"]
+    results = dict(Engine().convert_many(photos, "webp", tmp_path / "out", parallel=4))
+    names = {r.outputs[0].name for r in results.values()}
+    assert len(names) == len(photos) == len(list((tmp_path / "out").iterdir()))
+
+
+def test_parallel_and_other_files_keep_their_order(tmp_path, sample_pdf):
+    photos = _photos(tmp_path, 3)
+    files = [photos[0], sample_pdf, photos[1], tmp_path / "missing.png", photos[2]]
+    results = list(Engine().convert_many(files, "jpg", tmp_path / "out", parallel=3))
+    assert [i for i, _ in results] == [0, 1, 2, 3, 4]
+    assert isinstance(results[3][1], ConversionError)
+    assert all(not isinstance(r, Exception) for i, r in results if i != 3)
+
+
+def test_parallel_conversions_really_overlap_and_stop_on_cancel(tmp_path):
+    class Slow(FakeBatcher):
+        parallel_safe = True
+
+        def __init__(self):
+            super().__init__()
+            self.running = 0
+            self.most = 0
+            self.lock = threading.Lock()
+            self.release = threading.Event()
+
+        def batch_key(self, src, dst):
+            return None
+
+        def convert(self, src, dst, ctx):
+            with self.lock:
+                self.running += 1
+                self.most = max(self.most, self.running)
+                if self.running == 3:  # three at once: the user cancels, they all stop
+                    cancel.set()
+                    self.release.set()
+            self.release.wait(5)
+            with self.lock:
+                self.running -= 1
+            ctx.check_cancelled()
+            return super().convert(src, dst, ctx)
+
+    fake = Slow()
+    files = _texts(tmp_path, [f"f{i}.txt" for i in range(8)])
+    cancel = threading.Event()
+    started = []
+
+    def start(i):
+        started.append(i)
+
+    results = list(
+        Engine([fake]).convert_many(
+            files, "rtf", tmp_path / "out", parallel=3, started=start, cancel_event=cancel
+        )
+    )
+    assert fake.most == 3
+    assert len(started) == 3  # the other five never started
+    assert isinstance(results[-1][1], ConversionCancelled)
+    assert not (tmp_path / "out").exists() or list((tmp_path / "out").iterdir()) == []
+
+
+def test_parallel_messages_come_from_the_calling_thread_and_before_the_result(tmp_path):
+    photos = _photos(tmp_path, 8)
+    events, threads = [], set()
+
+    def started(i):
+        threads.add(threading.get_ident())
+        events.append(("started", i))
+
+    def progress(i, fraction, message):
+        threads.add(threading.get_ident())
+        events.append(("progress", i))
+
+    for i, _ in Engine().convert_many(
+        photos, "webp", tmp_path / "out", parallel=4, started=started, progress=progress
+    ):
+        events.append(("result", i))
+    assert threads == {threading.get_ident()}
+    for i in range(len(photos)):
+        mine = [kind for kind, n in events if n == i]
+        assert mine[0] == "started" and mine[-1] == "result" and mine.count("result") == 1

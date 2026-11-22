@@ -13,6 +13,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   10 files are now done in one LibreOffice start instead of one start per file (10 Word
   files to PDF: about 4 times faster in our test). The results are the same; a file that
   fails is tried again on its own, so its error message stays clear.
+- Converting many photos is much faster: up to 4 are converted at the same time (one
+  processor core stays free so the window stays responsive). 16 large photos to PNG: about
+  4 times faster in our test. The files are exactly the same as before.
 
 ### Privacy and safety
 

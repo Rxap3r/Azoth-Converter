@@ -9,11 +9,14 @@ overwritten, and the original is never touched.
 
 from __future__ import annotations
 
+import os
+import queue
 import shutil
 import tempfile
 import threading
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -30,6 +33,9 @@ from .converters import (
 
 MAX_STEPS = 3
 BATCH_SIZE = 10  # files per engine start in convert_many (LibreOffice)
+# Photos converted at the same time in convert_many: one CPU core stays free for the window.
+PARALLEL_FILES = max(1, min(4, (os.cpu_count() or 1) - 1))
+_OUTPUT_LOCK = threading.Lock()  # choosing a free name and moving the result in place
 TEMP_PREFIX = "azoth-"  # every job's private temp folder starts with this
 
 
@@ -170,6 +176,7 @@ class Engine:
         progress: Callable[[int, float, str], None] | None = None,
         cancel_event: threading.Event | None = None,
         batch_size: int = BATCH_SIZE,
+        parallel: int = PARALLEL_FILES,
     ) -> Iterator[tuple[int, ConversionResult | Exception]]:
         """Convert several files, in order. Yields (index, result or the error) per file.
 
@@ -177,6 +184,9 @@ class Engine:
         can do several files at once (LibreOffice), the first step is done for up to
         ``batch_size`` files in one go. A file that fails in such a batch is simply tried
         again on its own, so its error message is the same as with :meth:`convert`.
+        Files whose engines allow it (photos, see ``Converter.parallel_safe``) are
+        converted ``parallel`` at a time. ``started`` and ``progress`` are always called
+        from the thread that iterates, and a file's calls always come before its result.
         Stops after a cancelled file. ``started(index)`` is called before each file.
         """
         sources = [Path(s) for s in sources]
@@ -188,42 +198,118 @@ class Engine:
                 jobs.append(self._plan(source, target, output_dir, None))
             except ConversionError as exc:
                 jobs.append(exc)
-        with tempfile.TemporaryDirectory(prefix=TEMP_PREFIX) as tmp:
-            done_first: dict[int, list[Path] | ConversionError] = {}
-            for i, job in enumerate(jobs):
-                if cancel.is_set():
-                    return
-                if started:
-                    started(i)
-                report = (lambda f, m, _i=i: progress(_i, f, m)) if progress else _no_progress
-                if isinstance(job, ConversionError):
-                    yield i, job
-                    continue
-                if i not in done_first:
-                    try:
-                        self._batch_first_steps(
-                            jobs, i, batch_size, Path(tmp) / f"batch{i}",
-                            resolved, report, cancel, done_first,
-                        )  # fmt: skip
-                    except ConversionCancelled as exc:
-                        yield i, exc
-                        return
-                    except Exception:  # noqa: BLE001 - the files are then done one by one
-                        pass
-                first = done_first.pop(i, None)
+
+        # Parallel threads only queue their messages; pump() passes them on from here.
+        messages: queue.SimpleQueue = queue.SimpleQueue()
+
+        def pump() -> None:
+            while True:
                 try:
-                    if isinstance(first, ConversionError):
-                        raise first
-                    result = self._run(
-                        job, resolved, overwrite=overwrite, report=report, cancel=cancel,
-                        first=first,
-                    )  # fmt: skip
+                    i, args = messages.get_nowait()
+                except queue.Empty:
+                    return
+                if args is None:
+                    if started:
+                        started(i)
+                elif progress:
+                    progress(i, *args)
+
+        def reporter(i: int) -> Callable[[float, str], None]:
+            def report(fraction: float, message: str) -> None:
+                pump()
+                if progress:
+                    progress(i, fraction, message)
+
+            return report
+
+        def run_alone(i: int, job: _Job) -> ConversionResult:
+            if cancel.is_set():
+                raise ConversionCancelled()
+            messages.put((i, None))
+            return self._run(
+                job, resolved, overwrite=overwrite, cancel=cancel,
+                report=lambda f, m: messages.put((i, (f, m))),
+            )  # fmt: skip
+
+        futures: dict[int, Future] = {}
+        with (
+            tempfile.TemporaryDirectory(prefix=TEMP_PREFIX) as tmp,
+            ThreadPoolExecutor(max_workers=max(1, parallel)) as pool,
+        ):
+            try:
+                if parallel > 1:
+                    for i, job in enumerate(jobs):
+                        if isinstance(job, _Job) and all(
+                            s.converter.parallel_safe for s in job.route
+                        ):
+                            futures[i] = pool.submit(run_alone, i, job)
+                yield from self._many(
+                    jobs, futures, Path(tmp), resolved, overwrite, started, reporter, pump,
+                    cancel, batch_size,
+                )  # fmt: skip
+            finally:
+                for future in futures.values():
+                    future.cancel()  # those not started yet; running ones end by themselves
+
+    def _many(
+        self,
+        jobs: list[_Job | ConversionError],
+        futures: dict[int, Future],
+        tmp: Path,
+        options: dict[str, Any],
+        overwrite: bool,
+        started: Callable[[int], None] | None,
+        reporter: Callable[[int], Callable[[float, str], None]],
+        pump: Callable[[], None],
+        cancel: threading.Event,
+        batch_size: int,
+    ) -> Iterator[tuple[int, ConversionResult | Exception]]:
+        done_first: dict[int, list[Path] | ConversionError] = {}
+        for i, job in enumerate(jobs):
+            if cancel.is_set():
+                return
+            pump()
+            if i in futures:  # running in a parallel thread
+                while not wait([futures[i]], timeout=0.05, return_when=FIRST_COMPLETED).done:
+                    pump()
+                pump()  # its last messages before its result
+                try:
+                    yield i, futures[i].result()
                 except Exception as exc:  # noqa: BLE001 - handed to the caller
                     yield i, exc
                     if isinstance(exc, ConversionCancelled):
                         return
-                else:
-                    yield i, result
+                continue
+            if started:
+                started(i)
+            report = reporter(i)
+            if isinstance(job, ConversionError):
+                yield i, job
+                continue
+            if i not in done_first:
+                try:
+                    self._batch_first_steps(
+                        jobs, i, batch_size, tmp / f"batch{i}", options, report, cancel,
+                        done_first,
+                    )  # fmt: skip
+                except ConversionCancelled as exc:
+                    yield i, exc
+                    return
+                except Exception:  # noqa: BLE001 - the files are then done one by one
+                    pass
+            first = done_first.pop(i, None)
+            try:
+                if isinstance(first, ConversionError):
+                    raise first
+                result = self._run(
+                    job, options, overwrite=overwrite, report=report, cancel=cancel, first=first
+                )
+            except Exception as exc:  # noqa: BLE001 - handed to the caller
+                yield i, exc
+                if isinstance(exc, ConversionCancelled):
+                    return
+            else:
+                yield i, result
 
     # --- internals ----------------------------------------------------------
 
@@ -350,12 +436,13 @@ class Engine:
                 if not produced or not all(p.exists() for p in produced):
                     raise ConversionError("The converter did not produce any output")
                 current = produced[0]
-            for p in produced:
-                final = job.out_dir / p.name
-                if not overwrite or final.resolve() == source.resolve():
-                    final = unique_path(final)
-                shutil.move(str(p), final)
-                result.outputs.append(final)
+            with _OUTPUT_LOCK:  # two files converted at once may want the same name
+                for p in produced:
+                    final = job.out_dir / p.name
+                    if not overwrite or final.resolve() == source.resolve():
+                        final = unique_path(final)
+                    shutil.move(str(p), final)
+                    result.outputs.append(final)
         report(1.0, "Done")
         return result
 

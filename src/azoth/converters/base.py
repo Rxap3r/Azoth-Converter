@@ -54,6 +54,9 @@ class Converter(ABC):
     optional: bool = False
     """Optional engines (e.g. Microsoft Word) don't trigger "missing engine" warnings."""
     """When two converters offer the same conversion, the higher priority wins."""
+    parallel_safe: bool = False
+    """True if several files may be converted at the same time in different threads
+    (never for PyMuPDF, which isn't thread-safe, or for external programs)."""
 
     def is_available(self) -> bool:
         """False when a required engine (e.g. LibreOffice) is missing."""
