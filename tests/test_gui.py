@@ -273,6 +273,72 @@ def test_remove_metadata_not_offered_for_documents(window, sample_png, sample_pd
     assert CLEAN_TARGET not in _targets(window)
 
 
+def test_change_size_only(window, qtbot, sample_png, tmp_path):
+    from PIL import Image
+
+    from azoth.gui.targets import CLEAN_TARGET, RESIZE_TARGET
+
+    photo = tmp_path / "holiday.jpg"
+    Image.new("RGB", (400, 300), "red").save(photo)
+    window.add_files([photo, sample_png])
+    targets = _targets(window)
+    assert targets[-2:] == [RESIZE_TARGET, CLEAN_TARGET]
+    sizes = window.resize_options
+    assert sizes.isHidden() or sizes.spec() is None  # nothing is resized by default
+
+    assert window.target_picker.select(RESIZE_TARGET)
+    assert not sizes.isHidden()
+    sizes.set_mode(None)
+    assert not window.convert_btn.isEnabled()  # no size chosen
+    assert window.convert_btn.text() == "Choose a new size"
+    sizes.set_mode("percent")
+    sizes.percent_box.setValue(50)
+    assert window.convert_btn.isEnabled() and window.convert_btn.text() == "Resize 2 files"
+    assert "(resized)" in window.notes_label.text()
+
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    with Image.open(tmp_path / "holiday (resized).jpg") as im:
+        assert im.size == (200, 150)
+    with Image.open(tmp_path / "logo (resized).png") as im:
+        assert im.size == (60, 40) and im.mode == "RGBA"
+    assert window.done_card.message.text() == "Done! 2 files resized."
+
+
+def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):
+    from PIL import Image
+
+    window.add_files([sample_png])
+    window.output_dir = tmp_path / "out"
+    assert window.target_picker.select("jpg")
+    sizes = window.resize_options
+    assert not sizes.isHidden() and sizes.spec() is None
+    sizes.set_mode("width")
+    sizes.width_box.setValue(60)
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    with Image.open(tmp_path / "out" / "logo.jpg") as im:
+        assert im.size == (60, 40)
+
+    assert window.target_picker.select("pdf")
+    assert sizes.isHidden()  # a PDF page isn't resized
+    window.add_files([sample_pdf])
+    assert window.target_picker.select("png")
+    assert sizes.isHidden()  # PDF pages use the quality's sharpness instead
+
+
+def test_size_also_resizes_files_already_in_that_format(window, sample_png, tmp_path):
+    from PIL import Image
+
+    photo = tmp_path / "holiday.jpg"
+    Image.new("RGB", (40, 30), "red").save(photo)
+    window.add_files([photo, sample_png])
+    assert window.target_picker.select("jpg")
+    assert window.convert_btn.text() == "Convert 1 file to JPG"  # the JPG is skipped
+    window.resize_options.set_mode("percent")
+    assert window.convert_btn.text() == "Convert 2 files to JPG"  # … unless it gets a new size
+
+
 def test_show_metadata_text(window, sample_pdf, tmp_path):
     photo = _photo_with_location(tmp_path / "holiday.jpg")
     window.add_files([photo, sample_pdf])

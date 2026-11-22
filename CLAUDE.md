@@ -30,9 +30,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced, the error log
   should show it next time. Not yet tried with real phone photos: metadata removal.
 - **Next planned work, in this order (owner, 22 Nov 2026):**
-  1. **Image size:** shrink and plain enlarge, choose pixels (width × height, percentage,
-     longest side), while converting or on its own; see Phase 4 "Image size and quality" in
-     `docs/PROJECT_PLAN.md`. AI upscaling / "improve quality" comes later as its own step;
+  1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
+     (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Not yet
+     seen by the owner on Windows. AI upscaling / "improve quality" comes later as its own step;
   2. **Fully portable version** (Phase 4 in `docs/PROJECT_PLAN.md`);
   3. later: smaller download (owner doesn't worry about size now), design refresh, the rest.
 - **Earlier notes on planned work:**
@@ -178,6 +178,7 @@ src/azoth/
   ocr.py              text recognition (Tesseract inside PyMuPDF): searchable PDF, page texts;
                       converters/ocr.py = images → TXT/DOCX; language files in
                       resources/tessdata (not in git: `python packaging/fetch_tessdata.py`)
+  resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
   metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py

@@ -36,6 +36,12 @@ picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC
 in the app, choose **Remove metadata only**; right-click a file and choose
 **Show metadata…** to see what it contains first.
 
+**Change picture size:** make photos smaller (or plainly bigger) while converting, or keep
+the format and only change the size. Choose the longest side, width, height, a box to fit in,
+or a percentage; proportions are always kept, and nothing is resized unless you choose a size.
+In the app under **Picture size** (or the **Change size only** tile); on the command line
+`azoth convert *.jpg --to jpg --resize 2000`.
+
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
 unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
 Word → PDF for an exact layout. Under **Quality** next to the format tiles you can choose smaller files

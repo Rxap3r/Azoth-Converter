@@ -5,6 +5,8 @@ Examples::
     azoth convert report.docx --to pdf
     azoth convert *.heic --to jpg -o converted
     azoth convert scan.pdf --to png --dpi 300
+    azoth convert *.heic --to jpg --resize 2000
+    azoth convert photo.jpg --to jpg --resize 50%
     azoth clean *.jpg -o to-share
     azoth clean --show photo.heic
     azoth formats report.pdf
@@ -24,7 +26,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, formats, quality
+from . import __version__, formats, quality, resize
 from .converters import ConversionError
 from .engine import Engine, unique_path
 from .ocr import LANGUAGES
@@ -46,7 +48,16 @@ def cmd_convert(args: argparse.Namespace) -> int:
     from .converters import all_converters
 
     engine = Engine(all_converters(use_word=not args.no_word))
+    if args.enlarge and args.resize is None:
+        print("--enlarge needs --resize", file=sys.stderr)
+        return 2
+    try:
+        size = None if args.resize is None else resize.parse(args.resize, args.enlarge)
+    except resize.ResizeError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     options = {
+        "resize": size,
         "level": args.level,
         "quality": args.quality,
         "dpi": args.dpi,
@@ -334,6 +345,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=f"resolution for PDF → images, {quality.MIN_DPI}-{quality.MAX_DPI} "
         "(overrides --level)",
+    )
+    p.add_argument(
+        "--resize",
+        metavar="SIZE",
+        help="new picture size, keeping proportions: 50%% (percentage), 2000 (longest "
+        "side in pixels), 1920x1080 (fit inside), 1920x (width), x1080 (height). "
+        "With the same format as the file (e.g. --to jpg for a JPG) a resized copy is saved",
+    )
+    p.add_argument(
+        "--enlarge",
+        action="store_true",
+        help="with --resize: also make smaller pictures bigger (smooth, adds no detail)",
     )
     p.add_argument(
         "--keep-metadata",

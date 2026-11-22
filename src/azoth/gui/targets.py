@@ -18,6 +18,9 @@ CLEAN_NOTE = (
     "Next to the original, the copy is called “name (clean)”."
 )
 CLEAN_TILE = ("Remove metadata only", "Same format, no location or camera data")
+RESIZE_TARGET = "resize"  # not a format: same format, new picture size (see resize.py)
+RESIZE_TILE = ("Change size only", "Same format, new width and height")
+RESIZE_NOTE = "Saves a copy in the new size. Next to the original, it is called “name (resized)”."
 
 # Short tile text: what each target is good for, in a word or two.
 _PURPOSE = {
@@ -52,9 +55,11 @@ class Choices:
     """Target formats every file can be converted to, most useful first."""
     can_clean: bool
     """True if "Same format, remove metadata" works for every file."""
+    can_resize: bool = False
+    """True if "Same format, new size" works for every file."""
 
     def __bool__(self) -> bool:
-        return bool(self.formats) or self.can_clean
+        return bool(self.formats) or self.can_clean or self.can_resize
 
 
 def source_formats(file_formats: FileFormats) -> list[str]:
@@ -90,7 +95,34 @@ def choices(engine: Engine, file_formats: FileFormats) -> Choices:
     return Choices(
         formats=ranking.rank(common, categories),
         can_clean=all(s in metadata.CLEANABLE for s in sources),
+        can_resize=all(engine.can_resize(s, s) for s in sources),
     )
+
+
+def can_resize(engine: Engine, file_formats: FileFormats, target: str | None) -> bool:
+    """Whether the "Picture size" choices apply: every file is a picture that stays a
+    picture (``target`` an image format, or "Change size only")."""
+    sources = source_formats(file_formats)
+    if not sources or target is None or target == CLEAN_TARGET:
+        return False
+    return all(engine.can_resize(s, s if target == RESIZE_TARGET else target) for s in sources)
+
+
+def jobs(file_formats: FileFormats, target: str | None, resizing: bool) -> list[int]:
+    """Positions of the files that will be converted. Files that already have the target
+    format are skipped, unless they get a new size (then a resized copy is saved)."""
+    if target is None:
+        return []
+    return [
+        i
+        for i, fmt in enumerate(file_formats)
+        if fmt is not None and (resizing or (fmt.id != target and target != RESIZE_TARGET))
+    ]
+
+
+def job_target(target: str, source: formats.Format) -> str:
+    """The format a file is converted to ("Change size only": its own)."""
+    return source.id if target == RESIZE_TARGET else target
 
 
 def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
@@ -109,10 +141,13 @@ def notes(engine: Engine, file_formats: FileFormats, target: str | None) -> list
     """Quality notes for converting the files to ``target`` (e.g. "GIF has 256 colours")."""
     if target == CLEAN_TARGET:
         return [CLEAN_NOTE]
-    result: list[str] = []
+    result: list[str] = [RESIZE_NOTE] if target == RESIZE_TARGET else []
     if target:
         for src in source_formats(file_formats):
-            route = engine.find_route(src, target)
+            if target == RESIZE_TARGET:
+                route = engine.resize_route(src)
+            else:
+                route = engine.find_route(src, target)
             for note in engine.quality_notes(route) if route else []:
                 if note not in result:
                     result.append(note)

@@ -91,6 +91,11 @@ class Converter(ABC):
         """
         return False
 
+    def supports_resize(self, src: str, dst: str) -> bool:
+        """True if this converter can change the picture size (option ``resize``) while
+        converting ``src`` to ``dst``. ``src == dst``: saving again in a new size."""
+        return False
+
     def quality_note(self, src: str, dst: str) -> str | None:
         """A short warning shown to the user when a conversion may lose information."""
         return None

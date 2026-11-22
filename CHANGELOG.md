@@ -7,6 +7,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+
+- **Change picture size:** photos can be made smaller (or plainly bigger) while converting,
+  or saved in the same format with only a new size ("Change size only", saved as
+  "name (resized)"). Choose the longest side, width, height, a box to fit in, or a
+  percentage. Proportions are always kept; smaller pictures are only enlarged when you
+  choose "Also enlarge smaller pictures". Command line: `--resize 2000`, `--resize 50%`,
+  `--resize 1920x1080`, `--enlarge`.
+
+### Quality
+
+- Pictures keep all their pixels unless you choose a size. Making smaller uses Lanczos
+  (sharp, clean), enlarging uses smooth bicubic; transparent edges stay clean. Kept
+  metadata no longer claims the old pixel size.
+
 ## [0.3.1] - 2026-11-22
 
 ### Added
