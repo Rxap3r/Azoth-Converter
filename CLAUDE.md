@@ -60,8 +60,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   6. **Explorer right-click menu** (`context_menu.py` → generated
      `packaging/context_menu.iss`, installer task; `gui/explorer.py`: several files → one
      window via a local pipe with a key in the settings folder). Classic menu only (Windows
-     11: "Show more options"). **Waiting for the owner:** OK to add a check of the menu's
-     registry keys to the "Test installer" step (workflow change).
+     11: "Show more options"). The "Test installer" step checks the menu is added and
+     fully removed (owner agreed, 23 Nov 2026).
   **Next:** the owner tests these on the company PC (Office, no LibreOffice): AI on real
   photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; a file protected in Office;
   a file locked here opened in Office; PowerPoint already open stays open. Then ask

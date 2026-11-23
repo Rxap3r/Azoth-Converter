@@ -76,6 +76,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Development
 
+- The automatic installer test checks that the right-click menu is added on install
+  and fully removed on uninstall.
 - `packaging/fetch_tessdata.py` now also fetches the AI model (two pinned, hash-checked
   files) through `packaging/fetch_upscale_model.py`, which reads them without PyTorch and
   without running anything from them, and saves the weights as a 4.5 MB `.npz`.

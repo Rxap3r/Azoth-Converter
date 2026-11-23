@@ -78,6 +78,12 @@ runs:
         & "$dir\azoth-terminal.exe" --version
         if ($LASTEXITCODE -ne 0) { throw "installed program does not start" }
         if (Test-Path "$dir\portable.txt") { throw "the installer must not be portable" }
+        # Explorer right-click menu (installer task, on by default), one menu per kind of file.
+        $menus = "HKCU:\Software\Classes\SystemFileAssociations"
+        $menu = "$menus\.pdf\shell\AzothConverter"
+        if (-not (Test-Path "$menu\shell\90open\command")) { throw "right-click menu missing" }
+        $cmd = (Get-ItemProperty "$menu\shell\90open\command").'(default)'
+        if ($cmd -ne "`"$dir\AzothConverter.exe`" --explorer open `"%1`"") { throw "wrong menu command: $cmd" }
         # Update over an existing installation: old libraries go, settings stay.
         $data = "$env:APPDATA\Azoth Converter"
         New-Item -ItemType Directory -Force "$data" | Out-Null
@@ -104,6 +110,9 @@ runs:
         if (Test-Path "$data") { $left += "settings folder" }
         if (Test-Path "$env:TEMP\azoth-crashed-job") { $left += "temp folder" }
         if (Test-Path "HKCU:\Software\Azoth Converter") { $left += "registry key" }
+        $menusLeft = Get-ChildItem $menus -ErrorAction SilentlyContinue |
+          Where-Object { Test-Path "$($_.PSPath)\shell\AzothConverter" }
+        if ($menusLeft) { $left += "right-click menu ($($menusLeft.Count) file types)" }
         $entries = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
           Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -eq "Azoth Converter" }
         if ($entries) { $left += "Apps & features entry" }
