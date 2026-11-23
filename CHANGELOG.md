@@ -31,6 +31,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   without running anything from them, and saves the weights as a 4.5 MB `.npz`.
 - The automatic Windows build now also checks "Enhance with AI" in the finished program
   (a small transparent picture enlarged with AI), next to the text recognition check.
+- The app's window tests now clean up memory only on the main thread, like the app itself
+  (a Windows test crashed while a picture was enhanced in the background), and a hard
+  crash in a test is reported with its location again.
 
 ## [0.4.0] - 2026-11-22
 

@@ -10,9 +10,15 @@ from azoth.gui.main_window import MainWindow  # noqa: E402
 
 @pytest.fixture
 def window(qtbot):
+    # Like the app (gui/app.py): memory clean-up only on the main thread, never in a
+    # conversion thread, where freeing a Qt object crashes on Windows.
+    from azoth.gui.main_thread_gc import MainThreadGC
+
+    collector = MainThreadGC()
     w = MainWindow()
     qtbot.addWidget(w)
-    return w
+    yield w
+    collector.stop()
 
 
 def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_path):
