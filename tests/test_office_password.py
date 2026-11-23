@@ -99,7 +99,8 @@ def test_never_overwrites(tmp_path):
 
 def test_protected_file_needs_its_password(tmp_path):
     locked = _locked(tmp_path, "docx")
-    engine = Engine()
+    # The password is asked for before any engine runs, so this works on every PC.
+    engine = Engine(all_converters(), assume_available=True)
     with pytest.raises(PasswordNeeded, match="protected with a password"):
         engine.convert(locked, "pdf", tmp_path / "o")
     with pytest.raises(PasswordNeeded, match="isn't right"):
