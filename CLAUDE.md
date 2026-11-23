@@ -6,7 +6,7 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.4.0** (22 Nov 2026, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.5.0** (23 Nov 2026, pull request #11; 0.4.0 on 22 Nov, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
@@ -39,10 +39,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
   `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
   it on Windows before the release.
-- **0.5.0 prepared on `dev` (23 Nov 2026)**: version, `CHANGELOG.md` section and
-  `docs/releases/v0.5.0.md` done; pull request `dev` → `main` opened on the owner's request
-  ("make a pull request and prepare the release"): pull request #11. After the owner merges it, they start
-  Actions → Release on `main`. Contents (details in `CHANGELOG.md` → 0.5.0):
+- **0.5.0 released (23 Nov 2026, pull request #11)**. Contents (details in
+  `CHANGELOG.md` → 0.5.0):
   1. **"Enhance with AI"** (`upscale.py`): Real-ESRGAN run by OpenCV's dnn, tiled; under
      Picture size; Noise removal Low/Medium/High; CLI `--ai`, `--denoise`. The Windows build
      smoke-tests it in the finished program. The bigger model (`RealESRGAN_x4plus`) was
@@ -64,10 +62,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
      window via a local pipe with a key in the settings folder). Classic menu only (Windows
      11: "Show more options"). The "Test installer" step checks the menu is added and
      fully removed (owner agreed, 23 Nov 2026).
-  **Next:** the owner tests these on the company PC (Office, no LibreOffice): AI on real
-  photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; a file protected in Office;
-  a file locked here opened in Office; PowerPoint already open stays open. Then ask
-  whether to release (0.5.0) before any pull request.
+  Still to try on the owner's company PC (Office, no LibreOffice): AI on real photos;
+  Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both ways; the
+  right-click menu.
 - **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
   Windows test crashed without it while the AI ran in the worker thread).
 - **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
