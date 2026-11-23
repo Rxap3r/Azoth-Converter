@@ -69,43 +69,48 @@ class SettingsPage(QWidget):
 
         self.theme_group = QButtonGroup(self)
         self.theme_buttons: dict[str, QRadioButton] = {}
-        appearance = [label("Appearance", "h2"), label("How the app looks.", "small")]
+        themes = QWidget()
+        theme_row = QHBoxLayout(themes)
+        theme_row.setContentsMargins(0, 0, 0, 0)
+        theme_row.setSpacing(20)
         for key, text in theme.CHOICES:
             button = QRadioButton(text)
             button.setChecked(key == theme_choice)
             button.toggled.connect(lambda on, k=key: on and self.theme_changed.emit(k))
             self.theme_group.addButton(button)
             self.theme_buttons[key] = button
-            appearance.append(button)
+            theme_row.addWidget(button)
+        theme_row.addStretch(1)
+        appearance = [label("Appearance", "h2"), themes]
 
-        self.metadata_check = QCheckBox(
-            "Keep photo and video metadata when converting (camera, date, GPS location)"
-        )
-        self.metadata_check.setToolTip(METADATA_DETAILS)  # shown on hover
-        self.word_check = QCheckBox(
-            "Use Microsoft Office (Word, Excel, PowerPoint) where installed: exact layout and fonts"
-        )
+        # Short labels; the details are shown on hover.
+        self.metadata_check = QCheckBox("Keep photo and video metadata")
+        self.metadata_check.setToolTip(METADATA_DETAILS)
+        privacy = [label("Privacy", "h2"), self.metadata_check]
+
+        self.word_check = QCheckBox("Use Microsoft Office where installed")
         self.word_check.setToolTip(
+            "Word, Excel and PowerPoint give the exact layout and fonts.\n"
             "Office converts the file on this computer; nothing is uploaded.\n"
             "Macros stay off. If Office fails, LibreOffice is used instead (when installed)."
         )
         self.word_check.setChecked(use_word)
-        self.word_check.setVisible(word_installed)  # only when Word is installed
+        if not word_installed:  # only when Office is installed (never show() it here)
+            self.word_check.hide()
         self.word_check.toggled.connect(self.use_word_changed)
-        self.notify_check = QCheckBox(
-            "Show a Windows notification when work finishes while the app is in the background"
-        )
-        self.notify_check.setChecked(True)
-        self.turn_check = QCheckBox(
-            "Text recognition: turn sideways or upside-down pages the right way up"
-        )
+        self.turn_check = QCheckBox("Turn sideways scans upright")
         self.turn_check.setToolTip(
+            "Text recognition turns sideways or upside-down pages the right way up.\n"
             "Only the page's direction changes; the picture itself stays exactly the same."
         )
         self.turn_check.setChecked(True)
+        self.notify_check = QCheckBox("Notify me when work is done")
+        self.notify_check.setToolTip(
+            "A Windows notification when the app finishes while it's in the background."
+        )
+        self.notify_check.setChecked(True)
         conversion = [
             label("Converting", "h2"),
-            self.metadata_check,
             self.word_check,
             self.turn_check,
             self.notify_check,
@@ -114,7 +119,10 @@ class SettingsPage(QWidget):
         self.about_btn = QPushButton("About Azoth Converter…")
         self.about_btn.clicked.connect(self.about_requested)
         self.updates_btn = QPushButton("Check for updates…")
-        self.updates_btn.setToolTip(RELEASES_URL)
+        self.updates_btn.setToolTip(
+            "Opens the download page in your browser, where you can compare the newest "
+            "version with yours. The app itself never goes online.\n" + RELEASES_URL
+        )
         self.updates_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
         self.log_btn = QPushButton("Error log…")
         self.log_btn.clicked.connect(
@@ -128,42 +136,22 @@ class SettingsPage(QWidget):
         row.addWidget(self.log_btn)
         row.addStretch(1)
         data = portable.data_dir()
-        where = (
-            f" Portable version: settings and the error log are kept next to the program "
-            f"in {data}, nothing is saved on this computer."
-            if data is not None
-            else ""
-        )
-        about = [
-            label("About", "h2"),
-            label(
-                f"Version {__version__}. Works offline: your files never leave this "
-                f"computer.{where}",
-                "small",
-                wrap=True,
-            ),
-            buttons,
-            label(
-                "“Check for updates” opens the download page in your browser, where you can "
-                "compare the newest version with yours. The app itself never goes online.",
-                "small",
-                wrap=True,
-            ),
-        ]
+        version = label(f"Version {__version__}" + (" · portable" if data else ""), "small")
+        if data is not None:
+            version.setToolTip(
+                f"Settings and the error log are kept next to the program in {data}; "
+                "nothing is saved on this computer."
+            )
+        about = [label("About", "h2"), version, buttons]
 
         self.uninstall_btn = QPushButton("Uninstall Azoth Converter…")
         self.uninstall_btn.clicked.connect(self.uninstall)
         uninstall = [
             label("Uninstall", "h2"),
-            label(
-                "Removes the app and everything it saved on this computer (settings, error log). "
-                "Your own files and converted files are not touched.",
-                "small",
-                wrap=True,
-            ),
+            label("Removes the app and its settings. Your own files aren't touched.", "small"),
             self.uninstall_btn,
         ]
-        groups = [appearance, conversion, about]
+        groups = [appearance, privacy, conversion, about]
         if uninstaller() is not None and data is None:  # installed app only: not portable
             groups.append(uninstall)
 

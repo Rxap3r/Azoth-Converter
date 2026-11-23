@@ -272,8 +272,8 @@ def test_photo_quality_choice_is_hidden_for_video_and_sound():
     assert not targets.uses_quality([mov], "mp4")
     assert not targets.uses_quality([mp3], "wav")
     assert not targets.uses_quality([mov], "gif")  # a GIF from a video: own settings
-    assert targets.uses_quality([jpg], "png")
-    assert targets.uses_quality([], None)
+    assert targets.uses_quality([jpg], "webp")
+    assert not targets.uses_quality([], None)
 
 
 @needs_ffmpeg

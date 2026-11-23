@@ -27,6 +27,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Changed
 
+- **Calmer, tidier app** (owner's wish: less overwhelming):
+  - Convert: the 6 most useful formats are shown, the rest under "More formats". Picture
+    size, text language, quality and file name are under **More options** (closed, with a
+    one-line summary such as "Original size · Maximum quality"; it remembers whether you
+    leave it open). "Change size only" and "Remove metadata only" are slimmer.
+  - Quality is only shown where it changes something (photos saved as JPG, WebP, HEIC,
+    AVIF; pages saved as pictures), not for e.g. PDF → Word.
+  - Long explanations under choices and buttons are gone: hover over them to read the
+    details. Notes show their first sentence, the rest on hover. The AI's caveat ("not for
+    documents or ID photos") stays visible.
+  - Settings: short labels, the theme choice in one row, a separate **Privacy** group.
+  - Sidebar: the tools at the top; Supported formats and Settings at the bottom.
+  - PDF tools and Password: one short line per tool; Compress choices without paragraphs.
+  - A long "Save to" folder is shortened with "…" instead of being cut off.
 - **Right-click menu uses the open window:** files chosen with "Convert with Azoth
   Converter" now go to the window that is already open, also when you opened it from the
   Start menu, instead of starting a second copy. "Open in Azoth Converter" adds the files

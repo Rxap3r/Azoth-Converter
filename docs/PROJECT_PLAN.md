@@ -191,6 +191,10 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **PDF → Word progress and cancel** for large PDFs: pdf2docx's steps run page by page, with progress and cancel between pages (on `dev`, Nov 2026)
 - [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
+### Menu overhaul (owner's wish, 23 Nov 2026, before release 0.6.0)
+- [x] Less overwhelming: fewer tiles at first ("More formats"), "More options" folded with a summary, explanations on hover, Quality only where it matters, Settings regrouped (Appearance, Privacy, Converting, About), sidebar with tools on top and Formats/Settings at the bottom
+  - [ ] Owner to check on Windows: does anything feel hidden that should be visible?
+
 ### Phase 3: Audio and video (≈ 4 weeks)
 **Decided (owner, 23 Nov 2026): bundle the full FFmpeg** (~80–100 MB more download is fine).
 - [x] FFmpeg plugin with progress parsed from FFmpeg's output. *Done (23 Nov 2026, on `dev`): `converters/media.py`; video MP4/MOV/MKV/WebM/AVI/WMV/MPG/MTS/FLV/3GP → MP4/MOV/MKV/WebM/AVI/GIF and sound; audio MP3/M4A/WAV/FLAC/OGG/Opus/WMA/AIFF/AAC → MP3/M4A/WAV/FLAC/OGG/Opus; tracks copied unchanged where the target can hold them, lossless stays lossless; GPS/phone metadata removed, song tags and covers kept; Windows FFmpeg 8.0.1 "full" (Gyan) fetched by `packaging/fetch_ffmpeg.py`.*

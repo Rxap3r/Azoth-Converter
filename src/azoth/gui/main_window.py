@@ -44,6 +44,7 @@ from .targets import CLEAN_TARGET, RESIZE_TARGET, display_name
 from .widgets import label
 from .worker import ConversionWorker
 
+BOTTOM_PAGES = ("formats", "settings")  # in the sidebar, below the tools
 PAGES = [  # (key, text in the sidebar, icon)
     ("convert", "Convert", "convert"),
     ("pdf", "PDF tools", "pdf"),
@@ -109,6 +110,8 @@ class MainWindow(QMainWindow):
         self.target_picker.changed.connect(lambda _target: self._update_notes())
         self.resize_options.changed.connect(self._update_action)
         self.cancel_btn.clicked.connect(self._cancel_conversion)
+        page.more.set_open(self.prefs.options_open)
+        page.more.toggled.connect(self.prefs.save_options_open)
         self.convert_btn.clicked.connect(self.start_conversion)
 
         self.pdf_page = PdfToolsPage()
@@ -189,9 +192,15 @@ class MainWindow(QMainWindow):
             button.clicked.connect(lambda _=False, k=key: self.show_page(k))
             self.nav_group.addButton(button)
             self.nav_buttons[key] = button
+            if key in BOTTOM_PAGES:
+                continue
             column.addWidget(button)
         self.nav_buttons["convert"].setChecked(True)
         column.addStretch(1)
+        # Reference and settings at the bottom, apart from the tools.
+        for key in BOTTOM_PAGES:
+            column.addWidget(self.nav_buttons[key])
+        column.addSpacing(10)
 
         self.offline_label = label(
             "Works offline. Your files never leave this computer.", "offline", wrap=True
@@ -366,8 +375,13 @@ class MainWindow(QMainWindow):
             self.resize_options.set_mode(resize.FIT)  # this tile is about a new size
         self.resize_options.setVisible(resizable)
         self.quality.setVisible(targets.uses_quality(self.file_list.formats, target))
+        if target == RESIZE_TARGET:
+            self.convert_page.more.set_open(True)  # the size is chosen there
+        self.convert_page.refresh_summary()
         notes = targets.notes(self.engine, self.file_list.formats, target)
-        self.notes_label.setText("\n".join(notes))
+        # The first sentence of each note; the whole explanation on hover.
+        self.notes_label.setText("\n".join(targets.first_sentence(n) for n in notes))
+        self.notes_label.setToolTip("\n\n".join(notes))
         self.notes_label.setVisible(bool(notes))
         self._update_action()
 

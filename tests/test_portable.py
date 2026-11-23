@@ -88,5 +88,6 @@ def test_settings_page_in_portable_mode(program, qtbot):
     page = SettingsPage(word_installed=False, use_word=False, theme_choice="system")
     qtbot.addWidget(page)
     texts = " ".join(label.text() for label in page.findChildren(QLabel))
-    assert "Portable version" in texts and str(program / "data") in texts
+    tips = " ".join(label.toolTip() for label in page.findChildren(QLabel))
+    assert "portable" in texts and str(program / "data") in tips  # the folder on hover
     assert "Uninstall" not in texts  # nothing to uninstall: delete the folder

@@ -13,8 +13,8 @@ from ..engine import Engine
 
 CLEAN_TARGET = "clean"  # not a format: same format, metadata removed (see metadata.py)
 CLEAN_NOTE = (
-    "Saves a copy without the hidden information: GPS location, camera, date, author, "
-    "comments and preview pictures. The picture itself stays exactly the same. "
+    "Saves a copy without hidden personal data. Removed: GPS location, camera, date, "
+    "author, comments and preview pictures. The picture itself stays exactly the same. "
     "Next to the original, the copy is called “name (clean)”."
 )
 CLEAN_TILE = ("Remove metadata only", "Same format, no hidden personal data")
@@ -143,13 +143,32 @@ def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
 MEDIA = (formats.VIDEO, formats.AUDIO)
 
 
+LOSSY_IMAGES = ("jpg", "webp", "heic", "avif")  # their quality setting matters
+PAGED = (formats.PDF, formats.DOCUMENT, formats.SPREADSHEET, formats.PRESENTATION)
+
+
 def uses_quality(file_formats: FileFormats, target: str | None) -> bool:
-    """Whether the Quality choice (photos, PDF pages as pictures) matters. Video and
-    sound use their own fixed high settings, so it's hidden for them."""
-    if target in formats.FORMATS and formats.FORMATS[target].category in MEDIA:
-        return False
+    """Whether the Quality choice changes anything, so it's only shown then: photos saved
+    in a lossy format, and pages (PDF, Office) saved as pictures. Everything else keeps
+    full quality anyway (documents → PDF, video and sound use their own settings)."""
     sources = source_formats(file_formats)
-    return not sources or any(formats.FORMATS[s].category not in MEDIA for s in sources)
+    kinds = {formats.FORMATS[s].category for s in sources}
+    if target == RESIZE_TARGET:
+        return any(s in LOSSY_IMAGES for s in sources)
+    if target not in formats.FORMATS or formats.FORMATS[target].category != formats.IMAGE:
+        return False
+    if target in LOSSY_IMAGES and formats.IMAGE in kinds:
+        return True
+    return bool(kinds & set(PAGED))
+
+
+def first_sentence(text: str) -> str:
+    """ "GIF has 256 colours. Best for …" → "GIF has 256 colours." (the rest is shown on
+    hover). Dots inside numbers ("8.1") or names ("e.g.") don't end a sentence."""
+    import re
+
+    match = re.search(r"(?<!\be\.g)(?<!\bi\.e)\.(?=\s+[A-Z(“\"])", text)
+    return text[: match.start() + 1] if match else text
 
 
 def notes(engine: Engine, file_formats: FileFormats, target: str | None) -> list[str]:

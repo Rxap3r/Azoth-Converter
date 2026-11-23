@@ -133,7 +133,7 @@ COMPRESS_LEVELS = [
     ),
     CompressLevel(
         "strong",
-        "Strong",
+        "Strong: smallest file",
         "Smallest file, good for e-mail. Pictures are reduced to 150 dpi and saved as JPG; "
         "fine details and screenshots may soften. Text stays sharp.",
         MIN_DPI,

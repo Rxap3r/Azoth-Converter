@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QPainter
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QVBoxLayout,
     QWidget,
     QWidgetItem,
 )
@@ -23,6 +24,25 @@ def label(text: str = "", role: str | None = None, *, wrap: bool = False) -> QLa
         widget.setProperty("role", role)
     widget.setWordWrap(wrap)
     return widget
+
+
+class ElidedLabel(QLabel):
+    """A one-line label that shortens its text with "…" when there isn't room (long
+    folder names), instead of cutting letters off. The full text is in ``text()``."""
+
+    def __init__(self, text: str = "") -> None:
+        super().__init__(text)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.setMinimumWidth(60)
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setPen(self.palette().color(self.foregroundRole()))
+        shown = self.fontMetrics().elidedText(
+            self.text(), Qt.TextElideMode.ElideMiddle, self.width()
+        )
+        align = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        painter.drawText(self.rect(), align, shown)
 
 
 def download_button(text: str, url: str) -> QPushButton:
@@ -55,6 +75,49 @@ def scrollable(content: QWidget) -> QScrollArea:
     scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     scroll.setWidget(content)
     return scroll
+
+
+class Collapsible(QWidget):
+    """A section that opens and closes with a click on its title ("▸ More options"),
+    so choices most people never change don't crowd the page. When closed, a short
+    summary line under the title says what's chosen."""
+
+    toggled = Signal(bool)
+
+    def __init__(self, title: str, content: QWidget) -> None:
+        super().__init__()
+        self.title = title
+        self.content = content
+        self.header = QPushButton()
+        self.header.setProperty("role", "section")
+        self.header.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.header.clicked.connect(lambda: self.set_open(not self.is_open(), user=True))
+        self.summary = label("", "small")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(self.header)
+        layout.addWidget(self.summary)
+        layout.addWidget(content)
+        self._open = True
+        self.set_open(False)
+
+    def is_open(self) -> bool:
+        return self._open
+
+    def set_open(self, open_: bool, *, user: bool = False) -> None:
+        self._open = open_
+        self.header.setText(f"{'▾' if open_ else '▸'}  {self.title}")
+        self.header.setAccessibleName(f"{self.title} ({'open' if open_ else 'closed'})")
+        self.content.setVisible(open_)
+        self.summary.setVisible(not open_ and bool(self.summary.text()))
+        if user:
+            self.toggled.emit(open_)
+
+    def set_summary(self, text: str) -> None:
+        self.summary.setText(text)
+        self.summary.setToolTip(text)
+        self.summary.setVisible(not self._open and bool(text))
 
 
 def divider() -> QFrame:

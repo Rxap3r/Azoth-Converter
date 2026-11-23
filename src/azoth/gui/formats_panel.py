@@ -104,7 +104,7 @@ class FormatsPanel(QWidget):
         office_apps = [a.short for a in msword.office_installed()] if can_convert else []
 
         if libreoffice_installed:
-            status = "LibreOffice is installed, so every conversion below is available."
+            status = ""  # nothing to do: no message
         elif office_apps:
             status = (
                 f"Microsoft {', '.join(office_apps)} does the office conversions it can. "
@@ -131,14 +131,7 @@ class FormatsPanel(QWidget):
         titles = QVBoxLayout()
         titles.setSpacing(2)
         titles.addWidget(label("Supported formats", "h1"))
-        titles.addWidget(
-            label(
-                "Everything is converted on this computer. "
-                "Find a file type to see what it can become.",
-                "muted",
-                wrap=True,
-            )
-        )
+        titles.addWidget(label("Find a file type to see what it can become.", "muted", wrap=True))
         heading.addLayout(titles, 1)
         heading.addWidget(self.search, 0, Qt.AlignmentFlag.AlignBottom)
 
@@ -184,7 +177,8 @@ class FormatsPanel(QWidget):
         layout.setContentsMargins(28, 24, 28, 20)
         layout.setSpacing(14)
         layout.addLayout(heading)
-        layout.addWidget(self.status_label)
+        if status:
+            layout.addWidget(self.status_label)
         if self.download_btn is not None:
             layout.addWidget(self.download_btn, 0, Qt.AlignmentFlag.AlignLeft)
         layout.addLayout(filters)

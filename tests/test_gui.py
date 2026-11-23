@@ -262,7 +262,7 @@ def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
     assert (
         not window.settings_page.metadata_check.isEnabled()
     )  # "keep metadata" makes no sense here
-    assert "stays exactly the same" in window.notes_label.text()
+    assert "stays exactly the same" in window.notes_label.toolTip()  # the details on hover
 
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
@@ -305,7 +305,7 @@ def test_change_size_only(window, qtbot, sample_png, tmp_path):
     sizes.set_mode("percent")
     assert sizes.preset.currentText() == "50 %"  # a ready-made size, not "Custom"
     assert window.convert_btn.isEnabled() and window.convert_btn.text() == "Resize 2 files"
-    assert "(resized)" in window.notes_label.text()
+    assert "(resized)" in window.notes_label.toolTip()  # the details on hover
 
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
@@ -333,14 +333,15 @@ def test_enhance_with_ai(window, qtbot, tmp_path, upscale_ready):
     assert not sizes.denoise.isHidden() and sizes.denoise.currentData() == "medium"
     assert sizes.spec() == Resize(PERCENT, percent=100, ai=True)  # same size, better
     assert window.convert_btn.text() == "Enhance 1 file"
-    assert "isn't fully true to the original" in sizes.hint.text()
+    assert "not for documents" in sizes.hint.text()  # the AI's caveat stays visible
+    assert "isn't fully true to the original" in sizes.hint.toolTip()
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=60000)
     with Image.open(tmp_path / "small (enhanced).png") as im:
         assert im.size == (30, 20)
     assert window.done_card.message.text() == "Done! 1 file enhanced."
     sizes.set_mode("percent")
-    assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.text()
+    assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.toolTip()
     sizes.ai.setChecked(False)
     assert sizes.denoise.isHidden() and not sizes.spec().ai
 
@@ -787,3 +788,57 @@ def test_explorer_files_selected_together_are_one_batch(window, qtbot, tmp_path,
         assert batches == [3] and len(list(out.iterdir())) == 3
     finally:
         requests.close()
+
+
+def test_only_the_most_useful_formats_show_at_first(window, sample_pdf):
+    picker = window.target_picker
+    window.add_files([sample_pdf])
+    shown = [t.target for t in picker.tiles if not t.isHidden()]
+    assert len(shown) == 6 and shown[0] == "docx"
+    assert "More formats" in picker.more_btn.text()
+    picker.more_btn.click()
+    assert all(not t.isHidden() for t in picker.tiles)
+    assert picker.select("doc")  # a rare one, behind "More formats"
+    picker.more_btn.click()  # fold again
+    from azoth.gui import targets
+
+    choices = targets.choices(window.engine, window.file_list.formats)
+    picker.set_choices(choices, keep=["doc"])  # e.g. remembered from last time
+    assert picker.current() == "doc"
+    assert not next(t for t in picker.tiles if t.target == "doc").isHidden()
+
+
+def test_more_options_are_folded_with_a_summary(window, sample_png):
+    more = window.convert_page.more
+    window.add_files([sample_png])
+    window.target_picker.select("jpg")
+    assert not more.is_open() and more.content.isHidden()
+    assert more.summary.text() == "Original size · Maximum quality"
+    window.quality.set_level("high")
+    assert more.summary.text() == "Original size · High quality"
+    more.header.click()
+    assert more.is_open() and window.prefs.options_open  # remembered for next time
+    more.header.click()
+    window.target_picker.select("resize")
+    assert more.is_open()  # "Change size only": the size is chosen in there
+
+
+def test_quality_only_where_it_changes_something(window, sample_png, sample_pdf):
+    window.add_files([sample_pdf])
+    window.target_picker.select("docx")
+    assert window.quality.isHidden()  # PDF → Word: nothing to choose
+    window.target_picker.select("png")
+    assert not window.quality.isHidden()  # pages as pictures: sharpness
+    window.file_list.clear()
+    window.add_files([sample_png])
+    window.target_picker.select("jpg")
+    assert not window.quality.isHidden()
+
+
+def test_notes_show_one_sentence_and_the_rest_on_hover():
+    from azoth.gui.targets import first_sentence
+
+    assert first_sentence("The layout is rebuilt. Simple ones work.") == "The layout is rebuilt."
+    assert first_sentence("VAT is 8.1 % here. More") == "VAT is 8.1 % here."
+    assert first_sentence("Removed: GPS, camera. Rest") == "Removed: GPS, camera."
+    assert first_sentence("One sentence") == "One sentence"
