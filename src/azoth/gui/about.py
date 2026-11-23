@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__
-from ..converters.msword import word_installed
+from ..converters.msword import APPS, app_installed
 from ..converters.office import find_soffice
 from .resources import icon_path
 
@@ -32,7 +32,11 @@ COMPONENTS = [
     ("python-docx", "python-docx", "MIT", "Word files for PDF → Word and OCR"),
     ("Tesseract OCR", None, "Apache-2.0", "Text recognition (built into MuPDF)"),
     ("Tesseract language data", None, "Apache-2.0", "OCR in English, German, French, Italian"),
-    ("OpenCV", "opencv-python-headless", "Apache-2.0", "Layout analysis for PDF → Word"),
+    ("OpenCV", "opencv-python-headless", "Apache-2.0", "PDF → Word layout, runs the AI model"),
+    ("Real-ESRGAN model", None, "BSD-3-Clause", "Enhance with AI (by Xintao Wang et al.)"),
+    ("msoffcrypto-tool", "msoffcrypto-tool", "MIT", "Passwords on Word, Excel, PowerPoint"),
+    ("cryptography", "cryptography", "Apache-2.0 / BSD-3-Clause", "Encryption for the above"),
+    ("olefile", "olefile", "BSD-2-Clause", "Reads older Office files for the above"),
     ("NumPy", "numpy", "BSD-3-Clause", "Used by the above"),
     ("LibreOffice", None, "MPL-2.0", "Office formats (installed separately)"),
     ("Microsoft Word", None, "Your own Microsoft licence", "Word → PDF, optional"),
@@ -92,7 +96,8 @@ class AboutDialog(QDialog):
         engines = []
         soffice = find_soffice()
         engines.append(f"LibreOffice: {'found' if soffice else 'not installed'}")
-        engines.append(f"Microsoft Word: {'found' if word_installed() else 'not installed'}")
+        for app in APPS:
+            engines.append(f"{app.label}: {'found' if app_installed(app) else 'not installed'}")
         self.engines_label = QLabel(" · ".join(engines))
         layout.addWidget(self.engines_label)
 

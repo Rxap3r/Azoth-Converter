@@ -10,9 +10,15 @@ from azoth.gui.main_window import MainWindow  # noqa: E402
 
 @pytest.fixture
 def window(qtbot):
+    # Like the app (gui/app.py): memory clean-up only on the main thread, never in a
+    # conversion thread, where freeing a Qt object crashes on Windows.
+    from azoth.gui.main_thread_gc import MainThreadGC
+
+    collector = MainThreadGC()
     w = MainWindow()
     qtbot.addWidget(w)
-    return w
+    yield w
+    collector.stop()
 
 
 def test_convert_files_from_window(window, qtbot, sample_png, sample_pdf, tmp_path):
@@ -120,7 +126,8 @@ def test_photo_rows_offer_remove_metadata(window):
         return [c.text() for c in rows[fmt].findChildren(QLabel) if c.property("role") == "chip"]
 
     assert "Remove metadata" in chips("jpg")
-    assert "Remove metadata" not in chips("pdf")
+    assert "Remove metadata" in chips("pdf") and "Remove metadata" in chips("docx")
+    assert "Remove metadata" not in chips("xls")  # old Office formats: convert first
 
 
 def test_theme_setting(window):
@@ -266,10 +273,12 @@ def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
     assert b"SecretCamera" not in (tmp_path / "holiday (clean).jpg").read_bytes()
 
 
-def test_remove_metadata_not_offered_for_documents(window, sample_png, sample_pdf):
+def test_remove_metadata_offered_only_if_every_file_supports_it(window, sample_png, tmp_path):
     from azoth.gui.targets import CLEAN_TARGET
 
-    window.add_files([sample_png, sample_pdf])
+    notes = tmp_path / "notes.txt"
+    notes.write_text("plain text")
+    window.add_files([sample_png, notes])
     assert CLEAN_TARGET not in _targets(window)
 
 
@@ -305,6 +314,35 @@ def test_change_size_only(window, qtbot, sample_png, tmp_path):
     with Image.open(tmp_path / "logo (resized).png") as im:
         assert im.size == (60, 40) and im.mode == "RGBA"
     assert window.done_card.message.text() == "Done! 2 files resized."
+
+
+def test_enhance_with_ai(window, qtbot, tmp_path, upscale_ready):
+    from PIL import Image
+
+    from azoth.gui.targets import RESIZE_TARGET
+    from azoth.resize import PERCENT, Resize
+
+    photo = tmp_path / "small.png"
+    Image.new("RGB", (30, 20), "red").save(photo)
+    window.add_files([photo])
+    sizes = window.resize_options
+    assert window.target_picker.select(RESIZE_TARGET)
+    assert not sizes.ai.isChecked() and sizes.denoise.isHidden()  # never on by default
+    sizes.set_mode(None)
+    sizes.ai.setChecked(True)
+    assert not sizes.denoise.isHidden() and sizes.denoise.currentData() == "medium"
+    assert sizes.spec() == Resize(PERCENT, percent=100, ai=True)  # same size, better
+    assert window.convert_btn.text() == "Enhance 1 file"
+    assert "isn't fully true to the original" in sizes.hint.text()
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=60000)
+    with Image.open(tmp_path / "small (enhanced).png") as im:
+        assert im.size == (30, 20)
+    assert window.done_card.message.text() == "Done! 1 file enhanced."
+    sizes.set_mode("percent")
+    assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.text()
+    sizes.ai.setChecked(False)
+    assert sizes.denoise.isHidden() and not sizes.spec().ai
 
 
 def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):
@@ -350,7 +388,13 @@ def test_show_metadata_text(window, sample_pdf, tmp_path):
     text = window.file_list.metadata_text(0)
     assert "Location (GPS): 47.36944° N, 8.53333° E" in text
     assert "Camera: SecretCamera" in text
-    assert "photos and images" in window.file_list.metadata_text(1)
+    assert "letter.pdf contains" in window.file_list.metadata_text(1) or "no metadata" in (
+        window.file_list.metadata_text(1)
+    )
+    notes = tmp_path / "notes.txt"
+    notes.write_text("plain text")
+    window.add_files([notes])
+    assert "photos and images" in window.file_list.metadata_text(2)
 
 
 def test_metadata_button_on_photo_cards(window, monkeypatch, sample_pdf, tmp_path):
@@ -362,7 +406,7 @@ def test_metadata_button_on_photo_cards(window, monkeypatch, sample_pdf, tmp_pat
     assert not cards[0].metadata_btn.isHidden()  # a photo: the button is there
     assert cards[0].size.text().startswith("40 × 30 px · ")  # pixels shown for photos
     assert " px" not in cards[1].size.text()
-    assert cards[1].metadata_btn.isHidden()  # a PDF: nothing to show
+    assert not cards[1].metadata_btn.isHidden()  # PDFs have metadata too
     shown = []
     monkeypatch.setattr(
         file_list.QMessageBox, "information", lambda parent, title, text: shown.append(text)
@@ -615,3 +659,44 @@ def test_ready_made_picture_sizes(qtbot):
     assert panel.spec() == resize.Resize(resize.HEIGHT, width=1920, height=1080)
     panel.set_custom(height=777)
     assert panel.spec().height == 777 and not panel.height_box.isHidden()
+
+
+def test_explorer_request_converts_right_away(window, qtbot, sample_png, tmp_path):
+    out = tmp_path / "out"
+    window.output_dir = out
+    window.run_explorer_request("jpg", [sample_png])
+    qtbot.waitUntil(lambda: not window.is_busy(), timeout=20000)
+    assert [p.suffix for p in out.iterdir()] == [".jpg"]
+
+
+def test_explorer_open_only_adds_the_files(window, sample_png, sample_pdf):
+    window.add_files([sample_pdf])
+    window.run_explorer_request("open", [sample_png])
+    assert window.file_list.files == [sample_png] and not window.is_busy()
+
+
+def test_explorer_files_selected_together_are_one_batch(window, qtbot, tmp_path, local_sockets):
+    from PIL import Image
+
+    from azoth.gui import explorer
+
+    storage = tmp_path / "settings"
+    storage.mkdir()
+    photos = []
+    for n in range(3):
+        photos.append(tmp_path / f"p{n}.png")
+        Image.new("RGB", (8, 8), (n * 40, 0, 0)).save(photos[-1])
+    out = tmp_path / "out"
+    window.output_dir = out
+    batches = []
+    window.batch_finished.connect(lambda: batches.append(len(window.file_list.files)))
+    listener = explorer.listen(storage)
+    requests = explorer.attach(window, listener)
+    try:
+        requests.add("jpg", [str(photos[0])])
+        for photo in photos[1:]:  # Explorer starts one program per selected file
+            assert explorer.forward("jpg", [str(photo)], storage)
+        qtbot.waitUntil(lambda: bool(batches), timeout=20000)
+        assert batches == [3] and len(list(out.iterdir())) == 3
+    finally:
+        requests.close()

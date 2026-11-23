@@ -6,7 +6,7 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.3.1** (22 Nov 2026, pull request #9; 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.4.0** (22 Nov 2026, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
@@ -30,18 +30,51 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced. Probably the
   same as the "access violation" the owner hit on 22 Nov 2026 (Python's garbage collection
   in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
-- **0.4.0 prepared on `dev` (22 Nov 2026):** picture size, fully portable ZIP, "Show
-  metadata" button, crash fix, cached format list. Version, changelog and
-  `docs/releases/v0.4.0.md` done; pull request #10 (`dev` → `main`) opened 22 Nov 2026.
-  Next: the owner merges it and runs Actions → Release on `main`. Also in 0.4.0:
-  `azoth-terminal.exe` (renamed CLI), pixel size on photo cards.
-- **Next planned work, in this order (owner, 22 Nov 2026):**
-  1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
-     (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Owner tested
-     the Windows test build on 22 Nov 2026: works (with portable mode and the crash fix). AI upscaling / "improve quality" comes later as its own step;
-  2. ✓ **Fully portable version** (on `dev`, not released): `portable.txt` only in the
-     ZIP (owner: never in the installer); the Windows build tests the unzipped app;
-  3. later: smaller download (owner doesn't worry about size now), design refresh, the rest.
+- **0.4.0 (released 22 Nov 2026)** contains: picture size (`resize.py`; "Picture size" with
+  ready-made screen sizes, Full HD first, turned for portrait photos; width, height, %,
+  custom; "Change size only" tile saves "name (resized)"; enlarging is normal, "Don't
+  enlarge smaller pictures" optional; "Longest side" only in the CLI: `--resize`,
+  `--only-shrink`), fully portable ZIP (`portable.py`; `portable.txt` only in the ZIP, never
+  in the installer; the build tests the unzipped app), crash fix (`gui/main_thread_gc.py`),
+  pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
+  `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
+  it on Windows before the release.
+- **0.5.0 prepared on `dev` (23 Nov 2026)**: version, `CHANGELOG.md` section and
+  `docs/releases/v0.5.0.md` done; pull request `dev` → `main` opened on the owner's request
+  ("make a pull request and prepare the release"): pull request #11. After the owner merges it, they start
+  Actions → Release on `main`. Contents (details in `CHANGELOG.md` → 0.5.0):
+  1. **"Enhance with AI"** (`upscale.py`): Real-ESRGAN run by OpenCV's dnn, tiled; under
+     Picture size; Noise removal Low/Medium/High; CLI `--ai`, `--denoise`. The Windows build
+     smoke-tests it in the finished program. The bigger model (`RealESRGAN_x4plus`) was
+     measured: ~17× slower, only visibly better for ×4 of tiny photos → optional "Best
+     quality (slow)" later, owner to decide;
+  2. **Microsoft Excel and PowerPoint** as converters (`converters/msword.py`, one
+     PowerShell script for Word/Excel/PowerPoint): to PDF and between their own formats;
+     the LibreOffice banner and formats list only name what nothing installed can do;
+     settings "Use Microsoft Office", CLI `--no-office`;
+  3. **Office passwords** (`office_password.py`, msoffcrypto-tool): PDF tools → Password
+     also adds/removes passwords on DOCX/XLSX/PPTX (removes on DOC/XLS/PPT too); protected
+     files are converted after asking for the password (`options["passwords"]`, unlocked
+     only into the job's temp folder in `engine._Job.readable_source`); `azoth password`.
+  4. **PDF → Word progress and cancel** (page by page, `converters/pdf.py`);
+  5. **Remove metadata from PDF, DOCX, XLSX, PPTX** (`doc_metadata.py`; content checked
+     unchanged before saving; signed/password PDFs refused);
+  6. **Explorer right-click menu** (`context_menu.py` → generated
+     `packaging/context_menu.iss`, installer task; `gui/explorer.py`: several files → one
+     window via a local pipe with a key in the settings folder). Classic menu only (Windows
+     11: "Show more options"). The "Test installer" step checks the menu is added and
+     fully removed (owner agreed, 23 Nov 2026).
+  **Next:** the owner tests these on the company PC (Office, no LibreOffice): AI on real
+  photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; a file protected in Office;
+  a file locked here opened in Office; PowerPoint already open stays open. Then ask
+  whether to release (0.5.0) before any pull request.
+- **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
+  Windows test crashed without it while the AI ran in the worker thread).
+- **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
+  Office passwords; then (for 0.5.0) PDF → Word progress, document metadata, Explorer
+  right-click menu. Still wanted: PDF → Excel,
+  video/audio (FFmpeg); the **design refresh is low priority** (the owner finds the current
+  design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
@@ -57,7 +90,11 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   - technical improvements: **faster batches ✓ released in 0.3.1** (Word and LibreOffice: up
     to 10 files per start; photos: up to 4 at once), plus Word → PDF that really uses Word
     (never worked before 0.3.1) and PDF restrictions kept. Next: smaller download;
-  - a fully portable version.
+- **Session start (Nov 2026):** the local `dev` in a fresh session can be an old leftover
+  that has diverged from `origin/dev`; if `git pull --ff-only` fails, rename it
+  (`git branch -m dev dev-old-local`) and `git checkout -b dev origin/dev`. Work on the
+  local `dev` branch, not the automatic session branch, or an automatic "unpushed
+  commits" check keeps firing after every answer.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
   `workflow_dispatch` on `dev` (the owner can also do it in the Actions tab).
@@ -167,7 +204,8 @@ GitHub's private vulnerability reporting (see `SECURITY.md`), never public issue
 - **Temporary files** go only into the per-job folder the engine provides (`ctx.work_dir`), which is always deleted.
 - **Photo metadata** (EXIF/GPS) is stripped by default.
 - **Clean uninstall.** The app may store data only in `gui/settings.storage_dir()`
-  (`%APPDATA%\Azoth Converter`), never in the registry; job temp folders start with
+  (`%APPDATA%\Azoth Converter`), never in the registry (only the installer writes the
+  right-click menu, and removes it); job temp folders start with
   `engine.TEMP_PREFIX`. Anything new the app writes must be removed by `[UninstallDelete]` in
   `packaging/installer.iss` and checked by the "Test installer" step of the automatic build.
 - Untrusted input: catch engine errors and raise `ConversionError` with a message a non-technical user understands.
@@ -179,21 +217,28 @@ src/azoth/
   formats.py          format list and detection by file content
   engine.py           route finding (multi-step), running jobs, temp folders
   converters/base.py  Converter plugin interface
-  converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
+  converters/*.py     images, pdf, office (LibreOffice), msword (Microsoft Word, Excel,
+                      PowerPoint via PowerShell) plugins; register new ones in converters/__init__.py
   cli.py              `azoth` command line
   pdf_tools.py        merge, split, edit pages, compress, passwords (used by the app and `azoth pdf`)
   ocr.py              text recognition (Tesseract inside PyMuPDF): searchable PDF, page texts;
                       converters/ocr.py = images → TXT/DOCX; language files in
                       resources/tessdata (not in git: `python packaging/fetch_tessdata.py`)
   portable.py         portable mode (portable.txt next to the exe → data/ and data/temp beside it)
+  office_password.py  passwords on Word/Excel/PowerPoint files (add, remove, unlock for converting)
   resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
-  metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
+  upscale.py          "Enhance with AI" (Real-ESRGAN run by OpenCV's dnn, tiled); model in
+                      resources/upscale (not in git: fetched by packaging/fetch_tessdata.py)
+  metadata.py         show/remove metadata (`azoth clean`); photos: byte-level code in converters/strip.py;
+                      PDF/DOCX/XLSX/PPTX: doc_metadata.py
+  context_menu.py     Explorer right-click menu entries → packaging/context_menu.iss
+                      (`python packaging/make_context_menu.py`; gui/explorer.py hands files to one window)
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py
                       (format tiles), options_panel.py (quality), output_folder.py,
                       formats_panel.py, settings_page.py, done_card.py ("Done" card +
                       Windows notification), pdf_tools_page.py (Merge / Split /
-                      Edit pages / Compress / Password), worker.py (background thread),
+                      Edit pages / Compress / OCR; also the Password page), worker.py (background thread),
                       targets.py (which targets are offered, no Qt), theme.py (light/dark
                       colours + stylesheet; widgets only set a "role" property), icons.py
                       (line icons drawn from SVG), About dialog, settings.py (QSettings)
@@ -283,4 +328,5 @@ same change, and never add an installer language the app doesn't have.
 - New features come with tests.
 - Update `docs/PROJECT_PLAN.md` checkboxes and the README's format table when features change.
 - When conversions change, regenerate the format list (also shown in the app):
-  `azoth formats --markdown docs/FORMATS.md`. A test fails if it's out of date.
+  `azoth formats --markdown docs/FORMATS.md`, and the right-click menu:
+  `python packaging/make_context_menu.py`. Tests fail if either is out of date.

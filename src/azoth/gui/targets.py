@@ -17,7 +17,7 @@ CLEAN_NOTE = (
     "comments and preview pictures. The picture itself stays exactly the same. "
     "Next to the original, the copy is called “name (clean)”."
 )
-CLEAN_TILE = ("Remove metadata only", "Same format, no location or camera data")
+CLEAN_TILE = ("Remove metadata only", "Same format, no hidden personal data")
 RESIZE_TARGET = "resize"  # not a format: same format, new picture size (see resize.py)
 RESIZE_TILE = ("Change size only", "Same format, new width and height")
 RESIZE_NOTE = "Saves a copy in the new size. Next to the original, it is called “name (resized)”."

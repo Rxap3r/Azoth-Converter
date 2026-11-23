@@ -12,7 +12,7 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, Slot
+from PySide6.QtCore import Qt, QThread, Signal, Slot
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,8 +28,8 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__, formats, resize
-from ..converters import all_converters
-from ..converters.msword import word_installed
+from ..converters import ConversionError, all_converters
+from ..converters.msword import office_installed
 from ..engine import Engine
 from . import icons, targets, theme
 from .about import AboutDialog
@@ -37,7 +37,7 @@ from .convert_page import ConvertPage
 from .done_card import Notifier, done_message
 from .file_list import DONE, FAILED, WAITING
 from .formats_panel import FormatsPanel
-from .pdf_tools_page import PdfToolsPage
+from .pdf_tools_page import PasswordPage, PdfToolsPage
 from .settings import Preferences
 from .settings_page import SettingsPage
 from .targets import CLEAN_TARGET, RESIZE_TARGET, display_name
@@ -47,12 +47,15 @@ from .worker import ConversionWorker
 PAGES = [  # (key, text in the sidebar, icon)
     ("convert", "Convert", "convert"),
     ("pdf", "PDF tools", "pdf"),
+    ("password", "Password", "lock"),
     ("formats", "Supported formats", "formats"),
     ("settings", "Settings", "settings"),
 ]
 
 
 class MainWindow(QMainWindow):
+    batch_finished = Signal()  # a conversion batch ended (done, failed or cancelled)
+
     def __init__(self, engine: Engine | None = None, prefs: Preferences | None = None) -> None:
         super().__init__()
         self.prefs = prefs or Preferences()
@@ -84,8 +87,8 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         banners = [
-            (c.unavailable_reason(), f"Download {c.label}…", c.download_url)
-            for c in self.engine.unavailable()
+            (_reason(c, missing), f"Download {c.label}…", c.download_url)
+            for c, missing in self.engine.needed_engines()
         ]
         self.convert_page = ConvertPage(banners)
         page = self.convert_page
@@ -109,10 +112,14 @@ class MainWindow(QMainWindow):
         self.convert_btn.clicked.connect(self.start_conversion)
 
         self.pdf_page = PdfToolsPage()
+        self.password_page = PasswordPage()
         libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
-        self.formats_panel = FormatsPanel(libreoffice_installed)
+        self.formats_panel = FormatsPanel(
+            libreoffice_installed,
+            can_convert=lambda s, d: self.engine.find_route(s, d) is not None,
+        )
         self.settings_page = SettingsPage(
-            word_installed=word_installed(),
+            word_installed=bool(office_installed()),
             use_word=self.engine.uses_word(),
             theme_choice=self.prefs.theme,
         )
@@ -120,13 +127,14 @@ class MainWindow(QMainWindow):
         self.settings_page.use_word_changed.connect(self._set_use_word)
         self.settings_page.notify_check.toggled.connect(self._set_notify)
         self.settings_page.turn_check.toggled.connect(self.prefs.save_ocr_turn_pages)
-        self.pdf_page.task.done.connect(
-            lambda outputs: (
-                self.notifier.notify(f"Done! {Path(outputs[0]).name} is ready.")
-                if len(outputs) == 1
-                else self.notifier.notify(f"Done! {len(outputs)} PDFs saved.")
+        for tools_page in (self.pdf_page, self.password_page):
+            tools_page.task.done.connect(
+                lambda outputs: (
+                    self.notifier.notify(f"Done! {Path(outputs[0]).name} is ready.")
+                    if len(outputs) == 1
+                    else self.notifier.notify(f"Done! {len(outputs)} PDFs saved.")
+                )
             )
-        )
         self.settings_page.about_requested.connect(self.show_about)
         self.about_btn = self.settings_page.about_btn
 
@@ -135,6 +143,7 @@ class MainWindow(QMainWindow):
         for key, widget in (
             ("convert", self.convert_page),
             ("pdf", self.pdf_page),
+            ("password", self.password_page),
             ("formats", self.formats_panel),
             ("settings", self.settings_page),
         ):
@@ -227,6 +236,30 @@ class MainWindow(QMainWindow):
     def add_files(self, paths) -> None:
         self.file_list.add_files(paths)
 
+    def is_busy(self) -> bool:
+        return self._thread is not None
+
+    def run_explorer_request(self, target: str, paths: list[Path]) -> None:
+        """Files chosen in Explorer's right-click menu: show them and, if a target was
+        chosen there, convert them to it right away (see explorer.py)."""
+        if self.is_busy():
+            return
+        self.show_page("convert")
+        self.file_list.clear()
+        self.done_card.clear()
+        self.add_files([p for p in paths if p.is_file()])
+        if not self.file_list.files:
+            self.status_label.setText("The chosen files can't be found any more.")
+            return
+        from .explorer import OPEN
+
+        if target == OPEN:
+            return
+        if self.target_picker.select(target):
+            self.start_conversion()
+        else:
+            self.status_label.setText("Choose what to convert these files to.")
+
     @property
     def output_dir(self) -> Path | None:
         return self.output_row.folder
@@ -248,6 +281,9 @@ class MainWindow(QMainWindow):
         paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
         if self.current_page() == "pdf":
             self.pdf_page.add_files(paths)  # goes to the PDF tool that is open
+            return
+        if self.current_page() == "password":
+            self.password_page.add_files(paths)
             return
         self.show_page("convert")
         self.add_files(paths)
@@ -305,6 +341,8 @@ class MainWindow(QMainWindow):
         files = f"{count} file{'s' if count != 1 else ''}"
         if target == CLEAN_TARGET:
             text = f"Remove metadata from {files}"
+        elif target == RESIZE_TARGET and self.resize_options.mode.currentData() is None:
+            text = f"Enhance {files}" if count else "Choose a new size"
         elif target == RESIZE_TARGET:
             text = f"Resize {files}" if count else "Choose a new size"
         elif target:
@@ -338,6 +376,48 @@ class MainWindow(QMainWindow):
         self.engine = Engine(all_converters(use_word=use_word))
         self._update_notes()
 
+    def _office_passwords(self, jobs: list) -> dict[str, str]:
+        """Ask for the password of each protected Word, Excel or PowerPoint file in
+        ``jobs``. Files whose password isn't given are taken out of ``jobs``. The
+        passwords are only kept for this run, never saved."""
+        from .. import office_password
+
+        passwords: dict[str, str] = {}
+        for job in list(jobs):
+            row, path, _target = job
+            if not office_password.is_protected(path):
+                continue
+            password = self.ask_password(Path(path))
+            if password is None:
+                jobs.remove(job)
+                self.file_list.set_status(row, "Skipped: no password entered")
+            else:
+                passwords[str(path)] = password
+        return passwords
+
+    def ask_password(self, path: Path) -> str | None:
+        """The password of a protected Office file, checked; None if the user cancels."""
+        from PySide6.QtWidgets import QInputDialog, QLineEdit
+
+        from .. import office_password
+
+        message = (
+            f"{path.name} is protected with a password. Enter it to convert the file.\n"
+            "The password isn't saved, and the converted file won't have one."
+        )
+        while True:
+            password, ok = QInputDialog.getText(
+                self, "Password needed", message, QLineEdit.EchoMode.Password
+            )
+            if not ok:
+                return None
+            try:
+                office_password.decrypt(path, password)
+            except ConversionError as exc:
+                message = f"{exc}\nTry again, or press Cancel to skip this file."
+                continue
+            return password
+
     def set_quality_level(self, level_id: str) -> None:
         self.quality.set_level(level_id)
 
@@ -362,6 +442,7 @@ class MainWindow(QMainWindow):
             else:
                 self.file_list.set_status(row, "Waiting", state=WAITING)
                 jobs.append((row, path, targets.job_target(target, fmt)))
+        passwords = self._office_passwords(jobs)
         if not jobs:
             return
         category = targets.single_category(self.file_list.formats)
@@ -384,6 +465,7 @@ class MainWindow(QMainWindow):
             "level": self.quality.level(),
             "keep_metadata": self.settings_page.metadata_check.isChecked(),
             "resize": size,
+            "passwords": passwords,
             **self.ocr_options.options(),
             "ocr_turn_pages": self.settings_page.turn_check.isChecked(),
         }
@@ -487,6 +569,7 @@ class MainWindow(QMainWindow):
             cancelled,
             cleaning=kind == CLEAN_TARGET,
             resizing=kind == RESIZE_TARGET,
+            enhancing=kind == RESIZE_TARGET and self.resize_options.mode.currentData() is None,
         )
         self.status_label.setText("")
         self.done_card.show_result(
@@ -500,6 +583,7 @@ class MainWindow(QMainWindow):
         if not cancelled:
             self.progress.setValue(1000)
         self._refresh()
+        self.batch_finished.emit()
 
     # --- preferences and about ------------------------------------------------
 
@@ -544,3 +628,11 @@ class MainWindow(QMainWindow):
             self._thread.wait(5000)
         self.save_preferences()
         event.accept()
+
+
+def _reason(converter, missing) -> str:
+    """The banner text for a missing engine, naming only what really needs it."""
+    try:
+        return converter.unavailable_reason(missing)
+    except TypeError:  # engines without the detail
+        return converter.unavailable_reason()

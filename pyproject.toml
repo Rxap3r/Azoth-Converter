@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "azoth-converter"
-version = "0.4.0"
+version = "0.5.0"
 description = "Offline desktop file converter: your files never leave your computer."
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -16,6 +16,7 @@ dependencies = [
     "PyMuPDF>=1.24",
     "pdf2docx>=0.5.8",
     "PySide6-Essentials>=6.7",
+    "msoffcrypto-tool>=5.4",  # passwords on Word, Excel and PowerPoint files
 ]
 
 [project.optional-dependencies]

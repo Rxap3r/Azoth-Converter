@@ -101,6 +101,25 @@ class Engine:
         """Required converters whose engine is missing (optional ones like Word are left out)."""
         return [c for c in self.converters if not c.optional and not c.is_available()]
 
+    def missing(self, converter: Converter) -> list[tuple[str, str]]:
+        """Conversions of ``converter`` that no available engine can do (e.g. without
+        LibreOffice, Excel files when Microsoft Excel isn't installed either)."""
+        available = [c for c in self.converters if c.is_available()]
+        return [
+            pair
+            for pair in converter.capabilities()
+            if not any(pair in set(c.capabilities()) for c in available)
+        ]
+
+    def needed_engines(self) -> list[tuple[Converter, list[tuple[str, str]]]]:
+        """Missing engines that would add conversions, with those conversions."""
+        result = []
+        for conv in self.unavailable():
+            missing = self.missing(conv)
+            if missing:
+                result.append((conv, missing))
+        return result
+
     def uses_word(self) -> bool:
         return any(c.id == "msword" and c.is_available() for c in self.converters)
 
@@ -386,7 +405,8 @@ class Engine:
         if name is not None:
             stem = check_file_name(name, dst_fmt.extension)
         elif src_fmt.id == dst_fmt.id:
-            stem = f"{source.stem} (resized)"  # never the original's name
+            ai = getattr(options.get("resize"), "ai", False)
+            stem = f"{source.stem} ({'enhanced' if ai else 'resized'})"  # never the original's name
         else:
             stem = source.stem
         out_dir = Path(output_dir) if output_dir is not None else source.parent
@@ -432,7 +452,7 @@ class Engine:
             assert isinstance(other, _Job)
             folder = work_dir / f"file{n}"
             folder.mkdir(parents=True)
-            pairs.append((other.readable_source(folder), other.step_target(0, folder)))
+            pairs.append((other.readable_source(folder, options), other.step_target(0, folder)))
         report(0.0, f"Converting {len(group)} files at once with {step.converter.label}")
         ctx = ConversionContext(
             work_dir=work_dir,
@@ -463,7 +483,7 @@ class Engine:
         result = ConversionResult(source=source, notes=self.quality_notes(route))
         with tempfile.TemporaryDirectory(prefix=TEMP_PREFIX) as tmp:
             tmp_path = Path(tmp)
-            current = job.readable_source(tmp_path)
+            current = job.readable_source(tmp_path, options)
             produced: list[Path] = []
             for i, step in enumerate(route):
                 if i == 0 and first is not None:
@@ -520,9 +540,19 @@ class _Job:
     stem: str
     out_dir: Path
 
-    def readable_source(self, folder: Path) -> Path:
+    def readable_source(self, folder: Path, options: dict[str, Any] | None = None) -> Path:
         """The source, or a correctly named copy in ``folder`` if its extension is wrong or
-        missing (converters rely on it)."""
+        missing (converters rely on it). A password-protected Word, Excel or PowerPoint
+        file is unlocked into ``folder`` (the job's private temporary folder) with its
+        password from ``options["passwords"]`` ({file path: password})."""
+        from . import office_password
+
+        if self.src_fmt.id in office_password.CAN_UNLOCK and office_password.is_protected(
+            self.source
+        ):
+            passwords = (options or {}).get("passwords") or {}
+            password = passwords.get(str(self.source)) or passwords.get("*", "")
+            return office_password.unlock_into(self.source, folder, password)
         if self.source.suffix.lower().lstrip(".") in self.src_fmt.extensions:
             return self.source
         copy = folder / f"source.{self.src_fmt.extension}"

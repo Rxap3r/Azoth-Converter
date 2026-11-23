@@ -63,8 +63,9 @@ class FormatRow:
 
 def conversion_table() -> list[FormatRow]:
     """Every known format with its targets, as if all engines were installed."""
-    # Word only improves quality for conversions LibreOffice also does; it adds no formats.
-    converters = [c for c in all_converters() if c.id != "msword"]
+    # Microsoft Office only improves quality for conversions LibreOffice also does; it adds
+    # no formats.
+    converters = [c for c in all_converters() if c.id not in ("msword", "msexcel", "mspowerpoint")]
     full = Engine(converters, assume_available=True)
     basic = Engine([c for c in converters if c.id != LIBREOFFICE_ID], assume_available=True)
     rows = []
@@ -99,7 +100,8 @@ def build_markdown() -> str:
         "Everything is converted on your computer. Nothing is uploaded.",
         "",
         "Most office formats need the free [LibreOffice](https://www.libreoffice.org/download/) "
-        "to be installed. The column **Works right away** lists what works without it.",
+        "or Microsoft Office (Word, Excel, PowerPoint) on Windows. The column **Works right "
+        "away** lists what works without either.",
         "",
         "## All formats",
         "",

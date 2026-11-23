@@ -7,6 +7,96 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-23
+
+### Added
+
+- **Right-click menu in Explorer:** right-click a file → "Convert with Azoth Converter" →
+  "To PDF", "To DOCX" … (the most useful targets for that kind of file), "Remove
+  metadata", or "Open in Azoth Converter…". The app opens and converts right away, with
+  your usual settings (output folder, quality). Several selected files are converted
+  together in one window. The installer adds the menu (option "Add … to the right-click
+  menu", ticked by default) and removes it on uninstall. On Windows 11 it is under "Show
+  more options". Not in the portable version.
+- **Remove metadata from PDF, Word, Excel and PowerPoint files** (DOCX, XLSX, PPTX):
+  "Remove metadata only" and "Show metadata…" now work for them too, like for photos.
+  Removed: author, "last saved by", company, manager, title, dates, editing time,
+  template and its folder, custom properties, Word's edit history (revision marks), the
+  folder an Excel file was saved in, PDF's hidden XMP data and earlier versions kept
+  inside a PDF. Names on comments and tracked changes become "Author"; the comments and
+  changes themselves stay. Command line: `azoth clean report.docx`. Old DOC, XLS and PPT
+  files: convert them to DOCX, XLSX or PPTX first.
+- **PDF → Word shows progress page by page** ("Reading page 12/80") and can be cancelled
+  between pages; before, a large PDF showed no progress until it was done.
+- **Passwords on Word, Excel and PowerPoint files:** the Password tool now also takes
+  DOCX, XLSX and PPTX files: add a password (AES-256, the same encryption as current
+  Office, so Office opens them as usual) or remove it from your own file (also from older
+  DOC, XLS and PPT). Command line: `azoth password add budget.xlsx` (also
+  `azoth pdf password`).
+- **Converting password-protected Office files:** the app asks for the password (it checks
+  it right away, and it is never saved), then converts the file. Cancel skips the file.
+  The converted file has no password. Works with Microsoft Office and with LibreOffice.
+  The command line asks too.
+
+- **Microsoft Excel and PowerPoint:** where they're installed, they now convert their own
+  files to PDF (exact layout), like Word already did. Word, Excel and PowerPoint also save
+  their other formats (e.g. DOC → DOCX, XLS → XLSX, XLSX → CSV, PPT → PPTX, ODT, ODS, ODP),
+  so on a PC with Microsoft Office, LibreOffice isn't needed. If Office fails, LibreOffice
+  steps in when it's installed.
+- The "LibreOffice is missing" message now only appears for conversions nothing else on
+  the PC can do, and says which ones (e.g. "PowerPoint files need LibreOffice or Microsoft
+  Office"). The list of formats counts Microsoft Office as installed. Settings: "Use
+  Microsoft Office" covers Word, Excel and PowerPoint; command line: `--no-office`.
+
+- **Enhance with AI:** under **Picture size**, "Enhance with AI" makes enlarged photos
+  sharp, with new detail the AI invents, instead of smooth and blurry. With "Keep original
+  size" (saved as "name (enhanced)"), photos keep their size and get sharper, with less
+  noise and fewer JPEG blocks. "Noise removal" (Low / Medium / High) sets how strongly
+  noise is smoothed away; Low keeps fine grain. Never on by default; pictures that get
+  smaller don't use it. Shows progress and can be cancelled. Command line: `--ai`,
+  `--denoise low|medium|high`.
+
+### Changed
+
+- **Password has its own page** in the sidebar (below PDF tools), because it now works
+  for Word, Excel and PowerPoint files too, not only PDFs.
+
+### Privacy and safety
+
+- Removing document metadata never changes the content: only the parts with metadata are
+  rewritten, and before saving, the app checks that every changed part has exactly the same
+  text and structure (PDF: the same page content and text) and that no metadata is left.
+  If a check fails, nothing is saved. Digitally signed PDFs are refused (cleaning would
+  break the signature); PDF restrictions are kept.
+- Protected Office files are unlocked only into the job's private temporary folder, which
+  is always deleted; Office and LibreOffice never see the password. Passwords are never
+  stored. New library: msoffcrypto-tool (MIT, works offline), with cryptography and
+  olefile (about 5 MB more download).
+- Excel and PowerPoint run like Word: hidden, macros off, links not updated, files opened
+  read-only from a private copy. Password-protected Office files are refused with a clear
+  message before Office could ask for the password. If PowerPoint is already open, it stays
+  open with the user's own presentations.
+- The AI runs entirely on this computer (the Real-ESRGAN model, BSD-3-Clause, built into
+  the app as plain numbers, no code; OpenCV, already part of the app, runs it). Nothing is
+  downloaded or uploaded. The app says on every enhanced file that the added detail is
+  invented, and advises against using it for documents, evidence or ID photos.
+
+### Development
+
+- The automatic tests stop with a clear message if LibreOffice didn't really get installed
+  on the test computer (before, all Office tests were then skipped and the run still
+  looked fine).
+- The automatic installer test checks that the right-click menu is added on install
+  and fully removed on uninstall.
+- `packaging/fetch_tessdata.py` now also fetches the AI model (two pinned, hash-checked
+  files) through `packaging/fetch_upscale_model.py`, which reads them without PyTorch and
+  without running anything from them, and saves the weights as a 4.5 MB `.npz`.
+- The automatic Windows build now also checks "Enhance with AI" in the finished program
+  (a small transparent picture enlarged with AI), next to the text recognition check.
+- The app's window tests now clean up memory only on the main thread, like the app itself
+  (a Windows test crashed while a picture was enhanced in the background), and a hard
+  crash in a test is reported with its location again.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added
@@ -313,7 +403,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...v0.3.0

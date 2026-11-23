@@ -36,7 +36,7 @@ def window(qtbot):
 
 
 def run(window, qtbot):
-    page = window.pdf_page
+    page = window.password_page if window.current_page() == "password" else window.pdf_page
     assert page.action_btn.isEnabled()
     page.action_btn.click()
     qtbot.waitUntil(lambda: not page.busy, timeout=30000)
@@ -45,7 +45,7 @@ def run(window, qtbot):
 
 def test_sidebar_has_pdf_tools(window):
     assert window.current_page() == "pdf"
-    assert list(window.nav_buttons) == ["convert", "pdf", "formats", "settings"]
+    assert list(window.nav_buttons) == ["convert", "pdf", "password", "formats", "settings"]
     assert window.pdf_page.current_tool() == "merge"
 
 
@@ -218,8 +218,8 @@ def test_add_and_remove_password_from_the_window(window, qtbot, tmp_path):
     from azoth import pdf_tools
 
     src = make_pdf(tmp_path / "contract.pdf", ["Page 1", "Page 2"])
-    page = window.pdf_page
-    page.show_tool("password")
+    window.show_page("password")
+    page = window.password_page
     tool = page.password
     page.add_files([src])
     assert tool.adding() and not tool.repeat.isHidden() and not tool.forget.isHidden()
@@ -259,8 +259,7 @@ def test_signed_pdfs_get_a_warning(window, tmp_path):
     with pymupdf.open(src) as doc:
         doc.xref_set_key(doc.pdf_catalog(), "AcroForm", "<< /Fields [] /SigFlags 3 >>")
         doc.save(tmp_path / "s.pdf")
-    page = window.pdf_page
-    for key in ("compress", "password"):
+    for page, key in ((window.pdf_page, "compress"), (window.password_page, "password")):
         page.show_tool(key)
         page.add_files([tmp_path / "s.pdf"])
         assert not page.tools[key].signed.isHidden()
@@ -305,7 +304,6 @@ def test_every_tool_lets_you_name_the_result(window, qtbot, tmp_path):
         "split": ("report_pages", "Folder name"),
         "edit": ("report (edited)", "File name"),
         "compress": ("report (compressed)", "File name"),
-        "password": ("report (protected)", "File name"),
     }
     for tool, (name, caption) in expected.items():
         page.show_tool(tool)
@@ -390,3 +388,16 @@ def test_other_tools_have_no_cancel_button(window, qtbot, tmp_path):
     page.action_btn.click()
     assert not page.cancel_btn.isVisibleTo(page)
     qtbot.waitUntil(lambda: not page.busy, timeout=30000)
+
+
+def test_password_has_its_own_page(window, tmp_path):
+    """Passwords work for Word, Excel and PowerPoint too, so they aren't a PDF tool."""
+    assert "password" not in window.pdf_page.tools
+    assert window.nav_buttons["password"].text() == "Password"
+    window.show_page("password")
+    page = window.password_page
+    assert list(page.tools) == ["password"]
+    assert all(b.isHidden() for b in page.tool_buttons.values())  # nothing to switch
+    src = make_pdf(tmp_path / "report.pdf", ["P1"])
+    page.add_files([src])
+    assert page.name_row.edit.text() == "report (protected)"

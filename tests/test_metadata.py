@@ -213,9 +213,11 @@ def test_wrong_extension_is_detected_by_content(tmp_path):
     assert result.output.name == "photo (clean).png"
 
 
-def test_unsupported_files_are_refused(tmp_path, sample_pdf):
+def test_unsupported_files_are_refused(tmp_path):
+    notes = tmp_path / "notes.txt"
+    notes.write_text("plain text")
     with pytest.raises(ConversionError, match="photos and images"):
-        metadata.clean_file(sample_pdf)
+        metadata.clean_file(notes)
     with pytest.raises(ConversionError, match="not found"):
         metadata.clean_file(tmp_path / "missing.jpg")
 
@@ -268,8 +270,10 @@ def test_cli_clean_and_show(tmp_path, capsys):
     assert "no metadata found" in capsys.readouterr().out
 
 
-def test_cli_clean_reports_failures(tmp_path, sample_pdf, capsys):
-    assert cli(["clean", str(sample_pdf)]) == 1
+def test_cli_clean_reports_failures(tmp_path, capsys):
+    notes = tmp_path / "notes.txt"
+    notes.write_text("plain text")
+    assert cli(["clean", str(notes)]) == 1
     assert "photos and images" in capsys.readouterr().err
 
 

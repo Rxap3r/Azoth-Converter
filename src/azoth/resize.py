@@ -3,8 +3,10 @@
 Pictures always keep their proportions: a size is a width, a height, a screen size (a
 box the picture fits in, turned for portrait pictures), the longest side, or a
 percentage. Pictures get the chosen size, smaller ones too, unless ``enlarge`` is off
-("Don't enlarge smaller pictures"). Enlarging is smooth and adds no detail. Nothing
-changes unless the user chooses a size.
+("Don't enlarge smaller pictures"). Enlarging is smooth and adds no detail, unless
+``ai`` is on: then the AI model in :mod:`upscale` invents plausible detail, and a picture
+that keeps its size comes out sharper, with less noise. Nothing changes unless the user
+chooses a size (or AI).
 
 Option ``resize`` (a :class:`Resize`) is read by the image converter; the command line
 writes it as ``50%``, ``2000`` (longest side), ``1920x1080`` (screen size), ``1920x``
@@ -14,6 +16,7 @@ writes it as ``50%``, ``2000`` (longest side), ``1920x1080`` (screen size), ``19
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 
 from PIL import Image
@@ -24,6 +27,7 @@ WIDTH = "width"
 HEIGHT = "height"
 FIT = "fit"
 MODES = (PERCENT, LONGEST, WIDTH, HEIGHT, FIT)
+DENOISE_LEVELS = ("low", "medium", "high")  # the same as upscale.DENOISE
 
 MIN_PERCENT = 1
 MAX_PERCENT = 800
@@ -47,10 +51,17 @@ class Resize:
     enlarge: bool = True
     """Make pictures bigger that are smaller than the chosen size. Off: they stay as they
     are. (Not for PERCENT, where the number says whether the picture gets bigger.)"""
+    ai: bool = False
+    """Enlarge with AI (invented detail), and improve pictures that keep their size.
+    Not used for pictures that get smaller."""
+    denoise: str = "medium"
+    """With ``ai``: how strongly noise and JPEG blocks are removed (low, medium, high)."""
 
     def __post_init__(self) -> None:
         if self.mode not in MODES:
             raise ResizeError(f"Unknown size choice: {self.mode}")
+        if self.denoise not in DENOISE_LEVELS:
+            raise ResizeError(f"Unknown noise removal level: {self.denoise}")
         if self.mode == PERCENT:
             if not MIN_PERCENT <= self.percent <= MAX_PERCENT:
                 raise ResizeError(
@@ -64,15 +75,18 @@ class Resize:
 
     def describe(self) -> str:
         """Short text for messages, e.g. "longest side 2000 px"."""
+        ai = " with AI" if self.ai else ""
         if self.mode == PERCENT:
-            return f"{self.percent:g} %"
+            if self.percent == 100 and self.ai:
+                return "improved with AI"
+            return f"{self.percent:g} %{ai}"
         text = {
             LONGEST: f"longest side {self.width} px",
             WIDTH: f"{self.width} px wide",
             HEIGHT: f"{self.height} px high",
             FIT: f"screen size {self.width} × {self.height} px",
         }[self.mode]
-        return text
+        return text + ai
 
     def would_enlarge(self, width: int, height: int) -> bool:
         """True if the picture stays as it is only because ``enlarge`` is off."""
@@ -152,12 +166,30 @@ _PREMULTIPLIED = {"RGBA": "RGBa", "LA": "La"}
 _DIRECT = {"RGB", "L", "I", "F", "CMYK", "I;16"}
 
 
-def apply(img: Image.Image, spec: Resize | None) -> Image.Image:
-    """``img`` in its new size (the same picture if the size doesn't change)."""
+def uses_ai(spec: Resize | None, width: int, height: int) -> bool:
+    """True if a ``width`` × ``height`` picture is worked on by the AI (``ai`` is on and
+    the picture doesn't get smaller or stay as it is because enlarging is off)."""
+    if spec is None or not spec.ai or spec.would_enlarge(width, height):
+        return False
+    new_w, new_h = spec.new_size(width, height)
+    return new_w * new_h >= width * height
+
+
+def apply(
+    img: Image.Image,
+    spec: Resize | None,
+    progress: Callable[[float], None] | None = None,
+    cancelled: Callable[[], None] | None = None,
+) -> Image.Image:
+    """``img`` in its new size (the same picture if the size doesn't change).
+
+    With AI, ``progress`` gets the share done (0…1) and ``cancelled`` is called now and
+    then and may raise to stop."""
     if spec is None:
         return img
     size = spec.new_size(*img.size)
-    if size == img.size:
+    ai = uses_ai(spec, *img.size)
+    if size == img.size and not ai:
         return img
     if size[0] * size[1] > MAX_PIXELS:
         raise ResizeError(
@@ -178,6 +210,8 @@ def apply(img: Image.Image, spec: Resize | None) -> Image.Image:
         img = img.convert("L")
     elif img.mode not in _DIRECT and img.mode not in _PREMULTIPLIED:
         img = img.convert("RGBA" if "A" in img.getbands() else "RGB")
+    if ai:
+        return _apply_ai(img, size, spec, info, progress, cancelled)
     mode = img.mode
     if mode in _PREMULTIPLIED:
         resized = img.convert(_PREMULTIPLIED[mode]).resize(size, method).convert(mode)
@@ -185,6 +219,22 @@ def apply(img: Image.Image, spec: Resize | None) -> Image.Image:
         resized = img.resize(size, method)
     resized.info = info
     return resized
+
+
+def _apply_ai(img, size, spec, info, progress, cancelled) -> Image.Image:
+    from . import upscale
+
+    if img.mode in ("I", "I;16", "F"):
+        raise ResizeError(
+            "AI enhancing works with normal pictures (8 bits per colour), and this one has "
+            "more. Please choose the size without AI."
+        )
+    try:
+        result = upscale.enhance(img, size, spec.denoise, progress, cancelled)
+    except upscale.UpscaleError as exc:
+        raise ResizeError(str(exc)) from exc
+    result.info = info
+    return result
 
 
 # --- ready-made sizes for the app (biggest first) ------------------------------------

@@ -21,20 +21,35 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 **PDF tools:** merge PDFs, split them (every page, or ranges like 1-3, 5), and turn, delete or
 reorder pages with page previews. Pages are copied as they are, so there's no quality loss and
 the original is never changed. **Compress** saves a smaller copy (three levels, from "no quality
-loss" to "smallest file"; only pictures get smaller, text stays sharp). **Password** locks a copy
-with AES-256 encryption, or removes the password from your own PDF. **Make searchable** reads
+loss" to "smallest file"; only pictures get smaller, text stays sharp). **Make searchable** reads
 the text in scanned pages (OCR) and adds it invisibly, so you can search and copy it; the pages
 look exactly the same. In the app under **PDF tools**, or `azoth pdf` on the command line.
+
+**Password** (its own page): locks a copy of a PDF, Word, Excel or PowerPoint file (DOCX,
+XLSX, PPTX) with AES-256 encryption, or removes the password from your own file.
+Password-protected Office files can be converted too: the app asks for the password and
+never saves it.
 
 **Text recognition (OCR), offline:** scanned PDFs and photos of letters become Word or text
 files; photos can also become a searchable PDF. English, German, French and Italian are
 included. Recognition runs on your computer; nothing is uploaded.
+
+**Right-click menu:** in Explorer, right-click a file → **Convert with Azoth Converter** →
+e.g. **To PDF**. The app opens and converts it right away; several selected files are
+converted together. (Windows 11: under **Show more options**. Only with the installer, not in the portable
+version.)
 
 **Remove photo metadata:** save a copy of your photos without the hidden information
 (GPS location, camera, date, author, comments, preview pictures) before you share them. The
 picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC and AVIF:
 in the app, choose **Remove metadata only**; right-click a file and choose
 **Show metadata…** to see what it contains first.
+
+**Remove document metadata:** the same for PDF, Word (DOCX), Excel (XLSX) and PowerPoint
+(PPTX) files: author, company, dates, editing time, the template's folder, Word's edit
+history (revision marks) and earlier versions saved inside a PDF are removed; names on
+comments and tracked changes become "Author". The text, comments and tracked changes
+themselves stay exactly the same. Signed or password-protected PDFs are left alone.
 
 **Change picture size:** make photos smaller or bigger while converting, or keep the format
 and only change the size. Choose a screen size like Full HD or 4K (turned for portrait
@@ -43,23 +58,37 @@ resized unless you choose a size.
 In the app under **Picture size** (or the **Change size only** tile); on the command line
 `azoth convert *.jpg --to jpg --resize 2000`.
 
+**Enhance with AI:** enlarge small photos with sharp new detail instead of a blurry
+enlargement, or keep their size and make them sharper, with less noise and fewer JPEG
+blocks. It runs entirely on your computer (the Real-ESRGAN model, 4.5 MB, is part of the
+app) and takes a while: roughly 10 seconds per megapixel of the original on a 4-core
+processor. The AI *invents* detail, so the result looks real but isn't fully true to the
+original: don't use it for documents, evidence or ID photos. Off unless you tick it; choose
+how strongly noise is removed (Low keeps fine grain). Command line:
+`azoth convert small.jpg --to png --resize 400% --ai`, or `--ai` alone to keep the size.
+
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
-unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
-Word → PDF for an exact layout. Under **Quality** next to the format tiles you can choose smaller files
+unchanged, lossless images stay lossless, and if Microsoft Office is installed, Word, Excel
+and PowerPoint do their own files (to PDF and between their formats) for an exact layout. Under **Quality** next to the format tiles you can choose smaller files
 instead, but never below a sensible minimum.
 
-Office formats need [LibreOffice](https://www.libreoffice.org/download/) (free) to be installed.
-PDF → Word, PDF ↔ images and the image conversions work without it.
+Office formats need Microsoft Office (Word, Excel, PowerPoint) or the free
+[LibreOffice](https://www.libreoffice.org/download/). Microsoft Office is used where it's
+installed; LibreOffice fills the gaps (e.g. PowerPoint files on a PC with only Word) and steps
+in if Office fails. PDF → Word, PDF ↔ images and the image conversions need neither.
 
 ## Using it
 
 **Download:** the latest installer is on the [Releases page](https://github.com/Rxap3r/Azoth-Converter/releases/latest).
 
 Each release offers two versions of the same app:
-- **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry and clean uninstall.
+- **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry,
+  the Explorer right-click menu and clean uninstall.
 - **AzothConverter-portable-<version>.zip**: no installation; unzip anywhere (also a USB
   stick) and run `AzothConverter.exe`. It keeps its settings and temporary files in a `data`
   folder next to itself, so nothing is left on the computer; delete the folder to remove it.
+  It has **no right-click menu in Explorer**: that menu has to be registered in Windows,
+  which a folder you simply delete couldn't undo. Drag files onto the app window instead.
 
 The "Source code" archives that GitHub adds to every release are only needed by developers.
 
@@ -143,8 +172,9 @@ pip install --require-hashes -r requirements-dev.lock
 pip install --no-deps -e .
 ```
 
-Download the text recognition language files (37 MB, checked against fixed checksums;
-the app itself never downloads anything):
+Download the text recognition language files (37 MB) and the AI enlarging model (10 MB,
+stored as 4.5 MB), checked against fixed checksums (the app itself never downloads
+anything):
 
 ```bash
 python packaging/fetch_tessdata.py

@@ -7,6 +7,7 @@ Examples::
     azoth convert scan.pdf --to png --dpi 300
     azoth convert *.heic --to jpg --resize 2000
     azoth convert photo.jpg --to jpg --resize 50%
+    azoth convert small.png --to png --resize 400% --ai
     azoth clean *.jpg -o to-share
     azoth clean --show photo.heic
     azoth formats report.pdf
@@ -16,6 +17,7 @@ Examples::
     azoth pdf edit scan.pdf --delete 2 --rotate 1=90
     azoth pdf compress big.pdf --level strong
     azoth pdf password add contract.pdf
+    azoth password add budget.xlsx
     azoth pdf ocr scan.pdf --language deu
     azoth convert photo.jpg --to docx --language fra
 """
@@ -24,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from . import __version__, formats, quality, resize
@@ -51,10 +54,24 @@ def cmd_convert(args: argparse.Namespace) -> int:
     if args.only_shrink and args.resize is None:
         print("--only-shrink needs --resize", file=sys.stderr)
         return 2
+    if args.denoise and not args.ai:
+        print("--denoise needs --ai", file=sys.stderr)
+        return 2
     try:
         size = None if args.resize is None else resize.parse(args.resize, not args.only_shrink)
+        if args.ai:  # without --resize: same size, better quality
+            size = replace(
+                size or resize.Resize(resize.PERCENT, percent=100),
+                ai=True,
+                denoise=args.denoise or "medium",
+            )
     except resize.ResizeError as exc:
         print(exc, file=sys.stderr)
+        return 2
+    from . import upscale
+
+    if args.ai and not upscale.available():
+        print("AI enhancing isn't available: the AI model is missing.", file=sys.stderr)
         return 2
     options = {
         "resize": size,
@@ -68,6 +85,10 @@ def cmd_convert(args: argparse.Namespace) -> int:
     }
     failures = 0
     paths = [Path(f) for f in args.files]
+    passwords = _ask_office_passwords(paths)
+    if passwords is None:
+        return 1
+    options["passwords"] = passwords
     printers = [None if args.quiet else _progress_printer(p.name) for p in paths]
     current = [0]  # photos run in parallel: only show the progress of the file shown next
 
@@ -266,12 +287,42 @@ def cmd_pdf_ocr(args: argparse.Namespace) -> int:
     return 0
 
 
+def _ask_office_passwords(paths: list[Path]) -> dict[str, str] | None:
+    """Ask for the password of each protected Word, Excel or PowerPoint file (only when
+    typing is possible). None if the user cancelled. Passwords are never stored."""
+    import getpass
+
+    from . import office_password
+
+    passwords: dict[str, str] = {}
+    protected = [p for p in paths if p.is_file() and office_password.is_protected(p)]
+    if not protected or not sys.stdin.isatty():
+        return passwords  # without a password, the file fails with a clear message
+    try:
+        for path in protected:
+            for _attempt in range(3):
+                password = getpass.getpass(f"Password for {path.name}: ")
+                try:
+                    office_password.decrypt(path, password)
+                except ConversionError as exc:
+                    print(f"! {exc}", file=sys.stderr)
+                    continue
+                passwords[str(path)] = password
+                break
+    except (EOFError, KeyboardInterrupt):
+        print("\n✗ Cancelled. Nothing was converted.", file=sys.stderr)
+        return None
+    return passwords
+
+
 def cmd_pdf_password(args: argparse.Namespace) -> int:
     import getpass
 
-    from . import pdf_tools
+    from . import office_password, pdf_tools
 
     src = Path(args.file)
+    if office_password.file_kind(src) is not None:
+        pdf_tools = office_password  # the same steps for Word, Excel and PowerPoint files
     try:
         password = getpass.getpass("Password: ")
         if args.action == "add":
@@ -362,6 +413,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="with --resize: don't enlarge pictures that are smaller than the size",
     )
     p.add_argument(
+        "--ai",
+        action="store_true",
+        help="enhance pictures with AI (slow; runs on this computer): enlarging adds "
+        "detail the AI invents, so it looks sharp but isn't fully true to the original. "
+        "Without --resize the size stays and the picture gets sharper, with less noise "
+        "and fewer JPEG blocks. Not for documents, evidence or ID photos",
+    )
+    p.add_argument(
+        "--denoise",
+        choices=resize.DENOISE_LEVELS,
+        default=None,
+        help="with --ai: how strongly noise and JPEG blocks are removed (default: medium)",
+    )
+    p.add_argument(
         "--keep-metadata",
         action="store_true",
         help="keep photo EXIF data (removed by default for privacy)",
@@ -384,20 +449,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--no-word",
+        "--no-office",
         action="store_true",
-        help="use LibreOffice even if Microsoft Word is installed (Word → PDF)",
+        dest="no_word",
+        help="use LibreOffice even if Microsoft Office (Word, Excel, PowerPoint) is installed",
     )
     p.add_argument("--quiet", "-q", action="store_true")
     p.set_defaults(func=cmd_convert)
 
     p = sub.add_parser(
         "clean",
-        help="remove photo metadata (location, camera, date) without changing the picture",
-        description="Save a copy of each photo without its metadata: GPS location, camera, "
-        "date, author, comments and preview pictures. The picture itself stays exactly "
-        "the same; the original file is not changed.",
+        help="remove metadata (location, camera, author, company …) without changing the content",
+        description="Save a copy of each photo or document without its metadata. Photos: "
+        "GPS location, camera, date, author, comments and preview pictures. PDF, DOCX, "
+        "XLSX, PPTX: author, company, dates, edit history, earlier PDF versions; names on "
+        "comments become 'Author'. The picture or text stays exactly the same; the "
+        "original file is not changed.",
     )
-    p.add_argument("files", nargs="+", help="photos or images (JPG, PNG, WebP, HEIC, …)")
+    p.add_argument("files", nargs="+", help="photos, images, PDF, DOCX, XLSX or PPTX files")
     p.add_argument(
         "--output", "-o", help="output folder (default: next to each file, as 'name (clean)')"
     )
@@ -467,13 +536,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_ocr)
     p = pdf.add_parser(
-        "password", help="add or remove a password (asks for it; it is never stored)"
+        "password",
+        help="add or remove a password on a PDF, or on a Word, Excel or PowerPoint file "
+        "(asks for it; it is never stored)",
     )
     p.add_argument("action", choices=["add", "remove"])
     p.add_argument("file")
     p.add_argument(
         "--output", "-o", help="output file (default: 'name (protected).pdf' / '(unlocked)')"
     )
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_pdf_password)
+    p = sub.add_parser(
+        "password",
+        help="add or remove a password on a PDF, Word, Excel or PowerPoint file "
+        "(the same as 'azoth pdf password')",
+    )
+    p.add_argument("action", choices=["add", "remove"])
+    p.add_argument("file")
+    p.add_argument("--output", "-o", help="output file (default: 'name (protected)')")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_password)
 

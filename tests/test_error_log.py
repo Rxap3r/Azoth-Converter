@@ -20,7 +20,8 @@ def log(monkeypatch, tmp_path):
     monkeypatch.setattr(error_log, "_show_message", lambda path: shown.append(path))
     shown = []
     yield tmp_path / error_log.FILE_NAME, shown
-    faulthandler.disable()
+    # Back to pytest's own crash report, so a hard crash in a later test still shows where.
+    faulthandler.enable(file=sys.__stderr__, all_threads=True)
     if error_log._crash_file is not None:
         error_log._crash_file.close()
         error_log._crash_file = None

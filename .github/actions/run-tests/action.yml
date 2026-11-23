@@ -52,6 +52,15 @@ runs:
           Write-Error "Installing LibreOffice failed (exit code $($lo.ExitCode))"
           exit 1
         }
+    # The installer can report success without installing anything; then every Office
+    # test would be skipped and the run would still look green. Ask the app itself.
+    - name: Check that the app finds LibreOffice
+      shell: bash
+      run: |
+        python -c "from azoth.converters.office import find_soffice as f; p = f(); print('LibreOffice:', p); raise SystemExit(p is None)" || {
+          echo "::error::LibreOffice was not installed, so the Office tests would be skipped. Re-run the job."
+          exit 1
+        }
     # Text recognition language files (37 MB, pinned and checked by SHA-256)
     - name: Fetch OCR language files
       shell: bash

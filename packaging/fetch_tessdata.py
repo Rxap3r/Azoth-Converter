@@ -68,7 +68,10 @@ def main() -> int:
             print(f"{name}: wrong checksum {actual}, expected {expected}", file=sys.stderr)
             return 1
         temp.replace(path)
-    return 0
+    # The AI enlarging model is fetched here too, so the automatic build needs one step.
+    import fetch_upscale_model
+
+    return fetch_upscale_model.main()
 
 
 if __name__ == "__main__":

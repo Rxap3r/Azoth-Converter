@@ -93,6 +93,7 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
 | Images | JPG, PNG, WebP, BMP, TIFF, GIF, ICO, HEIC, AVIF | Pillow, pillow-heif | ✅ |
 | Privacy | Remove photo metadata, same format in and out (JPG, PNG, WebP, GIF, TIFF, HEIC, AVIF) | own lossless code, Pillow | ✅ |
+| Privacy | Remove document metadata (PDF, DOCX, XLSX, PPTX) | own code, PyMuPDF | ✅ |
 | Camera RAW, SVG | CR2, NEF, ARW, DNG, SVG | rawpy, resvg | 🔜 |
 | Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | 🔜 |
 | Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | 🔜 |
@@ -122,6 +123,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] "Supported formats" section in the app (open/close, searchable), generated from the converters
 - [ ] Test with real-world files: complex Word layouts, large PDFs, Excel with several sheets
 - [x] **Microsoft Word engine:** if Word is installed, it does Word → PDF (exact layout); falls back to LibreOffice. *Needs a check on a real Windows PC with Word.*
+- [x] **Passwords on Office files** (owner's wish, 23 Nov 2026): add/remove a password on DOCX, XLSX, PPTX (remove also on DOC, XLS, PPT) on the Password page (own sidebar entry since 23 Nov 2026, owner's wish) and `azoth password`; protected files are converted after asking for the password (unlocked only in the job's temp folder; msoffcrypto-tool, MIT). *Owner to check: a protected file made in Office opens here, and a file locked here opens in Office.*
+- [x] **Microsoft Excel and PowerPoint engines** (owner's wish, 23 Nov 2026: company PC with Office but no LibreOffice showed "install LibreOffice"): Word, Excel and PowerPoint convert their files to PDF and between their own formats (Word: DOCX, DOC, ODT, RTF, TXT; Excel: XLSX, XLS, ODS, CSV; PowerPoint: PPTX, PPT, ODP). The LibreOffice message only names what nothing installed can do. *Needs a check on the owner's company PC (Excel → PDF, PowerPoint → PDF, XLS → XLSX, PPT → PPTX, a password-protected file, PowerPoint already open).*
 - [x] **1:1 quality pass:** photos go into PDFs unchanged (Word/Excel/PowerPoint → PDF and image → PDF), lossless sources stay lossless, JPG at quality 95 with full colour detail, PDF pages as images at 300 DPI
 - [x] **Quality levels** (Maximum / High / Smaller files) with minimums that can't be undercut
 - [x] Locked dependency versions with hashes
@@ -147,7 +150,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
 - [ ] PDF → Excel for tables
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
-  - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
+  - [x] Removing metadata from PDF and Office files (author, company, edit history): DOCX, XLSX, PPTX and PDF, content checked unchanged before saving (on `dev`, Nov 2026)
+  - [ ] Later: BMP and ICO (they rarely carry metadata); OpenDocument files (ODT, ODS, ODP: `meta.xml`); old DOC/XLS/PPT (today: convert first)
   - [x] A "Show metadata" button (ⓘ) on each photo card, besides the right-click menu (0.4.0)
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
 - [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
@@ -182,7 +186,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] PDF → images in parallel: PyMuPDF isn't thread-safe, so this would need separate processes
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
-- [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
+- [x] **PDF → Word progress and cancel** for large PDFs: pdf2docx's steps run page by page, with progress and cancel between pages (on `dev`, Nov 2026)
 - [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
 ### Phase 3: Audio and video (≈ 4 weeks)
@@ -195,11 +199,17 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
 - [x] **Fully portable version** (on `dev`, Nov 2026: `portable.py`; `portable.txt` only in the ZIP, never in the installer; the build tests the unzipped app; runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
 - [x] Command-line program renamed to `azoth-terminal.exe` (owner's wish, 0.4.0); double-clicked it shows a short note instead of opening the app
-- [ ] Windows Explorer right-click menu: "Convert with Azoth Converter → …"
+- [x] Windows Explorer right-click menu: "Convert with Azoth Converter → …" (on `dev`, Nov 2026): up to 6 targets per kind of file, "Remove metadata", "Open in Azoth Converter…"; added and removed by the installer (task, ticked by default), entries generated from the formats (`packaging/make_context_menu.py`); several files → one window, one batch
+  - [ ] Windows 11 shows it under "Show more options"; the short Windows 11 menu needs a signed app package (after code signing)
+  - Not in the portable version (it must leave nothing on the PC); owner agreed (23 Nov 2026): installer only, documented in the README and release notes
 - [ ] **Image size and quality (owner's wish, Nov 2026):** choose how many pixels a picture should have (e.g. width × height, a percentage, or "longest side 2000 px"), when converting or on its own (same format).
   - [x] Smaller: normal high-quality downscaling (Lanczos), plus **plain enlarging** (smooth bicubic, adds no detail). App: "Picture size" + "Change size only" tile; CLI: `--resize`, `--only-shrink` (on `dev`, Nov 2026). Owner's feedback: "Screen size" instead of "Fit inside", turned for portrait photos; "Longest side" only on the command line; enlarging is normal, "Don't enlarge smaller pictures" optional; ready-made sizes (8K … 640 × 360, percentages) with "Custom size…" last, owner's wish
-  - [ ] Later, its own step: **AI upscaling** that invents plausible detail to fit the new size (a local model, e.g. Real-ESRGAN; must run offline, adds download size). Also "improve quality" at the same size (sharpen, remove JPEG blocks, reduce noise).
+  - [x] **AI upscaling / "Enhance with AI"** (on `dev`, 23 Nov 2026, `upscale.py`): checkbox under "Picture size"; enlarging adds invented detail, "Keep original size" + AI = improve quality at the same size (sharper, less noise, fewer JPEG blocks; saved as "name (enhanced)"). "Noise removal" Low / Medium / High. CLI `--ai`, `--denoise`. Never the default; pictures that get smaller don't use it; every enhanced file gets a note that the detail is invented.
   - Never the default: originals stay 1:1 unless the user asks. Say clearly that AI-added detail isn't real (not for documents, evidence or ID photos)
+  - How it works: Real-ESRGAN `realesr-general-x4v3` + `realesr-general-wdn-x4v3` (BSD-3, ×4, mixed for the noise levels as in Real-ESRGAN's own `--denoise_strength`), fetched at build time by `packaging/fetch_upscale_model.py` (pinned SHA-256, read without PyTorch by a safe unpickler, stored as a 4.5 MB float16 `.npz`). At run time the network is written as an ONNX file in memory and run by **OpenCV's dnn module** (already in the app via pdf2docx), ~4× faster than plain numpy: ~10 s per megapixel of the original on a 4-core cloud machine, ~210 MB memory. Tiles of 256 px with 24 px overlap (max. 1 of 255 levels difference to one whole-picture pass), result resized strip by strip with Pillow's `box` (no seams, little memory). Other sizes than ×4: ×4 then Lanczos (smaller) / bicubic (bigger). Transparency: alpha enlarged normally, hidden colours under transparent pixels filled first (no dark fringes). One AI picture at a time (it uses all cores). 16-bit pictures are refused with a clear message.
+  - [ ] Owner to try on Windows with real phone photos: quality, speed on their PC, the wording of the hint.
+  - [ ] **Owner's question (23 Nov 2026): a better model?** Option "Best quality (slower)" with Real-ESRGAN `RealESRGAN_x4plus` (BSD-3, ~64 MB, about 15× more work than the current model: minutes per photo on a normal PC). Bigger models (SwinIR, HAT, diffusion like SUPIR) need a graphics card and GBs of download. No model recovers the real detail; bigger ones only guess better. **Measured (23 Nov 2026):** `RealESRGAN_x4plus` (RRDBNet, 67 MB) runs fine in OpenCV dnn (ops: Conv, LeakyRelu, Concat, Resize nearest) but is ~17× slower (~140 s per megapixel of the original on 4 cores). ×2 and JPEG clean-up: hardly visible difference (1–3 % better numbers). ×4 from tiny photos: visibly more natural texture (fur, hair) than the small model. Suggestion: optional "Best quality (slow)" only; owner to decide.
+  - [ ] Later ideas: graphics-card speed-up (OpenCV's OpenCL/DirectML, or onnxruntime-directml; more download size), a face-specific model (GFPGAN-style) for portraits, an estimate of the time before starting, "Enhance" as its own tile if the checkbox is hard to find.
 - [ ] Watch folders (files dropped in a folder are converted automatically)
 - [ ] Data formats (CSV/JSON/XML/YAML/XLSX), Markdown/HTML/EPUB, archives, Camera RAW, SVG
 - [ ] Saved presets, optional local conversion history (can be cleared or turned off)

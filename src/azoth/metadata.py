@@ -1,5 +1,8 @@
 """Show and remove the hidden information in photos (location, camera, date, author …).
 
+PDF, Word, Excel and PowerPoint files are handled by ``doc_metadata.py``; this module
+is the entry point for all of them.
+
 The picture itself is never changed: the metadata is cut out of the file and the picture
 data is copied as it is (see ``converters/strip.py`` and ``converters/jpeg_tools.py``).
 Before a cleaned file is saved, both versions are decoded and compared pixel by pixel,
@@ -19,7 +22,7 @@ from pathlib import Path
 
 from PIL import ExifTags, Image, ImageSequence
 
-from . import formats
+from . import doc_metadata, formats
 from .converters import ConversionError, jpeg_tools, strip
 from .converters import images as _images  # registers the HEIC opener
 from .engine import check_file_name, unique_path
@@ -29,6 +32,9 @@ if _images.HEIF_SUPPORTED:
     CLEANABLE.append("heic")
 if _images.AVIF_SUPPORTED:
     CLEANABLE.append("avif")
+
+PICTURES = list(CLEANABLE)
+CLEANABLE += doc_metadata.CLEANABLE
 
 CLEAN_SUFFIX = " (clean)"  # added to the name when the copy goes next to the original
 
@@ -209,7 +215,9 @@ def _open(data: bytes) -> Image.Image:
 
 
 def inspect_bytes(fmt: str, data: bytes) -> list[Finding]:
-    """What private information an image file contains (empty list: nothing found)."""
+    """What private information a file contains (empty list: nothing found)."""
+    if fmt in doc_metadata.CLEANABLE:
+        return doc_metadata.inspect_bytes(fmt, data)
     try:
         with _open(data) as im:
             found = _from_pillow(im)
@@ -242,9 +250,13 @@ def _cleanable_format(path: Path) -> str:
     fmt = formats.detect(path)
     if fmt is None or fmt.id not in CLEANABLE:
         kind = fmt.name if fmt else "this kind of file"
-        names = ", ".join({"webp": "WebP"}.get(f, f.upper()) for f in CLEANABLE)
+        names = ", ".join({"webp": "WebP"}.get(f, f.upper()) for f in PICTURES)
+        hint = ""
+        if fmt is not None and fmt.id in ("doc", "xls", "ppt"):
+            hint = f" Convert it to {fmt.id.upper()}X first, then remove the metadata."
         raise ConversionError(
-            f"Removing metadata works for photos and images ({names}), not for {kind}."
+            f"Removing metadata works for photos and images ({names}), PDF, Word (DOCX), "
+            f"Excel (XLSX) and PowerPoint (PPTX) files, not for {kind}.{hint}"
         )
     return fmt.id
 
@@ -273,8 +285,18 @@ def _same_picture(a: bytes, b: bytes, *, compare_orientation: bool = True) -> bo
 
 
 def clean_bytes(fmt: str, data: bytes) -> bytes:
-    """The image without metadata. Raises ``ConversionError`` if that isn't possible
-    without changing the picture."""
+    """The file without metadata. Raises ``ConversionError`` if that isn't possible
+    without changing the picture (or a document's content)."""
+    if fmt in doc_metadata.CLEANABLE:
+        cleaned = doc_metadata.clean_bytes(fmt, data)
+        left = doc_metadata.inspect_bytes(fmt, cleaned)
+        if left:
+            raise ConversionError(
+                "Some metadata could not be removed ("
+                + ", ".join(f.label for f in left)
+                + "). Nothing was saved."
+            )
+        return cleaned
     try:
         with _open(data) as im:
             orientation = im.getexif().get(0x0112, 1)

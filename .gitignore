@@ -12,3 +12,4 @@ htmlcov/
 packaging/Output/
 packaging/icon_preview.png
 src/azoth/resources/tessdata/
+src/azoth/resources/upscale/

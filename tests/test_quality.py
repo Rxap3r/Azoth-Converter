@@ -358,3 +358,39 @@ def test_picture_size_only_changes_when_asked(tmp_path):
     with Image.open(kept.outputs[0]) as im, Image.open(src) as original:
         assert im.size == (640, 480)
         assert not ImageChops.difference(im.convert("RGB"), original.convert("RGB")).getbbox()
+
+
+def test_ai_is_never_used_unless_asked():
+    """AI-invented detail isn't 1:1: it is off in every default, and smaller pictures
+    never go through it."""
+    from azoth import resize
+
+    assert not resize.Resize(resize.PERCENT, percent=200).ai
+    assert not resize.parse("2000").ai and not resize.parse("400%").ai
+    assert not resize.uses_ai(resize.parse("400%"), 100, 100)
+    assert not resize.uses_ai(resize.Resize(resize.PERCENT, percent=50, ai=True), 100, 100)
+
+
+def test_removing_document_metadata_keeps_the_content_exactly(tmp_path):
+    """Cleaning a PDF or Word file changes only metadata: same page content and text."""
+    import docx
+    import pymupdf
+    from conftest import make_pdf
+
+    from azoth import metadata
+
+    pdf = make_pdf(tmp_path / "a.pdf", ["Page one", "Page two"])
+    with pymupdf.open(pdf) as doc:
+        doc.set_metadata({"author": "Someone"})
+        doc.saveIncr()
+    out = metadata.clean_file(pdf).output
+    with pymupdf.open(pdf) as a, pymupdf.open(out) as b:
+        assert [p.read_contents() for p in a] == [p.read_contents() for p in b]
+
+    word = tmp_path / "w.docx"
+    d = docx.Document()
+    d.add_paragraph("Exact text  with  spaces")
+    d.core_properties.author = "Someone"
+    d.save(word)
+    cleaned = docx.Document(metadata.clean_file(word).output)
+    assert [p.text for p in cleaned.paragraphs] == ["Exact text  with  spaces"]

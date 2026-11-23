@@ -15,7 +15,8 @@ def test_targets_common_to_all_files():
     ids = [f.id for f in choices.formats]
     assert "jpg" in ids and "pdf" in ids  # PDF is offered: the PDF itself is just skipped
     assert "xlsx" not in ids  # neither can become Excel
-    assert not choices.can_clean  # PDFs have no photo metadata to remove
+    assert choices.can_clean  # photos and PDFs both can have their metadata removed
+    assert not targets.choices(ENGINE, [F["png"], F["xls"]]).can_clean  # old Excel: no
 
 
 def test_targets_for_photos_offer_cleaning():
@@ -171,7 +172,7 @@ def test_target_picker(qtbot):
     assert picker.tiles[0].accessibleName() == "PNG: Lossless"
 
     picker.set_choices(targets.choices(ENGINE, [F["pdf"]]))
-    assert targets.CLEAN_TARGET not in picker.ids() and picker.current() == "docx"
+    assert targets.CLEAN_TARGET in picker.ids() and picker.current() == "docx"
     picker.set_choices(targets.choices(ENGINE, []))
     assert picker.ids() == [] and picker.current() is None
 

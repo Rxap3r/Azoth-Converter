@@ -4,7 +4,7 @@
 
 Everything is converted on your computer. Nothing is uploaded.
 
-Most office formats need the free [LibreOffice](https://www.libreoffice.org/download/) to be installed. The column **Works right away** lists what works without it.
+Most office formats need the free [LibreOffice](https://www.libreoffice.org/download/) or Microsoft Office (Word, Excel, PowerPoint) on Windows. The column **Works right away** lists what works without either.
 
 ## All formats
 
