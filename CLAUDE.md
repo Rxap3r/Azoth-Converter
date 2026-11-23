@@ -70,8 +70,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
   Office passwords; then (for 0.5.0) PDF → Word progress, document metadata, Explorer
   right-click menu (all released in 0.5.0). **Next (owner, 23 Nov 2026), each in a fresh
-  session: 1. PDF → Excel (✓ on `dev`, 23 Nov 2026: `converters/pdf_excel.py`, not yet released), 2. video/audio (FFmpeg; ask the owner about the extra ~80–100 MB
-  download first).** Then: the **design refresh is low priority** (the owner finds the current
+  session: 1. PDF → Excel (✓ on `dev`, 23 Nov 2026: `converters/pdf_excel.py`, not yet released), 2. video/audio (FFmpeg; owner decided 23 Nov 2026: bundle the
+  full FFmpeg, the extra ~80–100 MB is fine).** Then: the **design refresh is low priority** (the owner finds the current
   design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the

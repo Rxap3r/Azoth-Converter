@@ -192,7 +192,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
 ### Phase 3: Audio and video (≈ 4 weeks)
-**Next after PDF → Excel (owner, 23 Nov 2026):** start in a fresh session. Open decision for the owner before building: FFmpeg adds roughly 80–100 MB to the download (show options, e.g. bundled vs. a slimmer build with only common codecs).
+**Next after PDF → Excel (owner, 23 Nov 2026):** start in a fresh session. **Decided (owner, 23 Nov 2026): bundle the full FFmpeg** (~80–100 MB more download is fine).
 - [ ] FFmpeg plugin with progress parsed from FFmpeg's output
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
 - [ ] Trim, resolution, bitrate, mute; hardware encoding (NVENC, Quick Sync, AMF)
