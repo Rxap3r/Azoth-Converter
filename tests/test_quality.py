@@ -358,3 +358,14 @@ def test_picture_size_only_changes_when_asked(tmp_path):
     with Image.open(kept.outputs[0]) as im, Image.open(src) as original:
         assert im.size == (640, 480)
         assert not ImageChops.difference(im.convert("RGB"), original.convert("RGB")).getbbox()
+
+
+def test_ai_is_never_used_unless_asked():
+    """AI-invented detail isn't 1:1: it is off in every default, and smaller pictures
+    never go through it."""
+    from azoth import resize
+
+    assert not resize.Resize(resize.PERCENT, percent=200).ai
+    assert not resize.parse("2000").ai and not resize.parse("400%").ai
+    assert not resize.uses_ai(resize.parse("400%"), 100, 100)
+    assert not resize.uses_ai(resize.Resize(resize.PERCENT, percent=50, ai=True), 100, 100)

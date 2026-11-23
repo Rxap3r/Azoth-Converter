@@ -127,13 +127,22 @@ class ImageConverter(Converter):
         keep_metadata = bool(ctx.option("keep_metadata", False))
         size: resize.Resize | None = ctx.option("resize", None)
 
-        def prepare(frame: Image.Image) -> Image.Image:
+        def prepare(frame: Image.Image, done: float = 0.0, share: float = 0.85) -> Image.Image:
             # The size is applied after turning the picture upright (in _prepare_frame),
             # so "width" means the width the user sees.
             frame = _prepare_frame(frame, dst_id)
             if size is None:
                 return frame
-            resized = resize.apply(frame, size)
+            ai = resize.uses_ai(size, *frame.size)
+            if ai and not used_ai:
+                used_ai.append(True)
+                ctx.progress(done, "Enhancing with AI")
+            resized = resize.apply(
+                frame,
+                size,
+                progress=lambda f: ctx.progress(done + f * share, "Enhancing with AI"),
+                cancelled=ctx.check_cancelled,
+            )
             if resized.size != frame.size and not changed:
                 changed.append(
                     f"New size: {resized.width} × {resized.height} px "
@@ -148,6 +157,7 @@ class ImageConverter(Converter):
 
         kept: list[str] = []
         changed: list[str] = []
+        used_ai: list[bool] = []
 
         try:
             with Image.open(src) as im:
@@ -158,7 +168,7 @@ class ImageConverter(Converter):
                     frames = []
                     for i, frame in enumerate(ImageSequence.Iterator(im)):
                         ctx.check_cancelled()
-                        frames.append(prepare(frame.copy()))
+                        frames.append(prepare(frame.copy(), i / n_frames * 0.8, 0.8 / n_frames))
                         ctx.progress((i + 1) / n_frames * 0.8, f"Frame {i + 1}/{n_frames}")
                     durations = im.info.get("duration")
                 else:
@@ -173,6 +183,11 @@ class ImageConverter(Converter):
 
         ctx.warnings.extend(kept)
         ctx.notes.extend(changed)
+        if used_ai:
+            ctx.notes.append(
+                "Enhanced with AI: the added detail is invented by the AI, so it isn't "
+                "fully true to the original."
+            )
         ctx.check_cancelled()
         first = frames[0]
         for frame in frames:

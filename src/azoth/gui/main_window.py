@@ -305,6 +305,8 @@ class MainWindow(QMainWindow):
         files = f"{count} file{'s' if count != 1 else ''}"
         if target == CLEAN_TARGET:
             text = f"Remove metadata from {files}"
+        elif target == RESIZE_TARGET and self.resize_options.mode.currentData() is None:
+            text = f"Enhance {files}" if count else "Choose a new size"
         elif target == RESIZE_TARGET:
             text = f"Resize {files}" if count else "Choose a new size"
         elif target:
@@ -487,6 +489,7 @@ class MainWindow(QMainWindow):
             cancelled,
             cleaning=kind == CLEAN_TARGET,
             resizing=kind == RESIZE_TARGET,
+            enhancing=kind == RESIZE_TARGET and self.resize_options.mode.currentData() is None,
         )
         self.status_label.setText("")
         self.done_card.show_result(

@@ -43,6 +43,15 @@ resized unless you choose a size.
 In the app under **Picture size** (or the **Change size only** tile); on the command line
 `azoth convert *.jpg --to jpg --resize 2000`.
 
+**Enhance with AI:** enlarge small photos with sharp new detail instead of a blurry
+enlargement, or keep their size and make them sharper, with less noise and fewer JPEG
+blocks. It runs entirely on your computer (the Real-ESRGAN model, 4.5 MB, is part of the
+app) and takes a while: roughly 10 seconds per megapixel of the original on a 4-core
+processor. The AI *invents* detail, so the result looks real but isn't fully true to the
+original: don't use it for documents, evidence or ID photos. Off unless you tick it; choose
+how strongly noise is removed (Low keeps fine grain). Command line:
+`azoth convert small.jpg --to png --resize 400% --ai`, or `--ai` alone to keep the size.
+
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
 unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
 Word → PDF for an exact layout. Under **Quality** next to the format tiles you can choose smaller files
@@ -143,8 +152,9 @@ pip install --require-hashes -r requirements-dev.lock
 pip install --no-deps -e .
 ```
 
-Download the text recognition language files (37 MB, checked against fixed checksums;
-the app itself never downloads anything):
+Download the text recognition language files (37 MB) and the AI enlarging model (10 MB,
+stored as 4.5 MB), checked against fixed checksums (the app itself never downloads
+anything):
 
 ```bash
 python packaging/fetch_tessdata.py

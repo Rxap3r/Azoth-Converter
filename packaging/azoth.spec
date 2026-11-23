@@ -13,10 +13,13 @@ from pathlib import Path
 # app would ship without text recognition.
 sys.path.insert(0, str(Path(SPECPATH)))
 from fetch_tessdata import FILES, TARGET  # noqa: E402
+from fetch_upscale_model import TARGET as AI_MODEL  # noqa: E402
 
 missing = [name for name in FILES if not (TARGET / name).is_file()]
 if missing:
     raise SystemExit(f"OCR language files missing: {missing}. Run python packaging/fetch_tessdata.py")
+if not AI_MODEL.is_file():  # "Enhance with AI" needs it
+    raise SystemExit(f"AI model missing: {AI_MODEL.name}. Run python packaging/fetch_tessdata.py")
 
 # App resources (icon, OCR languages) plus package metadata, so the About window can show versions.
 datas = [("../src/azoth/resources", "azoth/resources")]

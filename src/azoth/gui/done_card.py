@@ -34,7 +34,12 @@ def _files(n: int) -> str:
 
 
 def done_message(
-    converted: int, failed: int, cancelled: bool, cleaning: bool = False, resizing: bool = False
+    converted: int,
+    failed: int,
+    cancelled: bool,
+    cleaning: bool = False,
+    resizing: bool = False,
+    enhancing: bool = False,
 ) -> str:
     """One short sentence about the finished run."""
     if cancelled:
@@ -45,6 +50,8 @@ def done_message(
         return f"{converted} done, {failed} failed. The reason is shown on each file."
     if cleaning:
         return f"Done! Metadata removed from {_files(converted)}."
+    if enhancing:
+        return f"Done! {_files(converted)} enhanced."
     if resizing:
         return f"Done! {_files(converted)} resized."
     return f"Done! {_files(converted)} converted."

@@ -307,6 +307,35 @@ def test_change_size_only(window, qtbot, sample_png, tmp_path):
     assert window.done_card.message.text() == "Done! 2 files resized."
 
 
+def test_enhance_with_ai(window, qtbot, tmp_path, upscale_ready):
+    from PIL import Image
+
+    from azoth.gui.targets import RESIZE_TARGET
+    from azoth.resize import PERCENT, Resize
+
+    photo = tmp_path / "small.png"
+    Image.new("RGB", (30, 20), "red").save(photo)
+    window.add_files([photo])
+    sizes = window.resize_options
+    assert window.target_picker.select(RESIZE_TARGET)
+    assert not sizes.ai.isChecked() and sizes.denoise.isHidden()  # never on by default
+    sizes.set_mode(None)
+    sizes.ai.setChecked(True)
+    assert not sizes.denoise.isHidden() and sizes.denoise.currentData() == "medium"
+    assert sizes.spec() == Resize(PERCENT, percent=100, ai=True)  # same size, better
+    assert window.convert_btn.text() == "Enhance 1 file"
+    assert "isn't fully true to the original" in sizes.hint.text()
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=60000)
+    with Image.open(tmp_path / "small (enhanced).png") as im:
+        assert im.size == (30, 20)
+    assert window.done_card.message.text() == "Done! 1 file enhanced."
+    sizes.set_mode("percent")
+    assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.text()
+    sizes.ai.setChecked(False)
+    assert sizes.denoise.isHidden() and not sizes.spec().ai
+
+
 def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):
     from PIL import Image
 

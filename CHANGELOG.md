@@ -7,6 +7,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+
+- **Enhance with AI:** under **Picture size**, "Enhance with AI" makes enlarged photos
+  sharp, with new detail the AI invents, instead of smooth and blurry. With "Keep original
+  size" (saved as "name (enhanced)"), photos keep their size and get sharper, with less
+  noise and fewer JPEG blocks. "Noise removal" (Low / Medium / High) sets how strongly
+  noise is smoothed away; Low keeps fine grain. Never on by default; pictures that get
+  smaller don't use it. Shows progress and can be cancelled. Command line: `--ai`,
+  `--denoise low|medium|high`.
+
+### Privacy and safety
+
+- The AI runs entirely on this computer (the Real-ESRGAN model, BSD-3-Clause, built into
+  the app as plain numbers, no code; OpenCV, already part of the app, runs it). Nothing is
+  downloaded or uploaded. The app says on every enhanced file that the added detail is
+  invented, and advises against using it for documents, evidence or ID photos.
+
+### Development
+
+- `packaging/fetch_tessdata.py` now also fetches the AI model (two pinned, hash-checked
+  files) through `packaging/fetch_upscale_model.py`, which reads them without PyTorch and
+  without running anything from them, and saves the weights as a 4.5 MB `.npz`.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added

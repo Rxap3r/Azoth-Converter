@@ -386,7 +386,8 @@ class Engine:
         if name is not None:
             stem = check_file_name(name, dst_fmt.extension)
         elif src_fmt.id == dst_fmt.id:
-            stem = f"{source.stem} (resized)"  # never the original's name
+            ai = getattr(options.get("resize"), "ai", False)
+            stem = f"{source.stem} ({'enhanced' if ai else 'resized'})"  # never the original's name
         else:
             stem = source.stem
         out_dir = Path(output_dir) if output_dir is not None else source.parent

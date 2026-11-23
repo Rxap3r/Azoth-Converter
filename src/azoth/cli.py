@@ -7,6 +7,7 @@ Examples::
     azoth convert scan.pdf --to png --dpi 300
     azoth convert *.heic --to jpg --resize 2000
     azoth convert photo.jpg --to jpg --resize 50%
+    azoth convert small.png --to png --resize 400% --ai
     azoth clean *.jpg -o to-share
     azoth clean --show photo.heic
     azoth formats report.pdf
@@ -24,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from . import __version__, formats, quality, resize
@@ -51,10 +53,24 @@ def cmd_convert(args: argparse.Namespace) -> int:
     if args.only_shrink and args.resize is None:
         print("--only-shrink needs --resize", file=sys.stderr)
         return 2
+    if args.denoise and not args.ai:
+        print("--denoise needs --ai", file=sys.stderr)
+        return 2
     try:
         size = None if args.resize is None else resize.parse(args.resize, not args.only_shrink)
+        if args.ai:  # without --resize: same size, better quality
+            size = replace(
+                size or resize.Resize(resize.PERCENT, percent=100),
+                ai=True,
+                denoise=args.denoise or "medium",
+            )
     except resize.ResizeError as exc:
         print(exc, file=sys.stderr)
+        return 2
+    from . import upscale
+
+    if args.ai and not upscale.available():
+        print("AI enhancing isn't available: the AI model is missing.", file=sys.stderr)
         return 2
     options = {
         "resize": size,
@@ -360,6 +376,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--only-shrink",
         action="store_true",
         help="with --resize: don't enlarge pictures that are smaller than the size",
+    )
+    p.add_argument(
+        "--ai",
+        action="store_true",
+        help="enhance pictures with AI (slow; runs on this computer): enlarging adds "
+        "detail the AI invents, so it looks sharp but isn't fully true to the original. "
+        "Without --resize the size stays and the picture gets sharper, with less noise "
+        "and fewer JPEG blocks. Not for documents, evidence or ID photos",
+    )
+    p.add_argument(
+        "--denoise",
+        choices=resize.DENOISE_LEVELS,
+        default=None,
+        help="with --ai: how strongly noise and JPEG blocks are removed (default: medium)",
     )
     p.add_argument(
         "--keep-metadata",

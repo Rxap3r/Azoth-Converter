@@ -105,6 +105,19 @@ def ocr_ready() -> None:
         pytest.skip(message)
 
 
+@pytest.fixture
+def upscale_ready() -> None:
+    """AI enlarging tests need the model (python packaging/fetch_tessdata.py fetches it
+    too). Skipped on a developer's machine without it; a failure in the automatic build."""
+    from azoth import upscale
+
+    if not upscale.available():
+        message = "AI model missing: run python packaging/fetch_tessdata.py"
+        if os.environ.get("CI"):
+            pytest.fail(message)
+        pytest.skip(message)
+
+
 def make_text_scan(path: Path, lines: list[str], *, dpi: int = 300) -> Path:
     """A picture of printed text, like a scan or a photo of a letter (PNG)."""
     doc = pymupdf.open()

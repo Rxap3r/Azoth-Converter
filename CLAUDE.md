@@ -39,6 +39,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
   `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
   it on Windows before the release.
+- **AI upscaling ("Enhance with AI") is on `dev` (23 Nov 2026), not released yet:** see
+  `docs/PROJECT_PLAN.md` (Phase 4, picture size). Next: the owner tries it on Windows.
 - **Owner's priorities (23 Nov 2026):** the owner most wants **AI upscaling / "improve
   quality"** (picture size, step 2) and the **Explorer right-click menu**; then PDF → Excel,
   video/audio (FFmpeg); the **design refresh is low priority** (the owner finds the current
@@ -187,6 +189,8 @@ src/azoth/
                       resources/tessdata (not in git: `python packaging/fetch_tessdata.py`)
   portable.py         portable mode (portable.txt next to the exe → data/ and data/temp beside it)
   resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
+  upscale.py          "Enhance with AI" (Real-ESRGAN run by OpenCV's dnn, tiled); model in
+                      resources/upscale (not in git: fetched by packaging/fetch_tessdata.py)
   metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py

@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import ocr, quality, resize
+from .. import ocr, quality, resize, upscale
 from .settings import Preferences
 from .widgets import label
 
@@ -200,6 +200,22 @@ class ResizeOptions(QWidget):
             "Pictures that are already smaller than the chosen size stay as they are. "
             "Useful to make big photos smaller (e.g. for e-mail) without blowing up small ones."
         )
+        self.ai = QCheckBox("Enhance with AI")
+        self.ai.setToolTip(
+            "Bigger pictures get new, sharp detail that the AI invents; pictures that keep "
+            "their size get sharper, with less noise and fewer JPEG blocks. Runs only on "
+            "this computer, and takes a while."
+        )
+        self.ai.setVisible(upscale.available())
+        self.denoise = QComboBox()
+        self.denoise.setAccessibleName("Noise removal")
+        for level, text in upscale.DENOISE_LABELS.items():
+            self.denoise.addItem(f"Noise removal: {text}", level)
+        self.denoise.setCurrentIndex(self.denoise.findData(upscale.MEDIUM))
+        self.denoise.setToolTip(
+            "How strongly noise and JPEG blocks are smoothed away. Low keeps fine grain and "
+            "texture; High gives the cleanest, smoothest look."
+        )
         self.hint = label("", "small", wrap=True)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -209,10 +225,14 @@ class ResizeOptions(QWidget):
         layout.addWidget(self.preset)
         layout.addLayout(boxes)
         layout.addWidget(self.only_shrink)
+        layout.addWidget(self.ai)
+        layout.addWidget(self.denoise)
         layout.addWidget(self.hint)
         self.mode.currentIndexChanged.connect(self._mode_changed)
         self.preset.currentIndexChanged.connect(self._preset_changed)
         self.only_shrink.toggled.connect(self._update)
+        self.ai.toggled.connect(self._update)
+        self.denoise.currentIndexChanged.connect(self._update)
         for box in (self.width_box, self.height_box, self.percent_box):
             box.valueChanged.connect(self._update)
         self._mode_changed()
@@ -231,18 +251,24 @@ class ResizeOptions(QWidget):
     def is_custom(self) -> bool:
         return self.preset.currentData() is None
 
+    def uses_ai(self) -> bool:
+        return self.ai.isChecked() and not self.ai.isHidden()
+
     def spec(self) -> resize.Resize | None:
-        """The chosen size, or None for "Keep original size"."""
+        """The chosen size, or None for "Keep original size" (without AI). With AI and
+        the original size: 100 %, so pictures keep their size and get better."""
         mode = self.mode.currentData()
+        ai = {"ai": True, "denoise": self.denoise.currentData()} if self.uses_ai() else {}
         if mode is None:
-            return None
+            return resize.Resize(resize.PERCENT, percent=100, **ai) if ai else None
         if mode == resize.PERCENT:
-            return resize.Resize(mode, percent=self.percent_box.value())
+            return resize.Resize(mode, percent=self.percent_box.value(), **ai)
         return resize.Resize(
             mode,
             width=self.width_box.value(),
             height=self.height_box.value(),
             enlarge=not self.only_shrink.isChecked(),
+            **ai,
         )
 
     def set_mode(self, mode: str | None) -> None:
@@ -262,7 +288,7 @@ class ResizeOptions(QWidget):
     def set_busy(self, busy: bool) -> None:
         for widget in (
             self.mode, self.preset, self.width_box, self.height_box, self.percent_box,
-            self.only_shrink,
+            self.only_shrink, self.ai, self.denoise,
         ):  # fmt: skip
             widget.setEnabled(not busy)
 
@@ -299,7 +325,11 @@ class ResizeOptions(QWidget):
         self.times.setVisible(custom and mode == resize.FIT)
         self.percent_box.setVisible(custom and mode == resize.PERCENT)
         self.only_shrink.setVisible(mode not in (None, resize.PERCENT))
-        if mode is None:
+        ai = self.uses_ai()
+        self.denoise.setVisible(ai)
+        if mode is None and ai:
+            hint = "Pictures keep their size and get sharper, with less noise."
+        elif mode is None:
             hint = "Pictures keep all their pixels."
         elif mode == resize.FIT:
             hint = (
@@ -310,9 +340,18 @@ class ResizeOptions(QWidget):
         else:
             hint = "Proportions are kept."
         if mode is not None and (mode != resize.PERCENT or self.percent_box.value() > 100):
-            if not self.only_shrink.isChecked() or mode == resize.PERCENT:
+            if ai and (not self.only_shrink.isChecked() or mode == resize.PERCENT):
+                hint += " Enlarging adds sharp detail."
+            elif not self.only_shrink.isChecked() or mode == resize.PERCENT:
                 hint += " Enlarging is smooth but adds no detail."
             else:
                 hint += " Pictures that are already smaller stay as they are."
+        if ai:
+            if mode is not None:
+                hint += " The AI is used for pictures that get bigger or keep their size."
+            hint += (
+                " The AI invents detail: it looks real but isn't fully true to the original"
+                " (not for documents, evidence or ID photos). Takes a while."
+            )
         self.hint.setText(hint)
         self.changed.emit()
