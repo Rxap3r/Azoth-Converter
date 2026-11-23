@@ -78,8 +78,11 @@ def read_pth(path: Path) -> dict[str, np.ndarray]:
                 raise pickle.UnpicklingError("not allowed in a model file")
             return dtype, key
 
-    with archive.open(pkl) as fh:
-        state = SafeUnpickler(fh).load()
+    try:  # closed right away: Windows can't delete a file that is still open
+        with archive.open(pkl) as fh:
+            state = SafeUnpickler(fh).load()
+    finally:
+        archive.close()
     params = state.get("params", state)
     return {k: np.ascontiguousarray(v) for k, v in params.items()}
 
