@@ -81,6 +81,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Development
 
+- The automatic tests stop with a clear message if LibreOffice didn't really get installed
+  on the test computer (before, all Office tests were then skipped and the run still
+  looked fine).
 - The automatic installer test checks that the right-click menu is added on install
   and fully removed on uninstall.
 - `packaging/fetch_tessdata.py` now also fetches the AI model (two pinned, hash-checked
