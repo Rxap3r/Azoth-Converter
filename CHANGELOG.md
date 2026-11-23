@@ -26,7 +26,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   files: convert them to DOCX, XLSX or PPTX first.
 - **PDF → Word shows progress page by page** ("Reading page 12/80") and can be cancelled
   between pages; before, a large PDF showed no progress until it was done.
-- **Passwords on Word, Excel and PowerPoint files:** PDF tools → Password now also takes
+- **Passwords on Word, Excel and PowerPoint files:** the Password tool now also takes
   DOCX, XLSX and PPTX files: add a password (AES-256, the same encryption as current
   Office, so Office opens them as usual) or remove it from your own file (also from older
   DOC, XLS and PPT). Command line: `azoth password add budget.xlsx` (also
@@ -53,6 +53,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   noise is smoothed away; Low keeps fine grain. Never on by default; pictures that get
   smaller don't use it. Shows progress and can be cancelled. Command line: `--ai`,
   `--denoise low|medium|high`.
+
+### Changed
+
+- **Password has its own page** in the sidebar (below PDF tools), because it now works
+  for Word, Excel and PowerPoint files too, not only PDFs.
 
 ### Privacy and safety
 

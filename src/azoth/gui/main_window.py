@@ -37,7 +37,7 @@ from .convert_page import ConvertPage
 from .done_card import Notifier, done_message
 from .file_list import DONE, FAILED, WAITING
 from .formats_panel import FormatsPanel
-from .pdf_tools_page import PdfToolsPage
+from .pdf_tools_page import PasswordPage, PdfToolsPage
 from .settings import Preferences
 from .settings_page import SettingsPage
 from .targets import CLEAN_TARGET, RESIZE_TARGET, display_name
@@ -47,6 +47,7 @@ from .worker import ConversionWorker
 PAGES = [  # (key, text in the sidebar, icon)
     ("convert", "Convert", "convert"),
     ("pdf", "PDF tools", "pdf"),
+    ("password", "Password", "lock"),
     ("formats", "Supported formats", "formats"),
     ("settings", "Settings", "settings"),
 ]
@@ -111,6 +112,7 @@ class MainWindow(QMainWindow):
         self.convert_btn.clicked.connect(self.start_conversion)
 
         self.pdf_page = PdfToolsPage()
+        self.password_page = PasswordPage()
         libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
         self.formats_panel = FormatsPanel(
             libreoffice_installed,
@@ -125,13 +127,14 @@ class MainWindow(QMainWindow):
         self.settings_page.use_word_changed.connect(self._set_use_word)
         self.settings_page.notify_check.toggled.connect(self._set_notify)
         self.settings_page.turn_check.toggled.connect(self.prefs.save_ocr_turn_pages)
-        self.pdf_page.task.done.connect(
-            lambda outputs: (
-                self.notifier.notify(f"Done! {Path(outputs[0]).name} is ready.")
-                if len(outputs) == 1
-                else self.notifier.notify(f"Done! {len(outputs)} PDFs saved.")
+        for tools_page in (self.pdf_page, self.password_page):
+            tools_page.task.done.connect(
+                lambda outputs: (
+                    self.notifier.notify(f"Done! {Path(outputs[0]).name} is ready.")
+                    if len(outputs) == 1
+                    else self.notifier.notify(f"Done! {len(outputs)} PDFs saved.")
+                )
             )
-        )
         self.settings_page.about_requested.connect(self.show_about)
         self.about_btn = self.settings_page.about_btn
 
@@ -140,6 +143,7 @@ class MainWindow(QMainWindow):
         for key, widget in (
             ("convert", self.convert_page),
             ("pdf", self.pdf_page),
+            ("password", self.password_page),
             ("formats", self.formats_panel),
             ("settings", self.settings_page),
         ):
@@ -277,6 +281,9 @@ class MainWindow(QMainWindow):
         paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
         if self.current_page() == "pdf":
             self.pdf_page.add_files(paths)  # goes to the PDF tool that is open
+            return
+        if self.current_page() == "password":
+            self.password_page.add_files(paths)
             return
         self.show_page("convert")
         self.add_files(paths)

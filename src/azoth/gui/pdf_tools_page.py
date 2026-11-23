@@ -1,5 +1,6 @@
-"""The "PDF tools" page: Merge, Split, Edit pages (rotate, delete, reorder), Compress,
-Password and Make searchable (text recognition).
+"""The "PDF tools" page: Merge, Split, Edit pages (rotate, delete, reorder), Compress
+and Make searchable (text recognition); and the "Password" page (PDF, Word, Excel and
+PowerPoint files), which works the same way with a single tool.
 
 The work itself is in ``azoth.pdf_tools`` (lossless, no Qt). This page only collects the
 choices, runs the job in a background thread and shows the result.
@@ -55,9 +56,10 @@ TOOLS = [
     ("split", "Split"),
     ("edit", "Edit pages"),
     ("compress", "Compress"),
-    ("password", "Password"),
     ("ocr", "Make searchable"),
+    ("password", "Password"),  # its own page in the sidebar: not only for PDFs
 ]
+PDF_TOOLS = ["merge", "split", "edit", "compress", "ocr"]
 THUMB_WIDTH = 110
 ROLE_PATH = Qt.ItemDataRole.UserRole
 ROLE_PAGE = Qt.ItemDataRole.UserRole + 1  # original page index
@@ -656,7 +658,7 @@ class CompressTool(_SinglePdfTool):
 
     def check(self, pdf: Path) -> str | None:
         if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
-            return "This PDF is password-protected. Remove the password first (Password)."
+            return "This PDF is password-protected. Remove the password first (Password page)."
         return None
 
     def level(self) -> str:
@@ -855,7 +857,7 @@ class SearchableTool(_SinglePdfTool):
 
     def check(self, pdf: Path) -> str | None:
         if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
-            return "This PDF is password-protected. Remove the password first (Password)."
+            return "This PDF is password-protected. Remove the password first (Password page)."
         if not ocr.needs_ocr(pdf):
             return f"{pdf.name} already has selectable text, so there is nothing to recognise."
         return None
@@ -891,8 +893,11 @@ class SearchableTool(_SinglePdfTool):
 OCR_MISSING = "Text recognition is missing its language files. Reinstall Azoth Converter to use it."
 
 
-class PdfToolsPage(QWidget):
-    def __init__(self) -> None:
+class ToolsPage(QWidget):
+    """A page of tools: a switcher (if there is more than one), the open tool, and the
+    shared output folder, file name, progress and action button."""
+
+    def __init__(self, keys: list[str], title: str, intro: str) -> None:
         super().__init__()
         self.task = Task()
         self.task.done.connect(self._done)
@@ -900,34 +905,42 @@ class PdfToolsPage(QWidget):
         self.task.nothing.connect(self._nothing)
         self.busy = False
 
-        self.merge = MergeTool()
-        self.split = SplitTool()
-        self.edit = EditTool()
-        self.compress = CompressTool()
-        self.password = PasswordTool()
-        self.password.submit.connect(self.run)
-        self.searchable = SearchableTool()
-        self.searchable.report = self.task.progress.emit
-        self.task.progress.connect(self._progress)
-        self.tools = {
-            "merge": self.merge,
-            "split": self.split,
-            "edit": self.edit,
-            "compress": self.compress,
-            "password": self.password,
-            "ocr": self.searchable,
+        makers = {
+            "merge": MergeTool,
+            "split": SplitTool,
+            "edit": EditTool,
+            "compress": CompressTool,
+            "ocr": SearchableTool,
+            "password": PasswordTool,
         }
+        self.tools = {key: makers[key]() for key in keys}
+        self.merge = self.tools.get("merge")
+        self.split = self.tools.get("split")
+        self.edit = self.tools.get("edit")
+        self.compress = self.tools.get("compress")
+        self.searchable = self.tools.get("ocr")
+        self.password = self.tools.get("password")
+        if self.password is not None:
+            self.password.submit.connect(self.run)
+        if self.searchable is not None:
+            self.searchable.report = self.task.progress.emit
+        self.task.progress.connect(self._progress)
         self.stack = QStackedWidget()
         for tool in self.tools.values():
             self.stack.addWidget(tool)
             tool.changed.connect(self._update)
-        self.merge.problem.connect(lambda message: self.result.show_state(FAILED, f"✗ {message}"))
+        if self.merge is not None:
+            self.merge.problem.connect(
+                lambda message: self.result.show_state(FAILED, f"✗ {message}")
+            )
 
         self.tool_buttons: dict[str, QPushButton] = {}
         self.tool_group = QButtonGroup(self)
         switcher = QHBoxLayout()
         switcher.setSpacing(8)
         for key, text in TOOLS:
+            if key not in self.tools:
+                continue
             button = QPushButton(text)
             button.setProperty("role", "filter")
             button.setCheckable(True)
@@ -936,7 +949,10 @@ class PdfToolsPage(QWidget):
             self.tool_buttons[key] = button
             switcher.addWidget(button)
         switcher.addStretch(1)
-        self.tool_buttons["merge"].setChecked(True)
+        self.tool_buttons[keys[0]].setChecked(True)
+        self.stack.setCurrentWidget(self.tools[keys[0]])
+        for button in self.tool_buttons.values():
+            button.setVisible(len(keys) > 1)  # one tool: nothing to switch
 
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()
@@ -951,7 +967,7 @@ class PdfToolsPage(QWidget):
         self.cancel_btn.setMinimumHeight(44)
         self.cancel_btn.setVisible(False)
         self.cancel_btn.clicked.connect(self.cancel)
-        self.action_btn = QPushButton("Merge")
+        self.action_btn = QPushButton(dict(TOOLS)[keys[0]])
         self.action_btn.setProperty("role", "primary")
         self.action_btn.setMinimumWidth(240)
         self.action_btn.clicked.connect(self.run)
@@ -964,20 +980,15 @@ class PdfToolsPage(QWidget):
 
         titles = QVBoxLayout()
         titles.setSpacing(2)
-        titles.addWidget(label("PDF tools", "h1"))
-        titles.addWidget(
-            label(
-                "Merge, split, edit, compress, lock and make PDFs searchable. Only Compress "
-                "changes pictures; everything else copies pages as they are.",
-                "muted",
-                wrap=True,
-            )
-        )
+        titles.addWidget(label(title, "h1"))
+        if intro:  # a single tool explains itself
+            titles.addWidget(label(intro, "muted", wrap=True))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 20)
         layout.setSpacing(14)
         layout.addLayout(titles)
-        layout.addLayout(switcher)
+        if len(keys) > 1:
+            layout.addLayout(switcher)
         layout.addWidget(self.stack, 1)
         layout.addWidget(self.result)
         layout.addWidget(self.progress)
@@ -1041,7 +1052,8 @@ class PdfToolsPage(QWidget):
                 self.result.show_state(WORKING, text)
 
     def apply_colors(self, colors: Colors) -> None:
-        self.merge.apply_colors(colors)
+        if self.merge is not None:
+            self.merge.apply_colors(colors)
 
     def _set_busy(self, busy: bool) -> None:
         self.busy = busy
@@ -1077,3 +1089,22 @@ class PdfToolsPage(QWidget):
     def _failed(self, message: str) -> None:
         self._set_busy(False)
         self.result.show_state(FAILED, f"✗ {message}")
+
+
+class PdfToolsPage(ToolsPage):
+    def __init__(self) -> None:
+        super().__init__(
+            PDF_TOOLS,
+            "PDF tools",
+            "Merge, split, edit, compress and make PDFs searchable. Only Compress changes "
+            "pictures; everything else copies pages as they are.",
+        )
+
+
+class PasswordPage(ToolsPage):
+    def __init__(self) -> None:
+        super().__init__(
+            ["password"],
+            "Password",
+            "",
+        )

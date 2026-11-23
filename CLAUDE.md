@@ -236,7 +236,7 @@ src/azoth/
                       (format tiles), options_panel.py (quality), output_folder.py,
                       formats_panel.py, settings_page.py, done_card.py ("Done" card +
                       Windows notification), pdf_tools_page.py (Merge / Split /
-                      Edit pages / Compress / Password), worker.py (background thread),
+                      Edit pages / Compress / OCR; also the Password page), worker.py (background thread),
                       targets.py (which targets are offered, no Qt), theme.py (light/dark
                       colours + stylesheet; widgets only set a "role" property), icons.py
                       (line icons drawn from SVG), About dialog, settings.py (QSettings)

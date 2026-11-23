@@ -21,12 +21,14 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 **PDF tools:** merge PDFs, split them (every page, or ranges like 1-3, 5), and turn, delete or
 reorder pages with page previews. Pages are copied as they are, so there's no quality loss and
 the original is never changed. **Compress** saves a smaller copy (three levels, from "no quality
-loss" to "smallest file"; only pictures get smaller, text stays sharp). **Password** locks a copy
-with AES-256 encryption, or removes the password from your own PDF; it works the same for
-Word, Excel and PowerPoint files (DOCX, XLSX, PPTX). Password-protected Office files can be
-converted too: the app asks for the password and never saves it. **Make searchable** reads
+loss" to "smallest file"; only pictures get smaller, text stays sharp). **Make searchable** reads
 the text in scanned pages (OCR) and adds it invisibly, so you can search and copy it; the pages
 look exactly the same. In the app under **PDF tools**, or `azoth pdf` on the command line.
+
+**Password** (its own page): locks a copy of a PDF, Word, Excel or PowerPoint file (DOCX,
+XLSX, PPTX) with AES-256 encryption, or removes the password from your own file.
+Password-protected Office files can be converted too: the app asks for the password and
+never saves it.
 
 **Text recognition (OCR), offline:** scanned PDFs and photos of letters become Word or text
 files; photos can also become a searchable PDF. English, German, French and Italian are

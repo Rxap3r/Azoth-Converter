@@ -161,7 +161,7 @@ def _office_parts(data: bytes) -> tuple[list[zipfile.ZipInfo], dict[str, bytes]]
         if data[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":  # encrypted Office files are OLE
             raise ConversionError(
                 "This file is protected with a password. Remove the password first "
-                "(PDF tools → Password), then try again."
+                "(Password page), then try again."
             ) from exc
         raise ConversionError(f"Could not read the file: {exc}") from exc
 
@@ -379,7 +379,7 @@ def _open_pdf(data: bytes) -> pymupdf.Document:
         doc.close()
         raise ConversionError(
             "This PDF is protected with a password. Remove the password first "
-            "(PDF tools → Password), then try again."
+            "(Password page), then try again."
         )
     return doc
 
