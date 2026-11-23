@@ -16,6 +16,7 @@ dependencies = [
     "PyMuPDF>=1.24",
     "pdf2docx>=0.5.8",
     "PySide6-Essentials>=6.7",
+    "msoffcrypto-tool>=5.4",  # passwords on Word, Excel and PowerPoint files
 ]
 
 [project.optional-dependencies]

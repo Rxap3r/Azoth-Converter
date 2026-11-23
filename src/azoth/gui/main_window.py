@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__, formats, resize
-from ..converters import all_converters
+from ..converters import ConversionError, all_converters
 from ..converters.msword import office_installed
 from ..engine import Engine
 from . import icons, targets, theme
@@ -343,6 +343,48 @@ class MainWindow(QMainWindow):
         self.engine = Engine(all_converters(use_word=use_word))
         self._update_notes()
 
+    def _office_passwords(self, jobs: list) -> dict[str, str]:
+        """Ask for the password of each protected Word, Excel or PowerPoint file in
+        ``jobs``. Files whose password isn't given are taken out of ``jobs``. The
+        passwords are only kept for this run, never saved."""
+        from .. import office_password
+
+        passwords: dict[str, str] = {}
+        for job in list(jobs):
+            row, path, _target = job
+            if not office_password.is_protected(path):
+                continue
+            password = self.ask_password(Path(path))
+            if password is None:
+                jobs.remove(job)
+                self.file_list.set_status(row, "Skipped: no password entered")
+            else:
+                passwords[str(path)] = password
+        return passwords
+
+    def ask_password(self, path: Path) -> str | None:
+        """The password of a protected Office file, checked; None if the user cancels."""
+        from PySide6.QtWidgets import QInputDialog, QLineEdit
+
+        from .. import office_password
+
+        message = (
+            f"{path.name} is protected with a password. Enter it to convert the file.\n"
+            "The password isn't saved, and the converted file won't have one."
+        )
+        while True:
+            password, ok = QInputDialog.getText(
+                self, "Password needed", message, QLineEdit.EchoMode.Password
+            )
+            if not ok:
+                return None
+            try:
+                office_password.decrypt(path, password)
+            except ConversionError as exc:
+                message = f"{exc}\nTry again, or press Cancel to skip this file."
+                continue
+            return password
+
     def set_quality_level(self, level_id: str) -> None:
         self.quality.set_level(level_id)
 
@@ -367,6 +409,7 @@ class MainWindow(QMainWindow):
             else:
                 self.file_list.set_status(row, "Waiting", state=WAITING)
                 jobs.append((row, path, targets.job_target(target, fmt)))
+        passwords = self._office_passwords(jobs)
         if not jobs:
             return
         category = targets.single_category(self.file_list.formats)
@@ -389,6 +432,7 @@ class MainWindow(QMainWindow):
             "level": self.quality.level(),
             "keep_metadata": self.settings_page.metadata_check.isChecked(),
             "resize": size,
+            "passwords": passwords,
             **self.ocr_options.options(),
             "ocr_turn_pages": self.settings_page.turn_check.isChecked(),
         }

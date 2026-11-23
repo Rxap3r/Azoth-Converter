@@ -452,7 +452,7 @@ class Engine:
             assert isinstance(other, _Job)
             folder = work_dir / f"file{n}"
             folder.mkdir(parents=True)
-            pairs.append((other.readable_source(folder), other.step_target(0, folder)))
+            pairs.append((other.readable_source(folder, options), other.step_target(0, folder)))
         report(0.0, f"Converting {len(group)} files at once with {step.converter.label}")
         ctx = ConversionContext(
             work_dir=work_dir,
@@ -483,7 +483,7 @@ class Engine:
         result = ConversionResult(source=source, notes=self.quality_notes(route))
         with tempfile.TemporaryDirectory(prefix=TEMP_PREFIX) as tmp:
             tmp_path = Path(tmp)
-            current = job.readable_source(tmp_path)
+            current = job.readable_source(tmp_path, options)
             produced: list[Path] = []
             for i, step in enumerate(route):
                 if i == 0 and first is not None:
@@ -540,9 +540,19 @@ class _Job:
     stem: str
     out_dir: Path
 
-    def readable_source(self, folder: Path) -> Path:
+    def readable_source(self, folder: Path, options: dict[str, Any] | None = None) -> Path:
         """The source, or a correctly named copy in ``folder`` if its extension is wrong or
-        missing (converters rely on it)."""
+        missing (converters rely on it). A password-protected Word, Excel or PowerPoint
+        file is unlocked into ``folder`` (the job's private temporary folder) with its
+        password from ``options["passwords"]`` ({file path: password})."""
+        from . import office_password
+
+        if self.src_fmt.id in office_password.CAN_UNLOCK and office_password.is_protected(
+            self.source
+        ):
+            passwords = (options or {}).get("passwords") or {}
+            password = passwords.get(str(self.source)) or passwords.get("*", "")
+            return office_password.unlock_into(self.source, folder, password)
         if self.source.suffix.lower().lstrip(".") in self.src_fmt.extensions:
             return self.source
         copy = folder / f"source.{self.src_fmt.extension}"

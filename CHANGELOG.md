@@ -9,6 +9,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Added
 
+- **Passwords on Word, Excel and PowerPoint files:** PDF tools → Password now also takes
+  DOCX, XLSX and PPTX files: add a password (AES-256, the same encryption as current
+  Office, so Office opens them as usual) or remove it from your own file (also from older
+  DOC, XLS and PPT). Command line: `azoth password add budget.xlsx` (also
+  `azoth pdf password`).
+- **Converting password-protected Office files:** the app asks for the password (it checks
+  it right away, and it is never saved), then converts the file. Cancel skips the file.
+  The converted file has no password. Works with Microsoft Office and with LibreOffice.
+  The command line asks too.
+
 - **Microsoft Excel and PowerPoint:** where they're installed, they now convert their own
   files to PDF (exact layout), like Word already did. Word, Excel and PowerPoint also save
   their other formats (e.g. DOC → DOCX, XLS → XLSX, XLSX → CSV, PPT → PPTX, ODT, ODS, ODP),
@@ -29,6 +39,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Privacy and safety
 
+- Protected Office files are unlocked only into the job's private temporary folder, which
+  is always deleted; Office and LibreOffice never see the password. Passwords are never
+  stored. New library: msoffcrypto-tool (MIT, works offline), with cryptography and
+  olefile (about 5 MB more download).
 - Excel and PowerPoint run like Word: hidden, macros off, links not updated, files opened
   read-only from a private copy. Password-protected Office files are refused with a clear
   message before Office could ask for the password. If PowerPoint is already open, it stays

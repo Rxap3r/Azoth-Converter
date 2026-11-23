@@ -22,7 +22,9 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 reorder pages with page previews. Pages are copied as they are, so there's no quality loss and
 the original is never changed. **Compress** saves a smaller copy (three levels, from "no quality
 loss" to "smallest file"; only pictures get smaller, text stays sharp). **Password** locks a copy
-with AES-256 encryption, or removes the password from your own PDF. **Make searchable** reads
+with AES-256 encryption, or removes the password from your own PDF; it works the same for
+Word, Excel and PowerPoint files (DOCX, XLSX, PPTX). Password-protected Office files can be
+converted too: the app asks for the password and never saves it. **Make searchable** reads
 the text in scanned pages (OCR) and adds it invisibly, so you can search and copy it; the pages
 look exactly the same. In the app under **PDF tools**, or `azoth pdf` on the command line.
 

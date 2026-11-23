@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import formats, ocr, pdf_tools, quality
+from .. import formats, ocr, office_password, pdf_tools, quality
 from ..converters import ConversionCancelled, ConversionError
 from . import error_log, icons
 from .file_list import DONE, FAILED, INFO, WORKING
@@ -585,7 +585,7 @@ class _SinglePdfTool(QWidget):
         self.source: Path | None = None
         self.size = 0
         row, self.file_label, self.choose_btn = _single_pdf_row(self)
-        self.choose_btn.clicked.connect(lambda: self.add_files(choose_pdfs(self, many=False)))
+        self.choose_btn.clicked.connect(lambda: self.add_files(self.choose()))
         self.signed = label(SIGNED_WARNING, "banner", wrap=True)
         self.signed.setVisible(False)
         self.body = QVBoxLayout(self)
@@ -598,8 +598,14 @@ class _SinglePdfTool(QWidget):
         """Why this PDF can't be used here, or None. Raises ConversionError."""
         return None
 
+    def choose(self) -> list[Path]:
+        return choose_pdfs(self, many=False)
+
+    def accepts(self, path: Path) -> bool:
+        return is_pdf(path)
+
     def add_files(self, paths: Iterable[Path]) -> None:
-        pdf = next((p for p in paths if is_pdf(p)), None)
+        pdf = next((p for p in paths if self.accepts(p)), None)
         if pdf is None:
             return
         self.source = None
@@ -618,7 +624,7 @@ class _SinglePdfTool(QWidget):
             self.source = pdf
             self.file_label.setText(f"{pdf.name}   ·   {pdf_tools.size_text(self.size)}")
             self.file_label.setProperty("role", "")
-            self.signed.setVisible(pdf_tools.is_signed(pdf))
+            self.signed.setVisible(is_pdf(pdf) and pdf_tools.is_signed(pdf))
         repolish(self.file_label)
         self.loaded()
         self.changed.emit()
@@ -681,13 +687,19 @@ FORGET_WARNING = (
 
 
 class PasswordTool(_SinglePdfTool):
+    """Add or remove a password on a PDF, or on a Word, Excel or PowerPoint file."""
+
     submit = Signal()  # Enter pressed in a password field
 
     def __init__(self) -> None:
         super().__init__(
-            "Lock a PDF with a password (AES-256 encryption), or remove the password "
-            "from your own PDF. The password is never saved."
+            "Lock a PDF, Word, Excel or PowerPoint file with a password (AES-256 "
+            "encryption), or remove the password from your own file. The password is "
+            "never saved."
         )
+        self.lib = pdf_tools  # pdf_tools or office_password, by the chosen file
+        self.file_label.setText("No file chosen yet. Drag one here, or choose it.")
+        self.choose_btn.setText("Choose file…")
         self.state: str | None = None
         self.mode = label("", "", wrap=True)
         self.password = QLineEdit()
@@ -710,8 +722,30 @@ class PasswordTool(_SinglePdfTool):
         self.body.addStretch(1)
         self.loaded()
 
+    @property
+    def name_extension(self) -> str:
+        return self.source.suffix.lower().lstrip(".") if self.source else "pdf"
+
+    def choose(self) -> list[Path]:
+        kinds = " ".join(f"*.{k}" for k in ("pdf", *office_password.CAN_UNLOCK))
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Choose a file", "", f"PDF, Word, Excel, PowerPoint ({kinds})"
+        )
+        forget_file_dialog_history()
+        return [Path(path)] if path else []
+
+    def accepts(self, path: Path) -> bool:
+        return is_pdf(path) or (path.is_file() and office_password.file_kind(path) is not None)
+
     def check(self, pdf: Path) -> str | None:
-        self.state = pdf_tools.lock_state(pdf)
+        self.lib = pdf_tools if is_pdf(pdf) else office_password
+        self.state = self.lib.lock_state(pdf)
+        if self.lib is office_password and self.adding():
+            if office_password.file_kind(pdf) not in office_password.CAN_LOCK:
+                return (
+                    f"{pdf.name}: a password can only be added to DOCX, XLSX and PPTX files. "
+                    "Convert it to one of those first."
+                )
         return None
 
     def adding(self) -> bool:
@@ -722,9 +756,10 @@ class PasswordTool(_SinglePdfTool):
         self.clear()
         if not ready:
             self.state = None
+        what = "PDF" if self.lib is pdf_tools else "file"
         texts = {
             pdf_tools.UNLOCKED: "Choose a password for the copy:",
-            pdf_tools.NEEDS_PASSWORD: "This PDF is locked. Enter its password to save an "
+            pdf_tools.NEEDS_PASSWORD: f"This {what} is locked. Enter its password to save an "
             "unlocked copy:",
             pdf_tools.RESTRICTED: "This PDF opens without a password, but an owner password "
             "limits printing, copying or changes. Enter the owner password to remove it:",
@@ -755,7 +790,7 @@ class PasswordTool(_SinglePdfTool):
         password = self.password.text()
         if not self.adding() or not password:
             return ""
-        problem = pdf_tools.password_problem(password)
+        problem = self.lib.password_problem(password)
         if problem:
             return problem
         warning = pdf_tools.password_warning(password) or ""
@@ -769,7 +804,7 @@ class PasswordTool(_SinglePdfTool):
         password = self.password.text()
         if not self.adding():
             return "Remove password" if password else None
-        if pdf_tools.password_problem(password) or self.repeat.text() != password:
+        if self.lib.password_problem(password) or self.repeat.text() != password:
             return None
         return "Add password"
 
@@ -781,20 +816,20 @@ class PasswordTool(_SinglePdfTool):
     def result_name(self) -> str | None:
         if not self.source:
             return None
-        made = pdf_tools.protected_path if self.adding() else pdf_tools.unlocked_path
+        made = self.lib.protected_path if self.adding() else self.lib.unlocked_path
         return made(self.source).stem
 
     def job(self, folder: Path | None, name: str):
-        src, password, adding = self.source, self.password.text(), self.adding()
-        target = (folder or src.parent) / f"{name}.pdf"
+        src, password, adding, lib = self.source, self.password.text(), self.adding(), self.lib
+        target = (folder or src.parent) / f"{name}{src.suffix.lower()}"
         self.clear()
         if adding:
-            return lambda: [pdf_tools.add_password(src, target, password)]
-        return lambda: [pdf_tools.remove_password(src, target, password)]
+            return lambda: [lib.add_password(src, target, password)]
+        return lambda: [lib.remove_password(src, target, password)]
 
     def done_text(self, outputs: list[Path]) -> str:
         name = outputs[0].name
-        if pdf_tools.lock_state(outputs[0]) == pdf_tools.UNLOCKED:
+        if self.lib.lock_state(outputs[0]) == pdf_tools.UNLOCKED:
             return f"✓ Saved {name} without a password"
         return f"✓ Saved {name}. It now needs the password to open."
 

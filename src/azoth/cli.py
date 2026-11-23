@@ -17,6 +17,7 @@ Examples::
     azoth pdf edit scan.pdf --delete 2 --rotate 1=90
     azoth pdf compress big.pdf --level strong
     azoth pdf password add contract.pdf
+    azoth password add budget.xlsx
     azoth pdf ocr scan.pdf --language deu
     azoth convert photo.jpg --to docx --language fra
 """
@@ -84,6 +85,10 @@ def cmd_convert(args: argparse.Namespace) -> int:
     }
     failures = 0
     paths = [Path(f) for f in args.files]
+    passwords = _ask_office_passwords(paths)
+    if passwords is None:
+        return 1
+    options["passwords"] = passwords
     printers = [None if args.quiet else _progress_printer(p.name) for p in paths]
     current = [0]  # photos run in parallel: only show the progress of the file shown next
 
@@ -282,12 +287,42 @@ def cmd_pdf_ocr(args: argparse.Namespace) -> int:
     return 0
 
 
+def _ask_office_passwords(paths: list[Path]) -> dict[str, str] | None:
+    """Ask for the password of each protected Word, Excel or PowerPoint file (only when
+    typing is possible). None if the user cancelled. Passwords are never stored."""
+    import getpass
+
+    from . import office_password
+
+    passwords: dict[str, str] = {}
+    protected = [p for p in paths if p.is_file() and office_password.is_protected(p)]
+    if not protected or not sys.stdin.isatty():
+        return passwords  # without a password, the file fails with a clear message
+    try:
+        for path in protected:
+            for _attempt in range(3):
+                password = getpass.getpass(f"Password for {path.name}: ")
+                try:
+                    office_password.decrypt(path, password)
+                except ConversionError as exc:
+                    print(f"! {exc}", file=sys.stderr)
+                    continue
+                passwords[str(path)] = password
+                break
+    except (EOFError, KeyboardInterrupt):
+        print("\n✗ Cancelled. Nothing was converted.", file=sys.stderr)
+        return None
+    return passwords
+
+
 def cmd_pdf_password(args: argparse.Namespace) -> int:
     import getpass
 
-    from . import pdf_tools
+    from . import office_password, pdf_tools
 
     src = Path(args.file)
+    if office_password.file_kind(src) is not None:
+        pdf_tools = office_password  # the same steps for Word, Excel and PowerPoint files
     try:
         password = getpass.getpass("Password: ")
         if args.action == "add":
@@ -499,13 +534,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_ocr)
     p = pdf.add_parser(
-        "password", help="add or remove a password (asks for it; it is never stored)"
+        "password",
+        help="add or remove a password on a PDF, or on a Word, Excel or PowerPoint file "
+        "(asks for it; it is never stored)",
     )
     p.add_argument("action", choices=["add", "remove"])
     p.add_argument("file")
     p.add_argument(
         "--output", "-o", help="output file (default: 'name (protected).pdf' / '(unlocked)')"
     )
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_pdf_password)
+    p = sub.add_parser(
+        "password",
+        help="add or remove a password on a PDF, Word, Excel or PowerPoint file "
+        "(the same as 'azoth pdf password')",
+    )
+    p.add_argument("action", choices=["add", "remove"])
+    p.add_argument("file")
+    p.add_argument("--output", "-o", help="output file (default: 'name (protected)')")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_password)
 

@@ -4,7 +4,9 @@
 # Build with:  pyinstaller packaging/azoth.spec --noconfirm
 from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
-hiddenimports = collect_submodules("pdf2docx") + collect_submodules("azoth")
+hiddenimports = (
+    collect_submodules("pdf2docx") + collect_submodules("azoth") + collect_submodules("msoffcrypto")
+)
 
 import sys
 from pathlib import Path
@@ -24,7 +26,7 @@ if not AI_MODEL.is_file():  # "Enhance with AI" needs it
 # App resources (icon, OCR languages) plus package metadata, so the About window can show versions.
 datas = [("../src/azoth/resources", "azoth/resources")]
 for dist in ("PySide6-Essentials", "pillow", "pillow-heif", "PyMuPDF", "pdf2docx",
-             "python-docx", "opencv-python-headless", "numpy"):
+             "python-docx", "opencv-python-headless", "numpy", "msoffcrypto-tool"):
     datas += copy_metadata(dist)
 
 a = Analysis(
