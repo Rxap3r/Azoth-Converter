@@ -7,6 +7,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+
+- **PDF → Excel (XLSX):** tables in a PDF become real Excel cells, one sheet per page,
+  with merged cells, bold text, background colours and column widths. Numbers become real
+  numbers you can calculate with ("CHF 1'240.50" stays shown like that) only where their
+  meaning is clear; "1.234" alone, codes like "007" and long account numbers stay text.
+  Text outside the tables is kept line by line, so nothing is lost. Tables need visible
+  lines; scans aren't supported yet (convert them to Word instead). Shows progress page by
+  page and can be cancelled.
+
+### Development
+
+- New library for the app: openpyxl (MIT, works offline) writes the Excel files.
+
 ## [0.5.0] - 2026-11-23
 
 ### Added

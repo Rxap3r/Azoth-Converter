@@ -49,10 +49,11 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 
 | From | Works right away | Also with LibreOffice installed |
 |------|------------------|--------------------------------|
-| **PDF** | DOCX, JPG, PNG, TXT, WEBP, TIFF, BMP | ODT, RTF, DOC |
+| **PDF** | DOCX, XLSX, JPG, PNG, TXT, WEBP, TIFF, BMP | ODT, RTF, DOC |
 
 - PDF → image creates one image per page (`name_page001.png`, …). TIFF puts all pages into one multi-page file.
-- PDF → Word rebuilds an editable layout. Scanned PDFs (pictures of pages) need text recognition (OCR), which is planned.
+- PDF → Word rebuilds an editable layout. Scanned PDFs (pictures of pages) are read with text recognition (OCR).
+- PDF → Excel puts tables with visible lines into cells, one sheet per page, and keeps the other text line by line. Not for scans yet.
 - Password-protected PDFs must be unlocked first.
 
 ## Spreadsheets

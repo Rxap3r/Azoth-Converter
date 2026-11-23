@@ -10,7 +10,7 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 | From | To |
 |------|----|
 | Word (DOCX, DOC), ODT, RTF, TXT | PDF, other text formats, images |
-| **PDF** | **Word (DOCX)**, ODT, RTF, TXT, PNG, JPG, WebP, BMP, TIFF |
+| **PDF** | **Word (DOCX)**, **Excel (XLSX)**: tables as cells, ODT, RTF, TXT, PNG, JPG, WebP, BMP, TIFF |
 | Excel (XLSX, XLS), ODS, CSV | PDF, other spreadsheet formats, images |
 | PowerPoint (PPTX, PPT), ODP | PDF, other presentation formats, images |
 | JPG, PNG, WebP, HEIC, AVIF, BMP, TIFF, GIF, ICO | each other, and PDF |

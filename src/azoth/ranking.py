@@ -13,7 +13,7 @@ from . import formats
 # Most useful targets first, per kind of source file. Formats not listed here
 # follow afterwards in a stable order.
 TARGET_ORDER: dict[str, list[str]] = {
-    formats.PDF: ["docx", "jpg", "png", "txt", "odt", "rtf", "webp", "tiff", "bmp", "doc"],
+    formats.PDF: ["docx", "xlsx", "jpg", "png", "txt", "odt", "rtf", "webp", "tiff", "bmp", "doc"],
     formats.DOCUMENT: [
         "pdf", "docx", "odt", "txt", "jpg", "png", "rtf", "webp", "tiff", "bmp", "doc",
     ],

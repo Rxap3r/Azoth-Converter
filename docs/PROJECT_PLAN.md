@@ -148,7 +148,9 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] Later: check OCR speed on long PDFs (a few seconds per page now) and make it faster if needed
   - [ ] **Owner's wish (Nov 2026):** OCR → a "real" text PDF like one made from Word (visible, selectable text with exact selection boxes, editable in Word with formatting), as an option next to the 1:1 searchable PDF (picture + invisible text). Needs layout rebuilding (fonts, sizes, columns); the picture would no longer be kept 1:1
 - [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
-- [ ] PDF → Excel for tables. **Next up (owner, 23 Nov 2026), first of two:** start in a fresh session. Tables from text PDFs (invoices, lists) into XLSX, one sheet per table or page; scans via OCR maybe later; say clearly in `quality_note()` that layouts are rebuilt
+- [x] PDF → Excel for tables. *Done (23 Nov 2026): `converters/pdf_excel.py` (PyMuPDF finds tables, openpyxl writes them); one sheet per page, merged cells, bold, colours; numbers only where clear; other text kept line by line.*
+  - [ ] Later: tables without visible lines (only aligned text), tables from scans (OCR)
+  - [ ] Later: option "Tables only" (leave out the other text) and "All pages on one sheet"
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [x] Removing metadata from PDF and Office files (author, company, edit history): DOCX, XLSX, PPTX and PDF, content checked unchanged before saving (on `dev`, Nov 2026)
   - [ ] Later: BMP and ICO (they rarely carry metadata); OpenDocument files (ODT, ODS, ODP: `meta.xml`); old DOC/XLS/PPT (today: convert first)

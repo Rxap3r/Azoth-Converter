@@ -29,7 +29,9 @@ CATEGORY_NOTES = {
         "PDF → image creates one image per page (`name_page001.png`, …). "
         "TIFF puts all pages into one multi-page file.",
         "PDF → Word rebuilds an editable layout. Scanned PDFs (pictures of pages) "
-        "need text recognition (OCR), which is planned.",
+        "are read with text recognition (OCR).",
+        "PDF → Excel puts tables with visible lines into cells, one sheet per page, and "
+        "keeps the other text line by line. Not for scans yet.",
         "Password-protected PDFs must be unlocked first.",
     ],
     formats.DOCUMENT: [

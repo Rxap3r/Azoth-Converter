@@ -26,7 +26,7 @@ if not AI_MODEL.is_file():  # "Enhance with AI" needs it
 # App resources (icon, OCR languages) plus package metadata, so the About window can show versions.
 datas = [("../src/azoth/resources", "azoth/resources")]
 for dist in ("PySide6-Essentials", "pillow", "pillow-heif", "PyMuPDF", "pdf2docx",
-             "python-docx", "opencv-python-headless", "numpy", "msoffcrypto-tool"):
+             "python-docx", "opencv-python-headless", "numpy", "msoffcrypto-tool", "openpyxl", "et-xmlfile"):
     datas += copy_metadata(dist)
 
 a = Analysis(

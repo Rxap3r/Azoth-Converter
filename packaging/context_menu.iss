@@ -404,16 +404,16 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\01docx"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To DOCX"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\01docx\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer docx ""%1"""; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\02jpg"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To JPG"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\02jpg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer jpg ""%1"""; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\03png"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To PNG"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\03png\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer png ""%1"""; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\04txt"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To TXT"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\04txt\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer txt ""%1"""; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\05odt"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To ODT"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\05odt\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer odt ""%1"""; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\06rtf"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To RTF"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\06rtf\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer rtf ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\02xlsx"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To XLSX"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\02xlsx\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer xlsx ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\03jpg"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To JPG"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\03jpg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer jpg ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\04png"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To PNG"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\04png\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer png ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\05txt"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To TXT"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\05txt\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer txt ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\06odt"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To ODT"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\06odt\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer odt ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu

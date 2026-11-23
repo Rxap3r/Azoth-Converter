@@ -394,3 +394,29 @@ def test_removing_document_metadata_keeps_the_content_exactly(tmp_path):
     d.save(word)
     cleaned = docx.Document(metadata.clean_file(word).output)
     assert [p.text for p in cleaned.paragraphs] == ["Exact text  with  spaces"]
+
+
+def test_pdf_to_excel_keeps_every_figure_exactly(tmp_path):
+    """PDF → Excel: each number in a table arrives with exactly its printed value (no
+    rounding, no float noise like 1240.4999), and every text in the table arrives
+    unchanged."""
+    from openpyxl import load_workbook
+
+    figures = ["CHF 1'240.50", "0.10", "99'999.99", "-3.75", "12 %", "100", "Office chair"]
+    rows = "".join(f"<tr><td>Item {i}</td><td>{f}</td></tr>" for i, f in enumerate(figures))
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_htmlbox(
+        pymupdf.Rect(50, 50, 545, 800),
+        f"<table>{rows}</table>",
+        css="td {border: 1px solid black; padding: 3px;}",
+    )
+    src = tmp_path / "figures.pdf"
+    doc.save(src)
+    [out] = Engine().convert(src, "xlsx", tmp_path / "out").outputs
+    ws = load_workbook(out).worksheets[0]
+    got = [ws.cell(i + 1, 2).value for i in range(len(figures))]
+    assert got == [1240.5, 0.1, 99999.99, -3.75, 0.12, 100, "Office chair"]
+    assert [ws.cell(i + 1, 1).value for i in range(len(figures))] == [
+        f"Item {i}" for i in range(len(figures))
+    ]
