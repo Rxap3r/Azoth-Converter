@@ -54,6 +54,14 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
      also adds/removes passwords on DOCX/XLSX/PPTX (removes on DOC/XLS/PPT too); protected
      files are converted after asking for the password (`options["passwords"]`, unlocked
      only into the job's temp folder in `engine._Job.readable_source`); `azoth password`.
+  4. **PDF → Word progress and cancel** (page by page, `converters/pdf.py`);
+  5. **Remove metadata from PDF, DOCX, XLSX, PPTX** (`doc_metadata.py`; content checked
+     unchanged before saving; signed/password PDFs refused);
+  6. **Explorer right-click menu** (`context_menu.py` → generated
+     `packaging/context_menu.iss`, installer task; `gui/explorer.py`: several files → one
+     window via a local pipe with a key in the settings folder). Classic menu only (Windows
+     11: "Show more options"). **Waiting for the owner:** OK to add a check of the menu's
+     registry keys to the "Test installer" step (workflow change).
   **Next:** the owner tests these on the company PC (Office, no LibreOffice): AI on real
   photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; a file protected in Office;
   a file locked here opened in Office; PowerPoint already open stays open. Then ask
@@ -61,7 +69,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
   Windows test crashed without it while the AI ran in the worker thread).
 - **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
-  Office passwords. Still wanted: the **Explorer right-click menu**; then PDF → Excel,
+  Office passwords; then (for 0.5.0) PDF → Word progress, document metadata, Explorer
+  right-click menu. Still wanted: PDF → Excel,
   video/audio (FFmpeg); the **design refresh is low priority** (the owner finds the current
   design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
@@ -193,7 +202,8 @@ GitHub's private vulnerability reporting (see `SECURITY.md`), never public issue
 - **Temporary files** go only into the per-job folder the engine provides (`ctx.work_dir`), which is always deleted.
 - **Photo metadata** (EXIF/GPS) is stripped by default.
 - **Clean uninstall.** The app may store data only in `gui/settings.storage_dir()`
-  (`%APPDATA%\Azoth Converter`), never in the registry; job temp folders start with
+  (`%APPDATA%\Azoth Converter`), never in the registry (only the installer writes the
+  right-click menu, and removes it); job temp folders start with
   `engine.TEMP_PREFIX`. Anything new the app writes must be removed by `[UninstallDelete]` in
   `packaging/installer.iss` and checked by the "Test installer" step of the automatic build.
 - Untrusted input: catch engine errors and raise `ConversionError` with a message a non-technical user understands.
@@ -217,7 +227,10 @@ src/azoth/
   resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
   upscale.py          "Enhance with AI" (Real-ESRGAN run by OpenCV's dnn, tiled); model in
                       resources/upscale (not in git: fetched by packaging/fetch_tessdata.py)
-  metadata.py         show/remove photo metadata (`azoth clean`); byte-level code in converters/strip.py
+  metadata.py         show/remove metadata (`azoth clean`); photos: byte-level code in converters/strip.py;
+                      PDF/DOCX/XLSX/PPTX: doc_metadata.py
+  context_menu.py     Explorer right-click menu entries → packaging/context_menu.iss
+                      (`python packaging/make_context_menu.py`; gui/explorer.py hands files to one window)
   gui/                PySide6 app (design "A"): main_window.py = sidebar + pages, runs jobs;
                       convert_page.py (layout), file_list.py (file cards), target_picker.py
                       (format tiles), options_panel.py (quality), output_folder.py,
@@ -313,4 +326,5 @@ same change, and never add an installer language the app doesn't have.
 - New features come with tests.
 - Update `docs/PROJECT_PLAN.md` checkboxes and the README's format table when features change.
 - When conversions change, regenerate the format list (also shown in the app):
-  `azoth formats --markdown docs/FORMATS.md`. A test fails if it's out of date.
+  `azoth formats --markdown docs/FORMATS.md`, and the right-click menu:
+  `python packaging/make_context_menu.py`. Tests fail if either is out of date.

@@ -9,6 +9,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Added
 
+- **Right-click menu in Explorer:** right-click a file → "Convert with Azoth Converter" →
+  "To PDF", "To DOCX" … (the most useful targets for that kind of file), "Remove
+  metadata", or "Open in Azoth Converter…". The app opens and converts right away, with
+  your usual settings (output folder, quality). Several selected files are converted
+  together in one window. The installer adds the menu (option "Add … to the right-click
+  menu", ticked by default) and removes it on uninstall. On Windows 11 it is under "Show
+  more options". Not in the portable version.
 - **Remove metadata from PDF, Word, Excel and PowerPoint files** (DOCX, XLSX, PPTX):
   "Remove metadata only" and "Show metadata…" now work for them too, like for photos.
   Removed: author, "last saved by", company, manager, title, dates, editing time,

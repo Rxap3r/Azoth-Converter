@@ -1,6 +1,7 @@
 """Entry point for ``python -m azoth`` and the packaged Windows programs.
 
-With arguments the command-line interface runs. Without arguments the graphical app
+With arguments the command-line interface runs, except ``--explorer <target> <files>``
+(from the Explorer right-click menu), which opens the app. Without arguments the app
 starts, except in ``azoth-terminal.exe`` (the command-line program): there a short note
 explains how to use it, so double-clicking it doesn't look like a second app.
 """
@@ -9,6 +10,7 @@ import sys
 from pathlib import Path
 
 TERMINAL_PROGRAM = "azoth-terminal"
+EXPLORER_FLAG = "--explorer"  # see gui/explorer.py and context_menu.py
 
 TERMINAL_NOTE = """\
 Azoth Converter - terminal version
@@ -49,6 +51,10 @@ def main() -> int:
     from azoth import portable
 
     portable.activate()  # portable version: data and temp files stay next to the program
+    if len(sys.argv) > 2 and sys.argv[1] == EXPLORER_FLAG:
+        from azoth.gui.app import main as gui_main
+
+        return gui_main(explorer=(sys.argv[2], sys.argv[3:]))
     if len(sys.argv) > 1:
         from azoth.cli import main as cli_main
 

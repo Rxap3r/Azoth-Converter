@@ -32,6 +32,10 @@ look exactly the same. In the app under **PDF tools**, or `azoth pdf` on the com
 files; photos can also become a searchable PDF. English, German, French and Italian are
 included. Recognition runs on your computer; nothing is uploaded.
 
+**Right-click menu:** in Explorer, right-click a file → **Convert with Azoth Converter** →
+e.g. **To PDF**. The app opens and converts it right away; several selected files are
+converted together. (Windows 11: under **Show more options**. Installer only.)
+
 **Remove photo metadata:** save a copy of your photos without the hidden information
 (GPS location, camera, date, author, comments, preview pictures) before you share them. The
 picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC and AVIF:

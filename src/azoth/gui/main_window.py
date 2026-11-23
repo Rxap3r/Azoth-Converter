@@ -12,7 +12,7 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, Slot
+from PySide6.QtCore import Qt, QThread, Signal, Slot
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -53,6 +53,8 @@ PAGES = [  # (key, text in the sidebar, icon)
 
 
 class MainWindow(QMainWindow):
+    batch_finished = Signal()  # a conversion batch ended (done, failed or cancelled)
+
     def __init__(self, engine: Engine | None = None, prefs: Preferences | None = None) -> None:
         super().__init__()
         self.prefs = prefs or Preferences()
@@ -229,6 +231,30 @@ class MainWindow(QMainWindow):
 
     def add_files(self, paths) -> None:
         self.file_list.add_files(paths)
+
+    def is_busy(self) -> bool:
+        return self._thread is not None
+
+    def run_explorer_request(self, target: str, paths: list[Path]) -> None:
+        """Files chosen in Explorer's right-click menu: show them and, if a target was
+        chosen there, convert them to it right away (see explorer.py)."""
+        if self.is_busy():
+            return
+        self.show_page("convert")
+        self.file_list.clear()
+        self.done_card.clear()
+        self.add_files([p for p in paths if p.is_file()])
+        if not self.file_list.files:
+            self.status_label.setText("The chosen files can't be found any more.")
+            return
+        from .explorer import OPEN
+
+        if target == OPEN:
+            return
+        if self.target_picker.select(target):
+            self.start_conversion()
+        else:
+            self.status_label.setText("Choose what to convert these files to.")
 
     @property
     def output_dir(self) -> Path | None:
@@ -550,6 +576,7 @@ class MainWindow(QMainWindow):
         if not cancelled:
             self.progress.setValue(1000)
         self._refresh()
+        self.batch_finished.emit()
 
     # --- preferences and about ------------------------------------------------
 

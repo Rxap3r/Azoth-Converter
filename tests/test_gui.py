@@ -659,3 +659,44 @@ def test_ready_made_picture_sizes(qtbot):
     assert panel.spec() == resize.Resize(resize.HEIGHT, width=1920, height=1080)
     panel.set_custom(height=777)
     assert panel.spec().height == 777 and not panel.height_box.isHidden()
+
+
+def test_explorer_request_converts_right_away(window, qtbot, sample_png, tmp_path):
+    out = tmp_path / "out"
+    window.output_dir = out
+    window.run_explorer_request("jpg", [sample_png])
+    qtbot.waitUntil(lambda: not window.is_busy(), timeout=20000)
+    assert [p.suffix for p in out.iterdir()] == [".jpg"]
+
+
+def test_explorer_open_only_adds_the_files(window, sample_png, sample_pdf):
+    window.add_files([sample_pdf])
+    window.run_explorer_request("open", [sample_png])
+    assert window.file_list.files == [sample_png] and not window.is_busy()
+
+
+def test_explorer_files_selected_together_are_one_batch(window, qtbot, tmp_path, local_sockets):
+    from PIL import Image
+
+    from azoth.gui import explorer
+
+    storage = tmp_path / "settings"
+    storage.mkdir()
+    photos = []
+    for n in range(3):
+        photos.append(tmp_path / f"p{n}.png")
+        Image.new("RGB", (8, 8), (n * 40, 0, 0)).save(photos[-1])
+    out = tmp_path / "out"
+    window.output_dir = out
+    batches = []
+    window.batch_finished.connect(lambda: batches.append(len(window.file_list.files)))
+    listener = explorer.listen(storage)
+    requests = explorer.attach(window, listener)
+    try:
+        requests.add("jpg", [str(photos[0])])
+        for photo in photos[1:]:  # Explorer starts one program per selected file
+            assert explorer.forward("jpg", [str(photo)], storage)
+        qtbot.waitUntil(lambda: bool(batches), timeout=20000)
+        assert batches == [3] and len(list(out.iterdir())) == 3
+    finally:
+        requests.close()

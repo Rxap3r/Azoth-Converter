@@ -31,6 +31,22 @@ def no_network(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", guard)
 
 
+_real_connect = socket.socket.connect
+
+
+@pytest.fixture
+def local_sockets(monkeypatch):
+    """Allow Unix sockets (a file on this computer, not the network) for tests of the
+    Explorer menu's hand-over between programs (gui/explorer.py); network stays blocked."""
+
+    def connect(sock, address):
+        if sock.family != getattr(socket, "AF_UNIX", None):
+            raise NetworkAccessError(f"Network access attempted: {address!r}")
+        return _real_connect(sock, address)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
+
+
 @pytest.fixture(autouse=True)
 def isolated_settings(tmp_path_factory):
     """Keep the app's saved preferences in a temporary folder during tests."""

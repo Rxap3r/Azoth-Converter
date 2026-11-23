@@ -18,6 +18,8 @@ AppComments=Offline file converter. Your files never leave this computer.
 ; Installs for the current user without admin rights by default;
 ; the user can choose "install for all users" (needs admin) in the dialog.
 PrivilegesRequired=lowest
+; Tells Explorer to reload its right-click menus after installing or removing them.
+ChangesAssociations=yes
 PrivilegesRequiredOverridesAllowed=dialog
 DefaultDirName={autopf}\Azoth Converter
 DefaultGroupName=Azoth Converter
@@ -43,6 +45,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "contextmenu"; Description: "Add ""Convert with Azoth Converter"" to the right-click menu of files"; GroupDescription: "Explorer:"
 
 [Files]
 Source: "dist\AzothConverter\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -61,6 +64,8 @@ Name: "{autodesktop}\Azoth Converter"; Filename: "{app}\AzothConverter.exe"; Tas
 [Registry]
 ; The app keeps no settings in the registry, but early test builds did: clean those up too.
 Root: HKCU; Subkey: "Software\Azoth Converter"; Flags: uninsdeletekey dontcreatekey
+; The Explorer right-click menu (task "contextmenu"); removed again on uninstall.
+#include "context_menu.iss"
 
 [UninstallDelete]
 ; Clean uninstall: nothing of the app stays on the computer.
