@@ -14,7 +14,7 @@ from ..engine import Engine
 CLEAN_TARGET = "clean"  # not a format: same format, metadata removed (see metadata.py)
 CLEAN_NOTE = (
     "Saves a copy without hidden personal data. Removed: GPS location, camera, date, "
-    "author, comments and preview pictures. The picture itself stays exactly the same. "
+    "author, comments and preview pictures. The content itself stays exactly the same. "
     "Next to the original, the copy is called “name (clean)”."
 )
 CLEAN_TILE = ("Remove metadata only", "Same format, no hidden personal data")

@@ -65,14 +65,31 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   Still to try on the owner's company PC (Office, no LibreOffice): AI on real photos;
   Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both ways; the
   right-click menu.
+- **Next release 0.6.0: everything is on `dev`, not yet released** (23 Nov 2026). Details in
+  `CHANGELOG.md` → Unreleased. Contents:
+  1. **PDF → Excel** (`converters/pdf_excel.py`, openpyxl): tables as cells, one sheet per
+     page, numbers only where clear;
+  2. **Video and audio** (`converters/media.py`, FFmpeg 8.0.1 "full" bundled on Windows via
+     `packaging/fetch_ffmpeg.py`; Linux tests install `ffmpeg`; the Windows build
+     smoke-tests MOV → MP4/WebM/MP3 in the finished program);
+  3. **Remove metadata for videos and music** (`media_metadata.py`, owner's pick for 0.6.0);
+  4. **Right-click files go to the open window** (also when opened from the Start menu) and
+     **no more flashing small windows** (widgets were shown before having a parent; use
+     `widgets.discard()` and never `setVisible(True)` on a parentless widget;
+     `test_no_stray_windows_flash_up` checks it);
+  5. **Menu overhaul** (owner: "not overwhelming"): 6 tiles + "More formats", "More
+     options" folded with a summary, details in tooltips, Quality only where it matters,
+     Settings regrouped, sidebar tools on top.
+  **Tomorrow (owner):** test the build of `dev` (Actions → Build and test → latest run →
+  Artifacts). If all is fine: prepare release 0.6.0 (see "Releasing"), then ask before the
+  pull request. Postponed to the version after: "Make smaller" for videos, PDF → Excel
+  "Tables only" / "All pages on one sheet" (in `docs/PROJECT_PLAN.md`).
 - **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
   Windows test crashed without it while the AI ran in the worker thread).
 - **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
   Office passwords; then (for 0.5.0) PDF → Word progress, document metadata, Explorer
-  right-click menu (all released in 0.5.0). **Next (owner, 23 Nov 2026), each in a fresh
-  session: 1. PDF → Excel (✓ on `dev`, 23 Nov 2026: `converters/pdf_excel.py`, not yet released), 2. video/audio (✓ on `dev`, 23 Nov 2026: `converters/media.py`,
-  full FFmpeg 8.0.1 bundled on Windows, not yet released; open questions in
-  `docs/PROJECT_PLAN.md` Phase 3).** Then: the **design refresh is low priority** (the owner finds the current
+  right-click menu (all released in 0.5.0). PDF → Excel and video/audio are done (for
+  0.6.0, see above). Then: the **design refresh is low priority** (the owner finds the current
   design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
@@ -180,7 +197,8 @@ Future ideas and change requests from the owner go into `docs/PROJECT_PLAN.md` a
 in the matching phase (design wishes under "Design refresh"); there is no separate wish list.
 
 Stack: Python 3.11+, PySide6 (GUI), Pillow and pillow-heif (images), PyMuPDF and pdf2docx (PDF),
-LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL-3.0-or-later.
+openpyxl (PDF → Excel), FFmpeg (video and audio), LibreOffice headless (office formats),
+PyInstaller (Windows build). License: GPL-3.0-or-later.
 
 ## Public repository
 
@@ -232,6 +250,8 @@ src/azoth/
                       metadata, keeps song tags; FFmpeg in resources/ffmpeg on Windows (not in
                       git: fetched by packaging/fetch_ffmpeg.py, called by fetch_tessdata.py)
   converters/pdf_excel.py  PDF → Excel (tables found by PyMuPDF, written by openpyxl)
+  media_metadata.py   show/remove metadata of videos and music (FFmpeg copies the tracks,
+                      every packet compared before saving)
   metadata.py         show/remove metadata (`azoth clean`); photos: byte-level code in converters/strip.py;
                       PDF/DOCX/XLSX/PPTX: doc_metadata.py
   context_menu.py     Explorer right-click menu entries → packaging/context_menu.iss
@@ -307,6 +327,15 @@ GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftes
 Office tests are skipped when LibreOffice isn't installed. Install it to run them.
 
 ## Look and feel
+
+**Keep it calm (owner, 23 Nov 2026):** short labels; explanations go into tooltips (hover),
+not into text under the control. Only warnings the user must see stay visible (e.g. the
+AI's "not for documents or ID photos"). Rarely changed choices go under "More options" on
+the Convert page. Show an option only where it changes something.
+
+Never call `setVisible(True)`/`show()` on a widget before it has a parent, and never remove
+one with `setParent(None)`: on Windows it flashes up as a small window of its own. Hide
+instead (`if not x: w.hide()`) and remove with `widgets.discard()`.
 
 Pages and panels whose content can grow are wrapped in `widgets.scrollable()`, so a low window
 (or larger Windows text) scrolls instead of squeezing buttons on top of each other;

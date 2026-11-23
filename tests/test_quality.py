@@ -494,3 +494,29 @@ def test_lossless_sound_stays_lossless(tmp_path):
         assert samples(out) == original, out.name
     info = subprocess.run([ffmpeg, "-hide_banner", "-i", str(m4a)], capture_output=True, text=True)
     assert "alac" in info.stderr and "24 bit" in info.stderr
+
+
+def test_removing_video_metadata_copies_every_bit(tmp_path):
+    """ "Remove metadata only" on a video: picture and sound are copied, never re-encoded."""
+    import subprocess
+
+    from azoth import metadata
+
+    ffmpeg = _ffmpeg_or_skip()
+    src = tmp_path / "clip.mp4"
+    subprocess.run(
+        [ffmpeg, "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x240:duration=1",
+         "-f", "lavfi", "-i", "sine=duration=1", "-c:v", "libx264", "-c:a", "aac",
+         "-shortest", "-metadata", "location=+47.1+008.5/", str(src)],
+        check=True,
+    )  # fmt: skip
+
+    def data(path):
+        return subprocess.run(
+            [ffmpeg, "-v", "error", "-i", str(path), "-map", "0", "-c", "copy",
+             "-f", "streamhash", "-"],
+            capture_output=True, text=True, check=True,
+        ).stdout  # fmt: skip
+
+    out = metadata.clean_file(src).output
+    assert data(out) == data(src)

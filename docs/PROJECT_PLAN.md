@@ -150,7 +150,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
 - [x] PDF → Excel for tables. *Done (23 Nov 2026): `converters/pdf_excel.py` (PyMuPDF finds tables, openpyxl writes them); one sheet per page, merged cells, bold, colours; numbers only where clear; other text kept line by line.*
   - [ ] Later: tables without visible lines (only aligned text), tables from scans (OCR)
-  - [ ] Later: option "Tables only" (leave out the other text) and "All pages on one sheet"
+  - [ ] Later: option "Tables only" (leave out the other text) and "All pages on one sheet" (suggested for the version after 0.6.0, 23 Nov 2026)
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [x] Removing metadata from PDF and Office files (author, company, edit history): DOCX, XLSX, PPTX and PDF, content checked unchanged before saving (on `dev`, Nov 2026)
   - [ ] Later: BMP and ICO (they rarely carry metadata); OpenDocument files (ODT, ODS, ODP: `meta.xml`); old DOC/XLS/PPT (today: convert first)
@@ -201,8 +201,10 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] Owner to try on Windows: an iPhone video (MOV, HEVC) → MP4, a long video (progress, cancel), music with covers → M4A/MP3
   - [x] Linux tests use the system's FFmpeg; the automatic Linux tests don't install it (media tests are skipped there if the runner has none; they always run on Windows with the bundled FFmpeg). *Done (owner agreed, 23 Nov 2026): installed in the Linux step, checked like LibreOffice.*
   - [x] The Windows build smoke-tests FFmpeg in the finished program (MOV → MP4, WebM, MP3; owner agreed, 23 Nov 2026)
+  - [x] "Remove metadata only" and "Show metadata…" for videos and music (`media_metadata.py`, owner's choice for 0.6.0, 23 Nov 2026): tracks copied, every packet compared before saving
   - [ ] Later: subtitles from MKV as text into MP4 work; picture subtitles (DVD, Blu-ray) are only kept in MKV
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
+  - [ ] **"Make smaller" for videos** (suggested for the version after 0.6.0, 23 Nov 2026): one click to shrink a phone video for e-mail or messengers (lower resolution, e.g. 1080p or 720p, H.264 at a sensible bitrate); say clearly that it's lossy
 - [ ] Trim, resolution, bitrate, mute; hardware encoding (NVENC, Quick Sync, AMF)
 - [x] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file (with a test)
 - [x] **Release 0.3** (0.3.0 and 0.3.1, Nov 2026)

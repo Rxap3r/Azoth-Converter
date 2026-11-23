@@ -24,6 +24,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   - Animated GIF → MP4 or WebM (a much smaller file).
   - Shows progress ("0:42 of 3:10") and can be cancelled.
   - Right-click menu entries for video and sound files.
+  - **Remove metadata only** and **Show metadata…** for videos (MP4, MOV, MKV, WebM, AVI,
+    3GP) and music (MP3, M4A, WAV, FLAC, OGG, Opus, AIFF): removes the filming place
+    (GPS), phone model, dates, software, comments and action-camera GPS tracks. Picture and
+    sound are copied bit for bit and checked before saving; titles, song tags, covers,
+    chapters and track languages stay. Also `azoth clean video.mov`.
 
 ### Changed
 

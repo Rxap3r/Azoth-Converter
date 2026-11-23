@@ -22,8 +22,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\05webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer webm ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\06gif"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To GIF"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\06gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3g2\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -44,8 +46,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\05webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer webm ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\06gif"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To GIF"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\06gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.3gp\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aac\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aac"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -88,8 +92,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\05ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\06opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\06opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aif\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -110,8 +116,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothCon
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\05ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\06opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\06opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.aiff\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.asf\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.asf"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -154,8 +162,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\05webm\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer webm ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\06gif"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To GIF"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\06gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avif\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.avif"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -310,8 +320,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothCon
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\04ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\05opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\05opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flv\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.flv"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -564,8 +576,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\04ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\05opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\05opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -584,8 +598,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\04ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\05opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\05opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4b\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -606,8 +622,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\05gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\06m4a"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To M4A"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\06m4a\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer m4a ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -628,8 +646,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\05gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\06m4a"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To M4A"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\06m4a\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer m4a ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -650,8 +670,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\05gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\06m4a"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To M4A"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\06m4a\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer m4a ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -670,8 +692,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\04ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\05opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\05opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -692,8 +716,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\05gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\06m4a"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To M4A"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\06m4a\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer m4a ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mpeg\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.mpeg"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -844,8 +870,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\04flac\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer flac ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\05opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\05opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.oga\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -864,8 +892,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\04flac\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer flac ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\05opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\05opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -884,8 +914,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothCon
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\04flac\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer flac ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\05ogg"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OGG"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\05ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.pdf"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -1000,8 +1032,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConve
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\05gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\06m4a"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To M4A"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\06m4a\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer m4a ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.qt\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.rtf\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.rtf"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -1134,8 +1168,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConv
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\04ogg\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer ogg ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\05opus"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To OPUS"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\05opus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer opus ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm"; Flags: uninsdeletekeyifempty; Tasks: contextmenu
@@ -1156,8 +1192,10 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothCon
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\05gif\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer gif ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\06m4a"; ValueType: string; ValueName: "MUIVerb"; ValueData: "To M4A"; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\06m4a\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer m4a ""%1"""; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\80clean"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Remove metadata"; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\80clean"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\80clean\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer clean ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\90open"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Open in Azoth Converter…"; Tasks: contextmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\90open"; ValueType: dword; ValueName: "CommandFlags"; ValueData: $20; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\AzothConverter\shell\90open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\AzothConverter.exe"" --explorer open ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webp\shell\AzothConverter"; Flags: deletekey dontcreatekey uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.webp"; Flags: uninsdeletekeyifempty; Tasks: contextmenu

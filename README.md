@@ -53,6 +53,12 @@ history (revision marks) and earlier versions saved inside a PDF are removed; na
 comments and tracked changes become "Author". The text, comments and tracked changes
 themselves stay exactly the same. Signed or password-protected PDFs are left alone.
 
+**Remove video and music metadata:** the same for videos (MP4, MOV, MKV, WebM, AVI, 3GP)
+and music (MP3, M4A, WAV, FLAC, OGG, Opus, AIFF): the filming place (GPS), phone model,
+dates, software, comments and action-camera GPS tracks are removed. Picture and sound are
+copied bit for bit (checked before saving); titles, song tags, album covers, chapters and
+track languages stay.
+
 **Change picture size:** make photos smaller or bigger while converting, or keep the format
 and only change the size. Choose a screen size like Full HD or 4K (turned for portrait
 photos), a width, a height or a percentage; proportions are always kept, and nothing is

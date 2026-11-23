@@ -292,3 +292,55 @@ def test_missing_ffmpeg_says_reinstall_and_offers_no_download(monkeypatch):
     assert not conv.download_url  # FFmpeg comes with the app: nothing to download
     with pytest.raises(ConversionError):
         conv.convert(Path("a.mp4"), Path("a.mkv"), None)
+
+
+# --- "Remove metadata only" for videos and music ---------------------------------------
+
+
+@needs_ffmpeg
+def test_remove_metadata_from_a_phone_video(phone_video, tmp_path):
+    from azoth import metadata
+
+    found = [str(f) for f in metadata.inspect(phone_video)]
+    assert any(f.startswith("Location (GPS)") for f in found)
+    assert any("iPhone" in f for f in found)
+    result = metadata.clean_file(phone_video)
+    assert result.output.name == "holiday (clean).mov"  # next to the original
+    assert phone_video.is_file()  # the original is untouched
+    assert metadata.inspect(result.output) == []
+    after = tags(result.output)
+    assert "47.3769" not in after and "iPhone" not in after and "title:Holiday" in after
+    assert packets(result.output, "0:v") == packets(phone_video, "0:v")
+    assert packets(result.output, "0:a") == packets(phone_video, "0:a")
+
+
+@needs_ffmpeg
+def test_remove_metadata_keeps_song_tags_and_cover(song, tmp_path):
+    from azoth import metadata
+
+    assert [str(f) for f in metadata.inspect(song)] == ["Comment: Recorded at Main Street 5"]
+    result = metadata.clean_file(song, tmp_path / "out")
+    after = tags(result.output)
+    assert "title:Song" in after and "artist:Band" in after and "MainStreet" not in after
+    info = parse_info(tags_raw(result.output))
+    assert info.covers  # the album cover stays
+
+
+@needs_ffmpeg
+def test_nothing_is_saved_if_a_track_would_change(phone_video, tmp_path, monkeypatch):
+    from azoth import media_metadata, metadata
+
+    hashes = iter([["a"], ["b"]])
+    monkeypatch.setattr(media_metadata, "_stream_hashes", lambda ffmpeg, path: next(hashes))
+    with pytest.raises(ConversionError, match="nothing was saved"):
+        metadata.clean_file(phone_video, tmp_path / "out")
+    assert not list((tmp_path / "out").glob("*"))
+
+
+def test_videos_and_music_offer_remove_metadata():
+    from azoth import metadata
+    from azoth.gui import targets
+
+    for fmt in ("mp4", "mov", "mkv", "mp3", "m4a", "flac"):
+        assert fmt in metadata.CLEANABLE
+        assert targets.choices(Engine(), [formats.FORMATS[fmt]]).can_clean
