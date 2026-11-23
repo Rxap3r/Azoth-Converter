@@ -36,7 +36,8 @@ included. Recognition runs on your computer; nothing is uploaded.
 
 **Right-click menu:** in Explorer, right-click a file → **Convert with Azoth Converter** →
 e.g. **To PDF**. The app opens and converts it right away; several selected files are
-converted together. (Windows 11: under **Show more options**. Installer only.)
+converted together. (Windows 11: under **Show more options**. Only with the installer, not in the portable
+version.)
 
 **Remove photo metadata:** save a copy of your photos without the hidden information
 (GPS location, camera, date, author, comments, preview pictures) before you share them. The
@@ -81,10 +82,13 @@ in if Office fails. PDF → Word, PDF ↔ images and the image conversions need 
 **Download:** the latest installer is on the [Releases page](https://github.com/Rxap3r/Azoth-Converter/releases/latest).
 
 Each release offers two versions of the same app:
-- **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry and clean uninstall.
+- **AzothConverter-Setup-<version>.exe**: the installer (recommended), with Start menu entry,
+  the Explorer right-click menu and clean uninstall.
 - **AzothConverter-portable-<version>.zip**: no installation; unzip anywhere (also a USB
   stick) and run `AzothConverter.exe`. It keeps its settings and temporary files in a `data`
   folder next to itself, so nothing is left on the computer; delete the folder to remove it.
+  It has **no right-click menu in Explorer**: that menu has to be registered in Windows,
+  which a folder you simply delete couldn't undo. Drag files onto the app window instead.
 
 The "Source code" archives that GitHub adds to every release are only needed by developers.
 
