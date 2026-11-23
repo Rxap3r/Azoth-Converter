@@ -16,6 +16,19 @@ MIN_DPI = 150  # below this, text in PDF page images gets blurry
 MAX_DPI = 600
 OCR_DPI = 300  # pages are read (not saved) at this sharpness; less makes small print unreadable
 
+# Video and audio (converters/media.py). Streams are copied unchanged whenever the
+# target can hold them; these settings only apply when something must be re-encoded.
+VIDEO_CRF = 18  # H.264: "visually lossless"; higher numbers mean lower quality
+MAX_VIDEO_CRF = 23  # never worse than H.264's own default
+VP9_CRF = 24  # WebM (VP9), roughly the same look as VIDEO_CRF
+AAC_KBPS = 256  # M4A/MP4 sound from lossy sources (lossless sources become ALAC)
+OPUS_KBPS = 192
+VORBIS_QUALITY = 6  # Ogg Vorbis, about 192 kbit/s
+MP3_VBR = 0  # LAME's best VBR setting (V0, about 245 kbit/s)
+AVI_MP3_KBPS = 320  # old players expect constant-bitrate MP3 in AVI
+MIN_AUDIO_KBPS = 192  # lossy sound is never encoded below this
+GIF_MAX_FPS = 15  # video → GIF: more frames make huge files for no visible gain
+
 
 @dataclass(frozen=True)
 class QualityLevel:

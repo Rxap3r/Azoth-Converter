@@ -40,6 +40,7 @@ COMPONENTS = [
     ("cryptography", "cryptography", "Apache-2.0 / BSD-3-Clause", "Encryption for the above"),
     ("olefile", "olefile", "BSD-2-Clause", "Reads older Office files for the above"),
     ("NumPy", "numpy", "BSD-3-Clause", "Used by the above"),
+    ("FFmpeg", None, "GPL-3.0", "Video and audio (Windows build by Gyan Doshi)"),
     ("LibreOffice", None, "MPL-2.0", "Office formats (installed separately)"),
     ("Microsoft Word", None, "Your own Microsoft licence", "Word → PDF, optional"),
 ]

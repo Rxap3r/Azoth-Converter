@@ -429,7 +429,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--keep-metadata",
         action="store_true",
-        help="keep photo EXIF data (removed by default for privacy)",
+        help="keep photo and video metadata (removed by default for privacy)",
     )
     p.add_argument(
         "--ocr",

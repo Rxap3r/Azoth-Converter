@@ -95,8 +95,8 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | Privacy | Remove photo metadata, same format in and out (JPG, PNG, WebP, GIF, TIFF, HEIC, AVIF) | own lossless code, Pillow | ✅ |
 | Privacy | Remove document metadata (PDF, DOCX, XLSX, PPTX) | own code, PyMuPDF | ✅ |
 | Camera RAW, SVG | CR2, NEF, ARW, DNG, SVG | rawpy, resvg | 🔜 |
-| Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | 🔜 |
-| Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | 🔜 |
+| Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | ✅ |
+| Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | ✅ |
 | Markup / e-books | Markdown, HTML, EPUB, MOBI | Pandoc, Calibre | 🔜 |
 | Data | CSV, JSON, XML, YAML, XLSX | pandas | 🔜 |
 | Archives | ZIP, 7Z, TAR, (RAR extract) | py7zr, 7-Zip | 🔜 |
@@ -192,11 +192,15 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
 ### Phase 3: Audio and video (≈ 4 weeks)
-**Next after PDF → Excel (owner, 23 Nov 2026):** start in a fresh session. **Decided (owner, 23 Nov 2026): bundle the full FFmpeg** (~80–100 MB more download is fine).
-- [ ] FFmpeg plugin with progress parsed from FFmpeg's output
+**Decided (owner, 23 Nov 2026): bundle the full FFmpeg** (~80–100 MB more download is fine).
+- [x] FFmpeg plugin with progress parsed from FFmpeg's output. *Done (23 Nov 2026, on `dev`): `converters/media.py`; video MP4/MOV/MKV/WebM/AVI/WMV/MPG/MTS/FLV/3GP → MP4/MOV/MKV/WebM/AVI/GIF and sound; audio MP3/M4A/WAV/FLAC/OGG/Opus/WMA/AIFF/AAC → MP3/M4A/WAV/FLAC/OGG/Opus; tracks copied unchanged where the target can hold them, lossless stays lossless; GPS/phone metadata removed, song tags and covers kept; Windows FFmpeg 8.0.1 "full" (Gyan) fetched by `packaging/fetch_ffmpeg.py`.*
+  - [ ] Owner to try on Windows: an iPhone video (MOV, HEVC) → MP4, a long video (progress, cancel), music with covers → M4A/MP3
+  - [ ] Linux tests use the system's FFmpeg; the automatic Linux tests don't install it (media tests are skipped there if the runner has none; they always run on Windows with the bundled FFmpeg). Adding `ffmpeg` to the Linux install step is a workflow change: ask the owner
+  - [ ] The Windows build doesn't yet smoke-test FFmpeg in the finished program (like the AI): workflow change, ask the owner
+  - [ ] Later: subtitles from MKV as text into MP4 work; picture subtitles (DVD, Blu-ray) are only kept in MKV
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
 - [ ] Trim, resolution, bitrate, mute; hardware encoding (NVENC, Quick Sync, AMF)
-- [ ] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file
+- [x] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file (with a test)
 - [x] **Release 0.3** (0.3.0 and 0.3.1, Nov 2026)
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)

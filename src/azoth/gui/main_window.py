@@ -361,6 +361,7 @@ class MainWindow(QMainWindow):
         if target == RESIZE_TARGET and self.resize_options.spec() is None:
             self.resize_options.set_mode(resize.FIT)  # this tile is about a new size
         self.resize_options.setVisible(resizable)
+        self.quality.setVisible(targets.uses_quality(self.file_list.formats, target))
         notes = targets.notes(self.engine, self.file_list.formats, target)
         self.notes_label.setText("\n".join(notes))
         self.notes_label.setVisible(bool(notes))

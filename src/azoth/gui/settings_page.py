@@ -79,7 +79,7 @@ class SettingsPage(QWidget):
             appearance.append(button)
 
         self.metadata_check = QCheckBox(
-            "Keep photo metadata when converting (camera, date, GPS location)"
+            "Keep photo and video metadata when converting (camera, date, GPS location)"
         )
         self.metadata_check.setToolTip(METADATA_DETAILS)  # shown on hover
         self.word_check = QCheckBox(

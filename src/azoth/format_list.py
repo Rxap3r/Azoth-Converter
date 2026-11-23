@@ -23,6 +23,8 @@ CATEGORY_TITLES = {
     formats.SPREADSHEET: "Spreadsheets",
     formats.PRESENTATION: "Presentations",
     formats.IMAGE: "Images",
+    formats.VIDEO: "Video",
+    formats.AUDIO: "Audio",
 }
 CATEGORY_NOTES = {
     formats.PDF: [
@@ -49,6 +51,19 @@ CATEGORY_NOTES = {
         "Image → PDF keeps full quality: JPG photos are embedded unchanged, other formats "
         "losslessly.",
         "Animated GIF/WebP and multi-page TIFF keep all frames when the target supports it.",
+        "Animated GIF → MP4 or WebM makes a much smaller video of the same animation.",
+    ],
+    formats.VIDEO: [
+        "Picture, sound and subtitle tracks the target can hold are copied unchanged (fast, "
+        "no quality loss); only the others are re-encoded, at high quality.",
+        "MKV keeps every track. Video → MP3, M4A, WAV … saves the sound only.",
+        "The filming place (GPS), phone model and dates are removed; the title is kept.",
+        "Video → GIF: up to 15 frames per second, 256 colours, no sound. For short clips.",
+    ],
+    formats.AUDIO: [
+        "Lossless sound stays lossless where the target allows it (FLAC → M4A uses Apple "
+        "Lossless; WAV and FLAC keep 24-bit sound).",
+        "Song tags (title, artist, album, track, cover) are kept; other metadata is removed.",
     ],
 }
 LIBREOFFICE_ID = "libreoffice"

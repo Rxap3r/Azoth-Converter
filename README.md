@@ -14,6 +14,8 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 | Excel (XLSX, XLS), ODS, CSV | PDF, other spreadsheet formats, images |
 | PowerPoint (PPTX, PPT), ODP | PDF, other presentation formats, images |
 | JPG, PNG, WebP, HEIC, AVIF, BMP, TIFF, GIF, ICO | each other, and PDF |
+| **Video:** MP4, MOV, MKV, WebM, AVI, WMV, MPG, MTS, FLV, 3GP | MP4, MOV, MKV, WebM, AVI, GIF, and sound only (MP3, M4A, WAV, FLAC, OGG, Opus) |
+| **Audio:** MP3, M4A, WAV, FLAC, OGG, Opus, WMA, AIFF, AAC | MP3, M4A, WAV, FLAC, OGG, Opus |
 | Scans and photos of text (images, scanned PDFs) | Word (DOCX) and TXT by text recognition (OCR), searchable PDF |
 
 **Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).** The app shows the same list under **Supported formats**.
@@ -248,3 +250,8 @@ Found a security or privacy problem? Please report it privately; see [SECURITY.m
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+The Windows app includes FFmpeg (GPL-3.0, build by Gyan Doshi, unchanged; its licence is in
+`resources/ffmpeg/LICENSE.txt`). Its source code: [ffmpeg.org](https://ffmpeg.org/download.html)
+and [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) (the exact version is in
+`packaging/fetch_ffmpeg.py`).

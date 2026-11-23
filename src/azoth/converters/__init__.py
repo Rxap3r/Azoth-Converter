@@ -12,6 +12,7 @@ def all_converters(*, use_word: bool = True) -> list[Converter]:
     """
     from .image_pdf import ImageToPdfConverter
     from .images import ImageConverter
+    from .media import MediaConverter
     from .msword import office_converters
     from .ocr import OcrConverter
     from .office import OfficeConverter
@@ -26,6 +27,7 @@ def all_converters(*, use_word: bool = True) -> list[Converter]:
         PdfToTextConverter(),
         PdfToWordConverter(),
         PdfToExcelConverter(),
+        MediaConverter(),
         OcrConverter(),
         office,
         *office_converters(enabled=use_word, fallback=office),

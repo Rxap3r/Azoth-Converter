@@ -70,8 +70,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 - **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
   Office passwords; then (for 0.5.0) PDF → Word progress, document metadata, Explorer
   right-click menu (all released in 0.5.0). **Next (owner, 23 Nov 2026), each in a fresh
-  session: 1. PDF → Excel (✓ on `dev`, 23 Nov 2026: `converters/pdf_excel.py`, not yet released), 2. video/audio (FFmpeg; owner decided 23 Nov 2026: bundle the
-  full FFmpeg, the extra ~80–100 MB is fine).** Then: the **design refresh is low priority** (the owner finds the current
+  session: 1. PDF → Excel (✓ on `dev`, 23 Nov 2026: `converters/pdf_excel.py`, not yet released), 2. video/audio (✓ on `dev`, 23 Nov 2026: `converters/media.py`,
+  full FFmpeg 8.0.1 bundled on Windows, not yet released; open questions in
+  `docs/PROJECT_PLAN.md` Phase 3).** Then: the **design refresh is low priority** (the owner finds the current
   design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
@@ -227,6 +228,10 @@ src/azoth/
   resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
   upscale.py          "Enhance with AI" (Real-ESRGAN run by OpenCV's dnn, tiled); model in
                       resources/upscale (not in git: fetched by packaging/fetch_tessdata.py)
+  converters/media.py video and audio (FFmpeg): copies tracks where possible, removes GPS/phone
+                      metadata, keeps song tags; FFmpeg in resources/ffmpeg on Windows (not in
+                      git: fetched by packaging/fetch_ffmpeg.py, called by fetch_tessdata.py)
+  converters/pdf_excel.py  PDF → Excel (tables found by PyMuPDF, written by openpyxl)
   metadata.py         show/remove metadata (`azoth clean`); photos: byte-level code in converters/strip.py;
                       PDF/DOCX/XLSX/PPTX: doc_metadata.py
   context_menu.py     Explorer right-click menu entries → packaging/context_menu.iss

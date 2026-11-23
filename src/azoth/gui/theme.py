@@ -17,7 +17,7 @@ from .resources import resources_dir
 SYSTEM, LIGHT, DARK = "system", "light", "dark"
 CHOICES = [(SYSTEM, "Follow Windows"), (LIGHT, "Light"), (DARK, "Dark")]
 FONT = '"Segoe UI Variable Text", "Segoe UI", "Inter", "Noto Sans", sans-serif'
-CATEGORIES = ("image", "pdf", "document", "spreadsheet", "presentation")
+CATEGORIES = ("image", "pdf", "document", "spreadsheet", "presentation", "video", "audio")
 
 
 @dataclass(frozen=True)
@@ -84,6 +84,8 @@ LIGHT_COLORS = Colors(
         "document": ("#E4ECFB", "#1C3F8A"),
         "spreadsheet": ("#E2F4E8", "#0D5B2E"),
         "presentation": ("#FCEBDD", "#8A3B12"),
+        "video": ("#F1E6FB", "#5B2283"),
+        "audio": ("#DDF3F1", "#0B5A55"),
         "unknown": ("#EEEEF2", "#44444F"),
     },
 )
@@ -121,6 +123,8 @@ DARK_COLORS = Colors(
         "document": ("#1E2B4F", "#BCCBFF"),
         "spreadsheet": ("#173826", "#A3E5BA"),
         "presentation": ("#46291A", "#FFC9A3"),
+        "video": ("#36224A", "#DDBDF7"),
+        "audio": ("#163A38", "#9FE3DC"),
         "unknown": ("#33333D", "#D0D0DA"),
     },
 )

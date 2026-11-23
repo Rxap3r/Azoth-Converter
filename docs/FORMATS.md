@@ -32,6 +32,25 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 | **PPTX**: PowerPoint presentation | .pptx | Presentations |
 | **PPT**: PowerPoint 97-2003 presentation | .ppt | Presentations |
 | **ODP**: OpenDocument presentation | .odp | Presentations |
+| **MP4**: MP4 video | .mp4, .m4v | Video |
+| **MOV**: QuickTime video (iPhone) | .mov, .qt | Video |
+| **MKV**: Matroska video | .mkv | Video |
+| **WEBM**: WebM video | .webm | Video |
+| **AVI**: AVI video | .avi | Video |
+| **WMV**: Windows Media video | .wmv, .asf | Video |
+| **MPG**: MPEG video (DVD) | .mpg, .mpeg, .vob | Video |
+| **MTS**: AVCHD video (camcorder) | .mts, .m2ts | Video |
+| **FLV**: Flash video | .flv | Video |
+| **3GP**: 3GP video (old phones) | .3gp, .3g2 | Video |
+| **MP3**: MP3 audio | .mp3 | Audio |
+| **M4A**: M4A audio (AAC or Apple Lossless) | .m4a, .m4b | Audio |
+| **WAV**: WAV audio | .wav | Audio |
+| **FLAC**: FLAC audio (lossless) | .flac | Audio |
+| **OGG**: Ogg Vorbis audio | .ogg, .oga | Audio |
+| **OPUS**: Opus audio | .opus | Audio |
+| **AAC**: AAC audio | .aac | Audio |
+| **WMA**: Windows Media audio | .wma | Audio |
+| **AIFF**: AIFF audio | .aiff, .aif | Audio |
 
 ## Text documents
 
@@ -86,7 +105,7 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 | **WEBP** | JPG, PNG, PDF, HEIC, AVIF, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
 | **BMP** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, ICO, DOCX, TXT | – |
 | **TIFF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, GIF, BMP, ICO, DOCX, TXT | – |
-| **GIF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, BMP, ICO, DOCX, TXT | – |
+| **GIF** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, BMP, ICO, DOCX, TXT, MP4, MP3, MKV, MOV, WEBM, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
 | **ICO** | JPG, PNG, PDF, WEBP, HEIC, AVIF, TIFF, GIF, BMP, DOCX, TXT | – |
 | **HEIC** | JPG, PNG, PDF, WEBP, AVIF, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
 | **AVIF** | JPG, PNG, PDF, WEBP, HEIC, TIFF, GIF, BMP, ICO, DOCX, TXT | – |
@@ -95,6 +114,44 @@ Most office formats need the free [LibreOffice](https://www.libreoffice.org/down
 - Formats without transparency (JPG, BMP) get a white background.
 - Image → PDF keeps full quality: JPG photos are embedded unchanged, other formats losslessly.
 - Animated GIF/WebP and multi-page TIFF keep all frames when the target supports it.
+- Animated GIF → MP4 or WebM makes a much smaller video of the same animation.
+
+## Video
+
+| From | Works right away | Also with LibreOffice installed |
+|------|------------------|--------------------------------|
+| **MP4** | MP3, MKV, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **MOV** | MP4, MP3, MKV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **MKV** | MP4, MP3, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **WEBM** | MP4, MP3, MKV, MOV, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **AVI** | MP4, MP3, MKV, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS | – |
+| **WMV** | MP4, MP3, MKV, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **MPG** | MP4, MP3, MKV, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **MTS** | MP4, MP3, MKV, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **FLV** | MP4, MP3, MKV, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+| **3GP** | MP4, MP3, MKV, MOV, WEBM, GIF, M4A, WAV, FLAC, OGG, OPUS, AVI | – |
+
+- Picture, sound and subtitle tracks the target can hold are copied unchanged (fast, no quality loss); only the others are re-encoded, at high quality.
+- MKV keeps every track. Video → MP3, M4A, WAV … saves the sound only.
+- The filming place (GPS), phone model and dates are removed; the title is kept.
+- Video → GIF: up to 15 frames per second, 256 colours, no sound. For short clips.
+
+## Audio
+
+| From | Works right away | Also with LibreOffice installed |
+|------|------------------|--------------------------------|
+| **MP3** | M4A, WAV, FLAC, OGG, OPUS | – |
+| **M4A** | MP3, WAV, FLAC, OGG, OPUS | – |
+| **WAV** | MP3, M4A, FLAC, OGG, OPUS | – |
+| **FLAC** | MP3, M4A, WAV, OGG, OPUS | – |
+| **OGG** | MP3, M4A, WAV, FLAC, OPUS | – |
+| **OPUS** | MP3, M4A, WAV, FLAC, OGG | – |
+| **AAC** | MP3, M4A, WAV, FLAC, OGG, OPUS | – |
+| **WMA** | MP3, M4A, WAV, FLAC, OGG, OPUS | – |
+| **AIFF** | MP3, M4A, WAV, FLAC, OGG, OPUS | – |
+
+- Lossless sound stays lossless where the target allows it (FLAC → M4A uses Apple Lossless; WAV and FLAC keep 24-bit sound).
+- Song tags (title, artist, album, track, cover) are kept; other metadata is removed.
 
 ## Also available
 

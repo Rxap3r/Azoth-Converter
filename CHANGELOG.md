@@ -17,8 +17,35 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   lines; scans aren't supported yet (convert them to Word instead). Shows progress page by
   page and can be cancelled.
 
+- **Video and audio** (with FFmpeg, now part of the Windows app):
+  - Video: MP4, MOV (iPhone), MKV, WebM, AVI, WMV, MPG, MTS (camcorders), FLV, 3GP →
+    MP4, MOV, MKV, WebM, AVI or GIF; or just the sound as MP3, M4A, WAV, FLAC, OGG, Opus.
+  - Audio: MP3, M4A, WAV, FLAC, OGG, Opus, WMA, AIFF, AAC → MP3, M4A, WAV, FLAC, OGG, Opus.
+  - Animated GIF → MP4 or WebM (a much smaller file).
+  - Shows progress ("0:42 of 3:10") and can be cancelled.
+  - Right-click menu entries for video and sound files.
+
+### Quality
+
+- Video and sound tracks the new format can hold are **copied unchanged** (MKV ↔ MP4 ↔ MOV
+  takes seconds and loses nothing; MKV keeps every sound and subtitle track). Only what
+  doesn't fit is re-encoded, at high settings (H.264 "visually lossless", AAC 256 kbit/s,
+  MP3 V0, Opus 192 kbit/s). Lossless sound stays lossless: FLAC → M4A uses Apple Lossless,
+  24-bit sound stays 24-bit in WAV and FLAC.
+
+### Privacy and safety
+
+- Converted videos lose the place they were filmed (GPS), the phone model and dates, like
+  photos (the "Keep … metadata" setting now covers video and sound too). Song tags (title,
+  artist, album, track, cover) and track languages are kept.
+- FFmpeg may only open files on your computer: a playlist or crafted video can't make it
+  connect to the internet.
+
 ### Development
 
+- FFmpeg 8.0.1 for Windows ("full" build by Gyan Doshi, GPL-3.0, about 75 MB more in the
+  download) is fetched by `packaging/fetch_ffmpeg.py` (pinned, checked by SHA-256), called by
+  `fetch_tessdata.py`. Elsewhere the system's `ffmpeg` is used.
 - New library for the app: openpyxl (MIT, works offline) writes the Excel files.
 
 ## [0.5.0] - 2026-11-23

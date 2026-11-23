@@ -58,7 +58,7 @@ class ConvertPage(QWidget):
         drop_title = label("Drag files or folders here")
         drop_title.setStyleSheet("font-weight: 600;")
         drop_text.addWidget(drop_title)
-        drop_text.addWidget(label("Photos, PDFs, Word, Excel and PowerPoint files", "small"))
+        drop_text.addWidget(label("Photos, PDFs, Office files, videos and music", "small"))
         drop_row = QHBoxLayout(self.drop_zone)
         drop_row.setContentsMargins(18, 14, 18, 14)
         drop_row.setSpacing(16)

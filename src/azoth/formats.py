@@ -30,6 +30,8 @@ PDF = "pdf"
 DOCUMENT = "document"
 SPREADSHEET = "spreadsheet"
 PRESENTATION = "presentation"
+VIDEO = "video"
+AUDIO = "audio"
 
 _ALL = [
     # Images
@@ -59,6 +61,27 @@ _ALL = [
     Format("pptx", "PowerPoint presentation", PRESENTATION, ("pptx",)),
     Format("ppt", "PowerPoint 97-2003 presentation", PRESENTATION, ("ppt",)),
     Format("odp", "OpenDocument presentation", PRESENTATION, ("odp",)),
+    # Video
+    Format("mp4", "MP4 video", VIDEO, ("mp4", "m4v")),
+    Format("mov", "QuickTime video (iPhone)", VIDEO, ("mov", "qt")),
+    Format("mkv", "Matroska video", VIDEO, ("mkv",)),
+    Format("webm", "WebM video", VIDEO, ("webm",)),
+    Format("avi", "AVI video", VIDEO, ("avi",)),
+    Format("wmv", "Windows Media video", VIDEO, ("wmv", "asf")),
+    Format("mpg", "MPEG video (DVD)", VIDEO, ("mpg", "mpeg", "vob")),
+    Format("mts", "AVCHD video (camcorder)", VIDEO, ("mts", "m2ts")),
+    Format("flv", "Flash video", VIDEO, ("flv",)),
+    Format("3gp", "3GP video (old phones)", VIDEO, ("3gp", "3g2")),
+    # Audio
+    Format("mp3", "MP3 audio", AUDIO, ("mp3",)),
+    Format("m4a", "M4A audio (AAC or Apple Lossless)", AUDIO, ("m4a", "m4b")),
+    Format("wav", "WAV audio", AUDIO, ("wav",)),
+    Format("flac", "FLAC audio (lossless)", AUDIO, ("flac",)),
+    Format("ogg", "Ogg Vorbis audio", AUDIO, ("ogg", "oga")),
+    Format("opus", "Opus audio", AUDIO, ("opus",)),
+    Format("aac", "AAC audio", AUDIO, ("aac",)),
+    Format("wma", "Windows Media audio", AUDIO, ("wma",)),
+    Format("aiff", "AIFF audio", AUDIO, ("aiff", "aif")),
 ]
 
 FORMATS: dict[str, Format] = {f.id: f for f in _ALL}
@@ -103,6 +126,19 @@ def _detect_zip(path: Path) -> str | None:
     return None
 
 
+_MP4_BRANDS = {
+    b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"M4V ",
+    b"M4VH", b"M4VP", b"dash", b"mmp4", b"MSNV", b"XAVC", b"f4v ", b"NDAS",
+}  # fmt: skip
+
+
+def _is_transport_stream(head: bytes) -> bool:
+    """MPEG transport stream: a 0x47 every 188 bytes (camcorders: every 192)."""
+    return (len(head) > 380 and head[0] == head[188] == head[376] == 0x47) or (
+        len(head) > 392 and head[4] == head[196] == head[388] == 0x47
+    )
+
+
 def _detect_magic(path: Path, head: bytes) -> str | None:
     if head.startswith(b"%PDF-"):
         return "pdf"
@@ -126,6 +162,48 @@ def _detect_magic(path: Path, head: bytes) -> str | None:
             return "avif"
         if brand in (b"heic", b"heix", b"hevc", b"hevx", b"mif1", b"msf1", b"heim", b"heis"):
             return "heic"
+        if brand == b"qt  ":
+            return "mov"
+        if brand in (b"M4A ", b"M4B ", b"M4P "):
+            return "m4a"
+        if brand.startswith((b"3gp", b"3g2")):
+            return "3gp"
+        if brand in _MP4_BRANDS:
+            return "mp4"
+    if head[4:8] in (b"moov", b"mdat", b"wide", b"free") and from_extension(path) in (
+        FORMATS["mov"],
+        FORMATS["mp4"],
+    ):
+        return from_extension(path).id  # old QuickTime files without "ftyp"
+    if head.startswith(b"\x1a\x45\xdf\xa3"):  # Matroska / WebM
+        return "webm" if b"webm" in head[:64] else "mkv"
+    if head[:4] == b"RIFF" and head[8:12] == b"AVI ":
+        return "avi"
+    if head[:4] == b"RIFF" and head[8:12] == b"WAVE":
+        return "wav"
+    if head[:4] == b"FORM" and head[8:12] in (b"AIFF", b"AIFC"):
+        return "aiff"
+    if head.startswith(b"0&\xb2\x75\x8e\x66\xcf\x11"):  # Windows Media (ASF)
+        ext = from_extension(path)
+        return "wma" if ext is not None and ext.id == "wma" else "wmv"
+    if head.startswith(b"fLaC"):
+        return "flac"
+    if head.startswith(b"OggS"):
+        return "opus" if b"OpusHead" in head[:64] else "ogg"
+    if head.startswith(b"FLV\x01"):
+        return "flv"
+    if head.startswith(b"\x00\x00\x01\xba"):
+        return "mpg"
+    if _is_transport_stream(head):
+        return "mts"
+    if len(head) > 1 and head[0] == 0xFF and head[1] & 0xE0 == 0xE0:  # an audio frame
+        layer = (head[1] >> 1) & 3
+        if layer == 1:
+            return "mp3"
+        if layer == 0 and head[1] & 0xF0 == 0xF0:
+            return "aac"  # raw AAC (ADTS)
+    if head.startswith(b"ID3"):
+        return "mp3"  # a tag first; almost always MP3
     if head.startswith(b"{\\rtf"):
         return "rtf"
     if head.startswith(b"PK\x03\x04"):
@@ -144,7 +222,7 @@ def detect(path: Path) -> Format | None:
     path = Path(path)
     try:
         with path.open("rb") as fh:
-            head = fh.read(32)
+            head = fh.read(400)
     except OSError:
         return None
     found = _detect_magic(path, head)

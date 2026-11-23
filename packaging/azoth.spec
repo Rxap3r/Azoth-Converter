@@ -22,6 +22,10 @@ if missing:
     raise SystemExit(f"OCR language files missing: {missing}. Run python packaging/fetch_tessdata.py")
 if not AI_MODEL.is_file():  # "Enhance with AI" needs it
     raise SystemExit(f"AI model missing: {AI_MODEL.name}. Run python packaging/fetch_tessdata.py")
+from fetch_ffmpeg import EXE as FFMPEG  # noqa: E402
+
+if sys.platform == "win32" and not FFMPEG.is_file():  # video and audio need it
+    raise SystemExit("FFmpeg missing. Run python packaging/fetch_tessdata.py")
 
 # App resources (icon, OCR languages) plus package metadata, so the About window can show versions.
 datas = [("../src/azoth/resources", "azoth/resources")]

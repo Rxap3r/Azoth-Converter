@@ -30,6 +30,9 @@ _PURPOSE = {
     "odt": "OpenDocument", "rtf": "Rich text", "txt": "Plain text", "xlsx": "Excel",
     "xls": "Old Excel", "ods": "OpenDocument", "csv": "Plain table",
     "pptx": "PowerPoint", "ppt": "Old PowerPoint", "odp": "OpenDocument",
+    "mp4": "Everywhere", "mov": "Apple", "mkv": "All tracks", "webm": "Websites",
+    "avi": "Old players", "mp3": "Music", "m4a": "Apple", "wav": "Studio",
+    "flac": "Lossless", "ogg": "Open format", "opus": "Small files",
 }  # fmt: skip
 _DISPLAY = {"webp": "WebP", "docx": "DOCX"}
 
@@ -135,6 +138,18 @@ def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
     if target == "pdf" and images:
         return "optional"
     return None
+
+
+MEDIA = (formats.VIDEO, formats.AUDIO)
+
+
+def uses_quality(file_formats: FileFormats, target: str | None) -> bool:
+    """Whether the Quality choice (photos, PDF pages as pictures) matters. Video and
+    sound use their own fixed high settings, so it's hidden for them."""
+    if target in formats.FORMATS and formats.FORMATS[target].category in MEDIA:
+        return False
+    sources = source_formats(file_formats)
+    return not sources or any(formats.FORMATS[s].category not in MEDIA for s in sources)
 
 
 def notes(engine: Engine, file_formats: FileFormats, target: str | None) -> list[str]:
