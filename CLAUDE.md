@@ -41,7 +41,7 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   it on Windows before the release.
 - **0.5.0 prepared on `dev` (23 Nov 2026)**: version, `CHANGELOG.md` section and
   `docs/releases/v0.5.0.md` done; pull request `dev` → `main` opened on the owner's request
-  ("make a pull request and prepare the release"). After the owner merges it, they start
+  ("make a pull request and prepare the release"): pull request #11. After the owner merges it, they start
   Actions → Release on `main`. Contents (details in `CHANGELOG.md` → 0.5.0):
   1. **"Enhance with AI"** (`upscale.py`): Real-ESRGAN run by OpenCV's dnn, tiled; under
      Picture size; Noise removal Low/Medium/High; CLI `--ai`, `--denoise`. The Windows build
