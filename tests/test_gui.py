@@ -578,7 +578,7 @@ def test_no_page_squeezes_its_buttons(qtbot, tmp_path, sample_png):
                 assert height >= roomy[key][1], (page, text, height, roomy[key][1])
 
 
-def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch):
+def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch, with_ffmpeg):
     from azoth.converters import office
     from azoth.gui import widgets
 
@@ -595,7 +595,7 @@ def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch):
     assert office.DOWNLOAD_URL.startswith("https://www.libreoffice.org/")
 
 
-def test_no_download_button_when_libreoffice_is_installed(window):
+def test_no_download_button_when_libreoffice_is_installed(with_ffmpeg, window):
     from azoth.converters.office import find_soffice
 
     if find_soffice() is None:

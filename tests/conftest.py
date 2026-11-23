@@ -73,6 +73,14 @@ def private_tmp(tmp_path, monkeypatch):
     return tdir
 
 
+@pytest.fixture
+def with_ffmpeg(monkeypatch):
+    """Tests about other engines: FFmpeg counts as there (it comes with the app)."""
+    from azoth.converters.media import MediaConverter
+
+    monkeypatch.setattr(MediaConverter, "is_available", lambda self: True)
+
+
 def make_pdf(path: Path, pages: list[str]) -> Path:
     doc = pymupdf.open()
     for text in pages:

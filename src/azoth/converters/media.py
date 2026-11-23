@@ -377,7 +377,6 @@ class MediaConverter(Converter):
     id = "ffmpeg"
     label = "FFmpeg"
     priority = 10
-    download_url = "https://ffmpeg.org/download.html"
 
     def __init__(self) -> None:
         self._ffmpeg: Path | None = None

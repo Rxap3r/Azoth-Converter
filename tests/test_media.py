@@ -94,6 +94,7 @@ def test_ffmpeg_may_only_open_local_files():
     assert args[-1] == f"file:{path}"  # never read as a network address
 
 
+@needs_ffmpeg
 def test_targets_offered():
     engine = Engine()
     video = [t.id for t in engine.targets_for("mov")]
@@ -279,3 +280,15 @@ def test_photo_quality_choice_is_hidden_for_video_and_sound():
 def test_keep_metadata_setting_keeps_everything(phone_video, tmp_path):
     [out] = Engine().convert(phone_video, "mp4", tmp_path, options={"keep_metadata": True}).outputs
     assert "47.3769" in tags(out)
+
+
+def test_missing_ffmpeg_says_reinstall_and_offers_no_download(monkeypatch):
+    from azoth.converters import all_converters, media
+
+    monkeypatch.setattr(media, "find_ffmpeg", lambda: None)
+    engine = Engine(all_converters())
+    [conv] = [c for c in engine.unavailable() if c.id == "ffmpeg"]
+    assert "Reinstall" in conv.unavailable_reason()
+    assert not conv.download_url  # FFmpeg comes with the app: nothing to download
+    with pytest.raises(ConversionError):
+        conv.convert(Path("a.mp4"), Path("a.mkv"), None)

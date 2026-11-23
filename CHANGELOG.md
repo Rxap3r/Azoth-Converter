@@ -46,6 +46,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - FFmpeg 8.0.1 for Windows ("full" build by Gyan Doshi, GPL-3.0, about 75 MB more in the
   download) is fetched by `packaging/fetch_ffmpeg.py` (pinned, checked by SHA-256), called by
   `fetch_tessdata.py`. Elsewhere the system's `ffmpeg` is used.
+- "Build and test": the Linux tests install FFmpeg (and stop if it's missing, so the video
+  and audio tests can't be skipped unnoticed); the Windows build converts a test video to
+  MP4, WebM and MP3 with the bundled FFmpeg in the finished program.
 - New library for the app: openpyxl (MIT, works offline) writes the Excel files.
 
 ## [0.5.0] - 2026-11-23
