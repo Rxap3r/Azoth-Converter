@@ -39,10 +39,10 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
   `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
   it on Windows before the release.
-- **Next work: to be decided with the owner** (23 Nov 2026). Candidates in
-  `docs/PROJECT_PLAN.md`: AI upscaling / "improve quality" (picture size, step 2), design
-  refresh (icon, accessibility, keyboard shortcuts), smaller download, Explorer right-click
-  menu, PDF → Excel, video/audio (FFmpeg), code signing (waiting for SignPath).
+- **Owner's priorities (23 Nov 2026):** the owner most wants **AI upscaling / "improve
+  quality"** (picture size, step 2) and the **Explorer right-click menu**; then PDF → Excel,
+  video/audio (FFmpeg); the **design refresh is low priority** (the owner finds the current
+  design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
