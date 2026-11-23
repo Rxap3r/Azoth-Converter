@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from . import icons
 from .targets import CLEAN_TARGET, CLEAN_TILE, RESIZE_TARGET, RESIZE_TILE, Choices, tile_text
 from .theme import LIGHT_COLORS, Colors
-from .widgets import label
+from .widgets import discard, label
 
 COLUMNS = 3
 
@@ -41,7 +41,8 @@ class Tile(QPushButton):
         self.subtitle = label(subtitle, "small")
         self.subtitle.setWordWrap(wide)
         self.icon_label = QLabel()
-        self.icon_label.setVisible(wide)
+        if not wide:  # (never setVisible(True) before it has a parent: see discard)
+            self.icon_label.hide()
         text = QVBoxLayout()
         text.setSpacing(0)
         text.addWidget(self.title)
@@ -91,8 +92,8 @@ class TargetPicker(QWidget):
         try:
             for tile in self.tiles:
                 self.group.removeButton(tile)
-                tile.setParent(None)
-                tile.deleteLater()
+                self._grid.removeWidget(tile)
+                discard(tile)
             self.tiles = []
             for i, fmt in enumerate(choices.formats):
                 tile = Tile(fmt.id, *tile_text(fmt.id))

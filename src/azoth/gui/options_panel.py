@@ -206,7 +206,8 @@ class ResizeOptions(QWidget):
             "their size get sharper, with less noise and fewer JPEG blocks. Runs only on "
             "this computer, and takes a while."
         )
-        self.ai.setVisible(upscale.available())
+        if not upscale.available():
+            self.ai.hide()
         self.denoise = QComboBox()
         self.denoise.setAccessibleName("Noise removal")
         for level, text in upscale.DENOISE_LABELS.items():

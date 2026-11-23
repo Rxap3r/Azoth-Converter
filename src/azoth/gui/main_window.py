@@ -244,15 +244,19 @@ class MainWindow(QMainWindow):
         chosen there, convert them to it right away (see explorer.py)."""
         if self.is_busy():
             return
+        from .explorer import OPEN
+
+        found = [p for p in paths if p.is_file()]
         self.show_page("convert")
-        self.file_list.clear()
         self.done_card.clear()
-        self.add_files([p for p in paths if p.is_file()])
+        if target == OPEN and found:  # "Open in …": join the files already in the list
+            self.add_files(found)
+            return
+        self.file_list.clear()
+        self.add_files(found)
         if not self.file_list.files:
             self.status_label.setText("The chosen files can't be found any more.")
             return
-        from .explorer import OPEN
-
         if target == OPEN:
             return
         if self.target_picker.select(target):

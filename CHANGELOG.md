@@ -25,6 +25,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   - Shows progress ("0:42 of 3:10") and can be cancelled.
   - Right-click menu entries for video and sound files.
 
+### Changed
+
+- **Right-click menu uses the open window:** files chosen with "Convert with Azoth
+  Converter" now go to the window that is already open, also when you opened it from the
+  Start menu, instead of starting a second copy. "Open in Azoth Converter" adds the files
+  to the ones already in the list; "To PDF" etc. converts just the chosen files. The window
+  comes to the front.
+
+### Fixed
+
+- Small empty windows no longer flash up in the middle of the screen while the app starts
+  or the format choices change (parts of the window were briefly shown on their own
+  before being placed in it).
+
 ### Quality
 
 - Video and sound tracks the new format can hold are **copied unchanged** (MKV ↔ MP4 ↔ MOV

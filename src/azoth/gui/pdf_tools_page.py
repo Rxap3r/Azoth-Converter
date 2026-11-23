@@ -952,7 +952,8 @@ class ToolsPage(QWidget):
         self.tool_buttons[keys[0]].setChecked(True)
         self.stack.setCurrentWidget(self.tools[keys[0]])
         for button in self.tool_buttons.values():
-            button.setVisible(len(keys) > 1)  # one tool: nothing to switch
+            if len(keys) == 1:  # one tool: nothing to switch
+                button.hide()
 
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()

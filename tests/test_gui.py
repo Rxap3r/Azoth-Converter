@@ -669,10 +669,97 @@ def test_explorer_request_converts_right_away(window, qtbot, sample_png, tmp_pat
     assert [p.suffix for p in out.iterdir()] == [".jpg"]
 
 
-def test_explorer_open_only_adds_the_files(window, sample_png, sample_pdf):
+def test_explorer_open_adds_to_the_files_already_there(window, sample_png, sample_pdf):
     window.add_files([sample_pdf])
     window.run_explorer_request("open", [sample_png])
-    assert window.file_list.files == [sample_png] and not window.is_busy()
+    assert window.file_list.files == [sample_pdf, sample_png] and not window.is_busy()
+
+
+def test_explorer_convert_starts_a_fresh_list(window, qtbot, sample_png, sample_pdf, tmp_path):
+    window.add_files([sample_pdf])
+    window.output_dir = tmp_path / "out"
+    window.run_explorer_request("jpg", [sample_png])
+    assert window.file_list.files == [sample_png]  # only what was chosen is converted
+    qtbot.waitUntil(lambda: not window.is_busy(), timeout=20000)
+
+
+def test_window_opened_normally_takes_right_click_files(
+    qtbot, monkeypatch, tmp_path, local_sockets, sample_png
+):
+    """Started from the Start menu, the window still receives files chosen later in
+    Explorer's right-click menu, instead of a second window opening."""
+    from PySide6.QtWidgets import QApplication
+
+    from azoth.gui import app, explorer, settings
+    from azoth.gui.main_window import MainWindow
+
+    storage = tmp_path / "settings"
+    storage.mkdir()
+    monkeypatch.setattr(explorer, "_storage", lambda: storage)
+    monkeypatch.setattr(settings, "configure_storage", lambda *a: None)
+    from azoth import engine
+    from azoth.gui import error_log
+
+    monkeypatch.setattr(engine, "cleanup_stale_temp_folders", lambda: None)
+    monkeypatch.setattr(error_log, "install", lambda: None)
+    from azoth.gui import main_window
+
+    created, seen = [], []
+
+    class Recorded(MainWindow):
+        def __init__(self):
+            super().__init__()
+            created.append(self)
+
+    monkeypatch.setattr(main_window, "MainWindow", Recorded)
+
+    def run_instead_of_waiting(self):
+        [window] = created
+        qtbot.addWidget(window)
+        assert explorer.forward("open", [str(sample_png)], storage)  # a right-click later
+        qtbot.waitUntil(lambda: window.file_list.files == [sample_png], timeout=10000)
+        seen.append(window)
+        window.close()
+        return 0
+
+    monkeypatch.setattr(QApplication, "exec", run_instead_of_waiting)
+    assert app.main() == 0
+    assert seen
+
+
+def test_no_stray_windows_flash_up(window, qtbot, sample_png, sample_pdf, tmp_path):
+    """A widget shown before it has a place in the window is a window of its own: on
+    Windows it flashes up as a small empty window. Only real windows may appear."""
+    from PySide6.QtCore import QEvent, QObject
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    shown = []
+
+    class Spy(QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QEvent.Type.Show and isinstance(obj, QWidget) and obj.isWindow():
+                shown.append(type(obj).__name__)
+            return False
+
+    spy = Spy()
+    QApplication.instance().installEventFilter(spy)
+    try:
+        fresh = MainWindow()
+        qtbot.addWidget(fresh)
+        fresh.show()
+        fresh.add_files([sample_png, sample_pdf])
+        fresh.file_list.remove_rows([0])
+        fresh.add_files([sample_png])
+        for page in ("pdf", "settings", "convert"):
+            fresh.show_page(page)
+        fresh.output_dir = tmp_path / "out"
+        fresh.run_explorer_request("open", [sample_pdf])
+        fresh.run_explorer_request("png", [sample_pdf])
+        qtbot.waitUntil(lambda: not fresh.is_busy(), timeout=20000)
+        QApplication.processEvents()
+    finally:
+        QApplication.instance().removeEventFilter(spy)
+    assert shown == ["MainWindow"]
 
 
 def test_explorer_files_selected_together_are_one_batch(window, qtbot, tmp_path, local_sockets):

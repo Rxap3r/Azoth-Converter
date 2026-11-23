@@ -61,6 +61,7 @@ def _key(storage: Path | None = None) -> bytes:
 
 def forward(target: str, files: list[str], storage: Path | None = None) -> bool:
     """Hand the request to a window that is already open. False if there is none."""
+    _allow_window_to_come_forward()
     try:
         with Client(address(storage), authkey=_key(storage)) as conn:
             conn.send_bytes(json.dumps({"to": target, "files": files}).encode())
@@ -69,6 +70,20 @@ def forward(target: str, files: list[str], storage: Path | None = None) -> bool:
         return False
     except Exception:  # noqa: BLE001 - e.g. AuthenticationError: not our window
         return False
+
+
+def _allow_window_to_come_forward() -> None:
+    """Windows only lets the program the user just started bring a window to the front.
+    That is this short-lived program (started by Explorer), so it passes the right on to
+    the open window; otherwise the window would only blink in the taskbar."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.user32.AllowSetForegroundWindow(-1)  # ASFW_ANY
+    except (AttributeError, OSError):
+        pass
 
 
 def listen(storage: Path | None = None) -> Listener | None:

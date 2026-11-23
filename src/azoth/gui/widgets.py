@@ -34,6 +34,14 @@ def download_button(text: str, url: str) -> QPushButton:
     return button
 
 
+def discard(widget: QWidget) -> None:
+    """Remove ``widget`` from the window and delete it. Hidden first and never given
+    ``setParent(None)``: a visible widget without a parent is a window of its own, so it
+    would flash up on Windows (a small empty window) before it's deleted."""
+    widget.hide()
+    widget.deleteLater()
+
+
 def scrollable(content: QWidget) -> QScrollArea:
     """Wrap a page (or panel) so it scrolls when the window is too small, instead of Qt
     squeezing its parts on top of each other. Use it for every page whose content can grow."""

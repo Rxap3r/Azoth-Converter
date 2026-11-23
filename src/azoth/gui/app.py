@@ -47,10 +47,18 @@ def main(explorer: tuple[str, list[str]] | None = None) -> int:
     collector = MainThreadGC(app)  # memory clean-up never runs in a conversion thread
     window = MainWindow()
     window.show()
+    if listener is None and explorer is None:
+        # Opened normally: still take files chosen later in Explorer's right-click menu,
+        # so they open here instead of in a second window.
+        from .explorer import listen
+
+        listener = listen()
     if listener is not None:
         from .explorer import attach
 
-        attach(window, listener).add(*explorer)  # the window keeps it
+        requests = attach(window, listener)  # the window keeps it
+        if explorer is not None:
+            requests.add(*explorer)
     elif explorer is not None:
         from pathlib import Path
 
