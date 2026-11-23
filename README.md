@@ -53,12 +53,14 @@ how strongly noise is removed (Low keeps fine grain). Command line:
 `azoth convert small.jpg --to png --resize 400% --ai`, or `--ai` alone to keep the size.
 
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
-unchanged, lossless images stay lossless, and if Microsoft Word is installed it's used for
-Word → PDF for an exact layout. Under **Quality** next to the format tiles you can choose smaller files
+unchanged, lossless images stay lossless, and if Microsoft Office is installed, Word, Excel
+and PowerPoint do their own files (to PDF and between their formats) for an exact layout. Under **Quality** next to the format tiles you can choose smaller files
 instead, but never below a sensible minimum.
 
-Office formats need [LibreOffice](https://www.libreoffice.org/download/) (free) to be installed.
-PDF → Word, PDF ↔ images and the image conversions work without it.
+Office formats need Microsoft Office (Word, Excel, PowerPoint) or the free
+[LibreOffice](https://www.libreoffice.org/download/). Microsoft Office is used where it's
+installed; LibreOffice fills the gaps (e.g. PowerPoint files on a PC with only Word) and steps
+in if Office fails. PDF → Word, PDF ↔ images and the image conversions need neither.
 
 ## Using it
 

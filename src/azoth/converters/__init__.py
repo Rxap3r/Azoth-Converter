@@ -6,12 +6,13 @@ from .base import ConversionCancelled, ConversionContext, ConversionError, Conve
 def all_converters(*, use_word: bool = True) -> list[Converter]:
     """All converter plugins.
 
-    ``use_word``: use Microsoft Word for Word → PDF when it's installed (Windows).
-    Without Word, or with ``use_word=False``, LibreOffice does those conversions.
+    ``use_word``: use Microsoft Office (Word, Excel, PowerPoint) where it's installed
+    (Windows). Without Office, or with ``use_word=False``, LibreOffice does those
+    conversions.
     """
     from .image_pdf import ImageToPdfConverter
     from .images import ImageConverter
-    from .msword import WordConverter
+    from .msword import office_converters
     from .ocr import OcrConverter
     from .office import OfficeConverter
     from .pdf import PdfToImageConverter, PdfToTextConverter, PdfToWordConverter
@@ -25,7 +26,7 @@ def all_converters(*, use_word: bool = True) -> list[Converter]:
         PdfToWordConverter(),
         OcrConverter(),
         office,
-        WordConverter(enabled=use_word, fallback=office),
+        *office_converters(enabled=use_word, fallback=office),
     ]
 
 

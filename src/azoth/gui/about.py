@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__
-from ..converters.msword import word_installed
+from ..converters.msword import APPS, app_installed
 from ..converters.office import find_soffice
 from .resources import icon_path
 
@@ -93,7 +93,8 @@ class AboutDialog(QDialog):
         engines = []
         soffice = find_soffice()
         engines.append(f"LibreOffice: {'found' if soffice else 'not installed'}")
-        engines.append(f"Microsoft Word: {'found' if word_installed() else 'not installed'}")
+        for app in APPS:
+            engines.append(f"{app.label}: {'found' if app_installed(app) else 'not installed'}")
         self.engines_label = QLabel(" · ".join(engines))
         layout.addWidget(self.engines_label)
 

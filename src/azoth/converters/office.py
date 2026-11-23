@@ -67,6 +67,7 @@ FAMILY = {
     **dict.fromkeys(SLIDES, "slides"),
 }
 
+_FAMILY_NAMES = {"text": "Word files", "sheet": "Excel files", "slides": "PowerPoint files"}
 DEFAULT_TIMEOUT = 300  # seconds per document
 DOWNLOAD_URL = "https://www.libreoffice.org/download/download-libreoffice/"
 
@@ -146,11 +147,17 @@ class OfficeConverter(Converter):
     def is_available(self) -> bool:
         return self.soffice is not None
 
-    def unavailable_reason(self) -> str:
-        return (
-            "Office conversions need LibreOffice (free). Install it from "
-            "libreoffice.org, then restart Azoth Converter."
-        )
+    def unavailable_reason(self, missing: Iterable[tuple[str, str]] | None = None) -> str:
+        """Why LibreOffice is needed. ``missing``: the conversions nothing else can do
+        (Microsoft Office may do the rest)."""
+        install = "Install it from libreoffice.org, then restart Azoth Converter."
+        if missing is not None:
+            families = {FAMILY[src] for src, _ in missing if src in FAMILY}
+            names = [n for f, n in _FAMILY_NAMES.items() if f in families]
+            if names and len(names) < len(_FAMILY_NAMES):
+                what = " and ".join(names)
+                return f"{what} need LibreOffice (free) or Microsoft Office. {install}"
+        return f"Office conversions need LibreOffice (free). {install}"
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
         for src, family in FAMILY.items():

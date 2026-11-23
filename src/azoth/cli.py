@@ -414,8 +414,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--no-word",
+        "--no-office",
         action="store_true",
-        help="use LibreOffice even if Microsoft Word is installed (Word → PDF)",
+        dest="no_word",
+        help="use LibreOffice even if Microsoft Office (Word, Excel, PowerPoint) is installed",
     )
     p.add_argument("--quiet", "-q", action="store_true")
     p.set_defaults(func=cmd_convert)

@@ -101,6 +101,25 @@ class Engine:
         """Required converters whose engine is missing (optional ones like Word are left out)."""
         return [c for c in self.converters if not c.optional and not c.is_available()]
 
+    def missing(self, converter: Converter) -> list[tuple[str, str]]:
+        """Conversions of ``converter`` that no available engine can do (e.g. without
+        LibreOffice, Excel files when Microsoft Excel isn't installed either)."""
+        available = [c for c in self.converters if c.is_available()]
+        return [
+            pair
+            for pair in converter.capabilities()
+            if not any(pair in set(c.capabilities()) for c in available)
+        ]
+
+    def needed_engines(self) -> list[tuple[Converter, list[tuple[str, str]]]]:
+        """Missing engines that would add conversions, with those conversions."""
+        result = []
+        for conv in self.unavailable():
+            missing = self.missing(conv)
+            if missing:
+                result.append((conv, missing))
+        return result
+
     def uses_word(self) -> bool:
         return any(c.id == "msword" and c.is_available() for c in self.converters)
 

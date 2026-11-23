@@ -9,6 +9,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Added
 
+- **Microsoft Excel and PowerPoint:** where they're installed, they now convert their own
+  files to PDF (exact layout), like Word already did. Word, Excel and PowerPoint also save
+  their other formats (e.g. DOC → DOCX, XLS → XLSX, XLSX → CSV, PPT → PPTX, ODT, ODS, ODP),
+  so on a PC with Microsoft Office, LibreOffice isn't needed. If Office fails, LibreOffice
+  steps in when it's installed.
+- The "LibreOffice is missing" message now only appears for conversions nothing else on
+  the PC can do, and says which ones (e.g. "PowerPoint files need LibreOffice or Microsoft
+  Office"). The list of formats counts Microsoft Office as installed. Settings: "Use
+  Microsoft Office" covers Word, Excel and PowerPoint; command line: `--no-office`.
+
 - **Enhance with AI:** under **Picture size**, "Enhance with AI" makes enlarged photos
   sharp, with new detail the AI invents, instead of smooth and blurry. With "Keep original
   size" (saved as "name (enhanced)"), photos keep their size and get sharper, with less
@@ -19,6 +29,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Privacy and safety
 
+- Excel and PowerPoint run like Word: hidden, macros off, links not updated, files opened
+  read-only from a private copy. Password-protected Office files are refused with a clear
+  message before Office could ask for the password. If PowerPoint is already open, it stays
+  open with the user's own presentations.
 - The AI runs entirely on this computer (the Real-ESRGAN model, BSD-3-Clause, built into
   the app as plain numbers, no code; OpenCV, already part of the app, runs it). Nothing is
   downloaded or uploaded. The app says on every enhanced file that the added detail is

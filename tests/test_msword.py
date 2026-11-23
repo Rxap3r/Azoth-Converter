@@ -55,14 +55,14 @@ def fake_word(monkeypatch):
     FakePowerShell.calls = []
     FakePowerShell.succeed = True
     FakePowerShell.fail = set()
-    monkeypatch.setattr(msword, "word_installed", lambda: True)
+    monkeypatch.setattr(msword, "app_installed", lambda app: True)
     monkeypatch.setattr(msword, "find_powershell", lambda: "powershell.exe")
     monkeypatch.setattr(msword, "_start_process", FakePowerShell)
     return FakePowerShell
 
 
 def test_word_not_used_when_missing_or_disabled(monkeypatch):
-    monkeypatch.setattr(msword, "word_installed", lambda: False)
+    monkeypatch.setattr(msword, "app_installed", lambda app: False)
     engine = Engine(all_converters())
     assert not engine.uses_word()
     assert "msword" not in {c.id for c in engine.unavailable()}  # no warning banner
@@ -73,9 +73,10 @@ def test_word_preferred_for_word_to_pdf(fake_word):
     assert engine.uses_word()
     route = engine.find_route("docx", "pdf")
     assert [s.converter.id for s in route] == ["msword"]
-    # Other office conversions still use LibreOffice.
-    if find_soffice():
-        assert engine.find_route("docx", "odt")[0].converter.id == "libreoffice"
+    # Word also saves its other formats; Excel and PowerPoint do theirs.
+    assert [s.converter.id for s in engine.find_route("doc", "docx")] == ["msword"]
+    assert [s.converter.id for s in engine.find_route("xls", "pdf")] == ["msexcel"]
+    assert [s.converter.id for s in engine.find_route("ppt", "pptx")] == ["mspowerpoint"]
     # Turned off: back to LibreOffice.
     off = Engine(all_converters(use_word=False))
     assert not off.uses_word()
@@ -93,14 +94,15 @@ def test_word_conversion_passes_paths_safely(fake_word, sample_docx, tmp_path):
     script = base64.b64decode(cmd[cmd.index("-EncodedCommand") + 1]).decode("utf-16-le")
     assert str(sample_docx) not in script
     assert env["AZOTH_COUNT"] == "1"
-    assert env["AZOTH_SRC_0"].endswith("input0.docx")
+    assert env["AZOTH_SRC_0"].endswith("input0.docx") and env["AZOTH_APP"] == "word"
     assert "report.docx" not in env["AZOTH_SRC_0"]  # Word only sees a private copy
     assert "AutomationSecurity = 3" in script  # macros force-disabled
     assert "DisplayAlerts = 0" in script
     # Open's options go by name through InvokeMember: passing $true/$false directly made
     # Word fail on every PC ("True" of type "bool" can't be converted to "Object").
-    assert "InvokeMember('Open'" in script and "'ReadOnly'" in script
-    assert ".Documents.Open(" not in script
+    assert "InvokeMember($method" in script and "$app.Documents 'Open'" in script
+    assert "$app.Workbooks 'Open'" in script and "'ReadOnly'" in script
+    assert ".Documents.Open(" not in script and ".Workbooks.Open(" not in script
 
 
 @pytest.mark.skipif(find_soffice() is None, reason="LibreOffice not installed")
@@ -142,7 +144,7 @@ def test_script_is_valid_powershell():
 @pytest.mark.skipif(msword.word_installed(), reason="Word is installed here")
 def test_real_powershell_reports_missing_word(monkeypatch, sample_docx, tmp_path):
     """On a Windows PC without Word the script must fail cleanly, not hang."""
-    monkeypatch.setattr(msword, "word_installed", lambda: True)
+    monkeypatch.setattr(msword, "app_installed", lambda app: True)
     conv = msword.WordConverter(enabled=True, fallback=None)
     with pytest.raises(ConversionError, match="Microsoft Word could not convert"):
         Engine([conv]).convert(sample_docx, "pdf", tmp_path, options={"timeout": 120})
@@ -196,3 +198,97 @@ def test_word_fallback_is_shown_with_words_reason(fake_word, sample_docx, tmp_pa
     [warning] = result.warnings
     assert warning.startswith("Word failed, LibreOffice was used")
     assert "Word could not open the document." in warning  # Word's own reason
+
+
+@pytest.mark.parametrize(
+    "src, dst, app, code",
+    [
+        ("xlsx", "pdf", "excel", "pdf"),
+        ("xls", "xlsx", "excel", "51"),
+        ("xlsx", "csv", "excel", "62"),
+        ("pptx", "pdf", "powerpoint", "pdf"),
+        ("ppt", "pptx", "powerpoint", "24"),
+        ("doc", "docx", "word", "16"),
+        ("docx", "txt", "word", "7"),
+    ],
+)
+def test_excel_powerpoint_and_word_formats(fake_word, tmp_path, src, dst, app, code):
+    source = tmp_path / f"file.{src}"
+    source.write_bytes(b"PK\x03\x04 made-up office file")
+    result = Engine(all_converters(use_word=True)).convert(source, dst, tmp_path / "o")
+    [out] = result.outputs
+    assert out.name == f"file.{dst}"
+    [(_cmd, env)] = fake_word.calls
+    assert env["AZOTH_APP"] == app and env["AZOTH_FMT_0"] == code
+    assert env["AZOTH_DST_0"].endswith(f".{dst}")
+
+
+def test_office_programs_are_optional_and_listed(monkeypatch):
+    monkeypatch.setattr(msword, "app_installed", lambda app: app.key == "excel")
+    assert [a.key for a in msword.office_installed()] == ["excel"]
+    engine = Engine(all_converters())
+    assert not {"msword", "msexcel", "mspowerpoint"} & {c.id for c in engine.unavailable()}
+
+
+def test_password_protected_files_are_refused_before_office_opens_them(fake_word, tmp_path):
+    # An encrypted DOCX/XLSX/PPTX is an OLE container with an "EncryptionInfo" stream.
+    protected = tmp_path / "secret.xlsx"
+    protected.write_bytes(
+        b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 100 + "EncryptionInfo".encode("utf-16-le")
+    )
+    assert msword.password_protected(protected)
+    with pytest.raises(ConversionError, match="protected with a password"):
+        Engine(all_converters(use_word=True)).convert(protected, "pdf", tmp_path / "o")
+    assert fake_word.calls == []  # Excel never saw it (it would ask for the password)
+    plain = tmp_path / "plain.xlsx"
+    plain.write_bytes(b"PK\x03\x04")
+    assert not msword.password_protected(plain)
+
+
+def test_powerpoint_is_left_open_when_the_user_has_it_open():
+    """PowerPoint is one program for all windows: closing it after converting would close
+    the user's own presentations."""
+    script = msword.POWERSHELL_SCRIPT
+    assert "Get-Process POWERPNT" in script
+    assert "if (-not $leaveOpen -and $app.Presentations.Count -eq 0) { $app.Quit() }" in script
+    assert "AutomationSecurity = 3" in script.split("powerpoint")[1]  # macros off there too
+
+
+def _without_libreoffice(monkeypatch):
+    from azoth.converters import office
+
+    monkeypatch.setattr(office.OfficeConverter, "is_available", lambda self: False)
+
+
+def test_no_libreoffice_message_when_office_does_everything(monkeypatch):
+    _without_libreoffice(monkeypatch)
+    monkeypatch.setattr(msword, "app_installed", lambda app: True)
+    monkeypatch.setattr(msword, "find_powershell", lambda: "powershell.exe")
+    engine = Engine(all_converters())
+    assert [c.id for c in engine.unavailable()] == ["libreoffice"]
+    assert engine.needed_engines() == []  # Word, Excel and PowerPoint cover it all
+
+
+def test_libreoffice_message_names_only_what_is_missing(monkeypatch):
+    _without_libreoffice(monkeypatch)
+    monkeypatch.setattr(msword, "app_installed", lambda app: app.key == "word")
+    monkeypatch.setattr(msword, "find_powershell", lambda: "powershell.exe")
+    [(conv, missing)] = Engine(all_converters()).needed_engines()
+    assert conv.id == "libreoffice"
+    assert ("docx", "pdf") not in missing and ("xlsx", "pdf") in missing
+    text = conv.unavailable_reason(missing)
+    assert text.startswith("Excel files and PowerPoint files need LibreOffice")
+    # Without any Office program: the general message.
+    monkeypatch.setattr(msword, "app_installed", lambda app: False)
+    [(conv, missing)] = Engine(all_converters()).needed_engines()
+    assert conv.unavailable_reason(missing).startswith("Office conversions need LibreOffice")
+
+
+def test_formats_panel_counts_office_as_installed(qtbot, monkeypatch):
+    pytest.importorskip("pytestqt")
+    from azoth.gui.formats_panel import FormatsPanel
+
+    monkeypatch.setattr(msword, "app_installed", lambda app: app.key == "excel")
+    panel = FormatsPanel(False, can_convert=lambda s, d: s == "xlsx")
+    qtbot.addWidget(panel)
+    assert panel.status_label.text().startswith("Microsoft Excel does the office conversions")

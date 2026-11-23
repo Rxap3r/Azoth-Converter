@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__, formats, resize
 from ..converters import all_converters
-from ..converters.msword import word_installed
+from ..converters.msword import office_installed
 from ..engine import Engine
 from . import icons, targets, theme
 from .about import AboutDialog
@@ -84,8 +84,8 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         banners = [
-            (c.unavailable_reason(), f"Download {c.label}…", c.download_url)
-            for c in self.engine.unavailable()
+            (_reason(c, missing), f"Download {c.label}…", c.download_url)
+            for c, missing in self.engine.needed_engines()
         ]
         self.convert_page = ConvertPage(banners)
         page = self.convert_page
@@ -110,9 +110,12 @@ class MainWindow(QMainWindow):
 
         self.pdf_page = PdfToolsPage()
         libreoffice_installed = not any(c.id == "libreoffice" for c in self.engine.unavailable())
-        self.formats_panel = FormatsPanel(libreoffice_installed)
+        self.formats_panel = FormatsPanel(
+            libreoffice_installed,
+            can_convert=lambda s, d: self.engine.find_route(s, d) is not None,
+        )
         self.settings_page = SettingsPage(
-            word_installed=word_installed(),
+            word_installed=bool(office_installed()),
             use_word=self.engine.uses_word(),
             theme_choice=self.prefs.theme,
         )
@@ -547,3 +550,11 @@ class MainWindow(QMainWindow):
             self._thread.wait(5000)
         self.save_preferences()
         event.accept()
+
+
+def _reason(converter, missing) -> str:
+    """The banner text for a missing engine, naming only what really needs it."""
+    try:
+        return converter.unavailable_reason(missing)
+    except TypeError:  # engines without the detail
+        return converter.unavailable_reason()

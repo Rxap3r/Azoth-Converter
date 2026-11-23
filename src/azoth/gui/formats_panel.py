@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import metadata, ranking
-from ..converters import office
+from ..converters import msword, office
 from ..format_list import CATEGORY_TITLES, conversion_table
 from .targets import display_name
 from .widgets import download_button, flow_container, label
@@ -35,7 +35,7 @@ def _chip(text: str, *, libreoffice: bool = False, clean: bool = False) -> QLabe
 
 
 class FormatRow(QFrame):
-    def __init__(self, row, libreoffice_installed: bool) -> None:
+    def __init__(self, row, libreoffice_installed: bool, can_convert=None) -> None:
         super().__init__()
         fmt = row.format
         self.format_id = fmt.id
@@ -74,7 +74,9 @@ class FormatRow(QFrame):
             flow.addWidget(
                 _chip(
                     display_name(target.id),
-                    libreoffice=target.id in needs and not libreoffice_installed,
+                    libreoffice=target.id in needs
+                    and not libreoffice_installed
+                    and not (can_convert and can_convert(fmt.id, target.id)),
                 )
             )
         if fmt.id in metadata.CLEANABLE:
@@ -94,12 +96,20 @@ class FormatRow(QFrame):
 
 
 class FormatsPanel(QWidget):
-    def __init__(self, libreoffice_installed: bool) -> None:
+    def __init__(self, libreoffice_installed: bool, can_convert=None) -> None:
+        """``can_convert(src, dst)``: True if an installed engine (e.g. Microsoft Office)
+        does the conversion, so it isn't shown as needing LibreOffice."""
         super().__init__()
         self._category: str | None = None
+        office_apps = [a.short for a in msword.office_installed()] if can_convert else []
 
         if libreoffice_installed:
             status = "LibreOffice is installed, so every conversion below is available."
+        elif office_apps:
+            status = (
+                f"Microsoft {', '.join(office_apps)} does the office conversions it can. "
+                "Those with a dashed outline need LibreOffice (free download from libreoffice.org)."
+            )
         else:
             status = (
                 "LibreOffice isn't installed. Conversions with a dashed outline need it "
@@ -157,7 +167,7 @@ class FormatsPanel(QWidget):
         rows_layout.setSpacing(6)
         self.rows: list[FormatRow] = []
         for row in conversion_table():
-            widget = FormatRow(row, libreoffice_installed)
+            widget = FormatRow(row, libreoffice_installed, can_convert)
             self.rows.append(widget)
             rows_layout.addWidget(widget)
         self.no_match = label("No format matches your search.", "muted")

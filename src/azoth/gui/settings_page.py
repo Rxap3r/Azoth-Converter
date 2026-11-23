@@ -82,10 +82,12 @@ class SettingsPage(QWidget):
             "Keep photo metadata when converting (camera, date, GPS location)"
         )
         self.metadata_check.setToolTip(METADATA_DETAILS)  # shown on hover
-        self.word_check = QCheckBox("Use Microsoft Word for Word → PDF (exact layout and fonts)")
+        self.word_check = QCheckBox(
+            "Use Microsoft Office (Word, Excel, PowerPoint) where installed: exact layout and fonts"
+        )
         self.word_check.setToolTip(
-            "Word converts the file on this computer; nothing is uploaded.\n"
-            "Macros stay off. If Word fails, LibreOffice is used instead."
+            "Office converts the file on this computer; nothing is uploaded.\n"
+            "Macros stay off. If Office fails, LibreOffice is used instead (when installed)."
         )
         self.word_check.setChecked(use_word)
         self.word_check.setVisible(word_installed)  # only when Word is installed
