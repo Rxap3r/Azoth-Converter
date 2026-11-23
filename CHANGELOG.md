@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-23
+
 ### Added
 
 - **Right-click menu in Explorer:** right-click a file → "Convert with Azoth Converter" →
@@ -401,7 +403,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.2.1...v0.3.0
