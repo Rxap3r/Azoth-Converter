@@ -39,10 +39,29 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
   `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
   it on Windows before the release.
-- **AI upscaling ("Enhance with AI") is on `dev` (23 Nov 2026), not released yet:** see
-  `docs/PROJECT_PLAN.md` (Phase 4, picture size). Next: the owner tries it on Windows.
-- **Owner's priorities (23 Nov 2026):** the owner most wants **AI upscaling / "improve
-  quality"** (picture size, step 2) and the **Explorer right-click menu**; then PDF → Excel,
+- **On `dev`, not released yet (23 Nov 2026; full Windows build of `78350bd` passed; details
+  in `CHANGELOG.md` → Unreleased and `docs/PROJECT_PLAN.md`):**
+  1. **"Enhance with AI"** (`upscale.py`): Real-ESRGAN run by OpenCV's dnn, tiled; under
+     Picture size; Noise removal Low/Medium/High; CLI `--ai`, `--denoise`. The Windows build
+     smoke-tests it in the finished program. The bigger model (`RealESRGAN_x4plus`) was
+     measured: ~17× slower, only visibly better for ×4 of tiny photos → optional "Best
+     quality (slow)" later, owner to decide;
+  2. **Microsoft Excel and PowerPoint** as converters (`converters/msword.py`, one
+     PowerShell script for Word/Excel/PowerPoint): to PDF and between their own formats;
+     the LibreOffice banner and formats list only name what nothing installed can do;
+     settings "Use Microsoft Office", CLI `--no-office`;
+  3. **Office passwords** (`office_password.py`, msoffcrypto-tool): PDF tools → Password
+     also adds/removes passwords on DOCX/XLSX/PPTX (removes on DOC/XLS/PPT too); protected
+     files are converted after asking for the password (`options["passwords"]`, unlocked
+     only into the job's temp folder in `engine._Job.readable_source`); `azoth password`.
+  **Next:** the owner tests these on the company PC (Office, no LibreOffice): AI on real
+  photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; a file protected in Office;
+  a file locked here opened in Office; PowerPoint already open stays open. Then ask
+  whether to release (0.5.0) before any pull request.
+- **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
+  Windows test crashed without it while the AI ran in the worker thread).
+- **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
+  Office passwords. Still wanted: the **Explorer right-click menu**; then PDF → Excel,
   video/audio (FFmpeg); the **design refresh is low priority** (the owner finds the current
   design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
@@ -60,6 +79,11 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   - technical improvements: **faster batches ✓ released in 0.3.1** (Word and LibreOffice: up
     to 10 files per start; photos: up to 4 at once), plus Word → PDF that really uses Word
     (never worked before 0.3.1) and PDF restrictions kept. Next: smaller download;
+- **Session start (Nov 2026):** the local `dev` in a fresh session can be an old leftover
+  that has diverged from `origin/dev`; if `git pull --ff-only` fails, rename it
+  (`git branch -m dev dev-old-local`) and `git checkout -b dev origin/dev`. Work on the
+  local `dev` branch, not the automatic session branch, or an automatic "unpushed
+  commits" check keeps firing after every answer.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
   `workflow_dispatch` on `dev` (the owner can also do it in the Actions tab).
@@ -181,13 +205,15 @@ src/azoth/
   formats.py          format list and detection by file content
   engine.py           route finding (multi-step), running jobs, temp folders
   converters/base.py  Converter plugin interface
-  converters/*.py     images, pdf, office plugins; register new ones in converters/__init__.py
+  converters/*.py     images, pdf, office (LibreOffice), msword (Microsoft Word, Excel,
+                      PowerPoint via PowerShell) plugins; register new ones in converters/__init__.py
   cli.py              `azoth` command line
   pdf_tools.py        merge, split, edit pages, compress, passwords (used by the app and `azoth pdf`)
   ocr.py              text recognition (Tesseract inside PyMuPDF): searchable PDF, page texts;
                       converters/ocr.py = images → TXT/DOCX; language files in
                       resources/tessdata (not in git: `python packaging/fetch_tessdata.py`)
   portable.py         portable mode (portable.txt next to the exe → data/ and data/temp beside it)
+  office_password.py  passwords on Word/Excel/PowerPoint files (add, remove, unlock for converting)
   resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
   upscale.py          "Enhance with AI" (Real-ESRGAN run by OpenCV's dnn, tiled); model in
                       resources/upscale (not in git: fetched by packaging/fetch_tessdata.py)
