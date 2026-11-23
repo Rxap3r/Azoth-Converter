@@ -6,7 +6,7 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.3.1** (22 Nov 2026, pull request #9; 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.4.0** (22 Nov 2026, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
@@ -30,18 +30,19 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced. Probably the
   same as the "access violation" the owner hit on 22 Nov 2026 (Python's garbage collection
   in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
-- **0.4.0 prepared on `dev` (22 Nov 2026):** picture size, fully portable ZIP, "Show
-  metadata" button, crash fix, cached format list. Version, changelog and
-  `docs/releases/v0.4.0.md` done; pull request #10 (`dev` → `main`) opened 22 Nov 2026.
-  Next: the owner merges it and runs Actions → Release on `main`. Also in 0.4.0:
-  `azoth-terminal.exe` (renamed CLI), pixel size on photo cards.
-- **Next planned work, in this order (owner, 22 Nov 2026):**
-  1. ✓ **Image size** (on `dev`, not released yet, 22 Nov 2026): shrink and plain enlarge
-     (`resize.py`; app "Picture size" + "Change size only" tile; CLI `--resize`). Owner tested
-     the Windows test build on 22 Nov 2026: works (with portable mode and the crash fix). AI upscaling / "improve quality" comes later as its own step;
-  2. ✓ **Fully portable version** (on `dev`, not released): `portable.txt` only in the
-     ZIP (owner: never in the installer); the Windows build tests the unzipped app;
-  3. later: smaller download (owner doesn't worry about size now), design refresh, the rest.
+- **0.4.0 (released 22 Nov 2026)** contains: picture size (`resize.py`; "Picture size" with
+  ready-made screen sizes, Full HD first, turned for portrait photos; width, height, %,
+  custom; "Change size only" tile saves "name (resized)"; enlarging is normal, "Don't
+  enlarge smaller pictures" optional; "Longest side" only in the CLI: `--resize`,
+  `--only-shrink`), fully portable ZIP (`portable.py`; `portable.txt` only in the ZIP, never
+  in the installer; the build tests the unzipped app), crash fix (`gui/main_thread_gc.py`),
+  pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
+  `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
+  it on Windows before the release.
+- **Next work: to be decided with the owner** (23 Nov 2026). Candidates in
+  `docs/PROJECT_PLAN.md`: AI upscaling / "improve quality" (picture size, step 2), design
+  refresh (icon, accessibility, keyboard shortcuts), smaller download, Explorer right-click
+  menu, PDF → Excel, video/audio (FFmpeg), code signing (waiting for SignPath).
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
     choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
@@ -57,7 +58,6 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   - technical improvements: **faster batches ✓ released in 0.3.1** (Word and LibreOffice: up
     to 10 files per start; photos: up to 4 at once), plus Word → PDF that really uses Word
     (never worked before 0.3.1) and PDF restrictions kept. Next: smaller download;
-  - a fully portable version.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
   `workflow_dispatch` on `dev` (the owner can also do it in the Actions tab).
