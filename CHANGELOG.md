@@ -29,6 +29,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 - `packaging/fetch_tessdata.py` now also fetches the AI model (two pinned, hash-checked
   files) through `packaging/fetch_upscale_model.py`, which reads them without PyTorch and
   without running anything from them, and saves the weights as a 4.5 MB `.npz`.
+- The automatic Windows build now also checks "Enhance with AI" in the finished program
+  (a small transparent picture enlarged with AI), next to the text recognition check.
 
 ## [0.4.0] - 2026-11-22
 

@@ -50,6 +50,13 @@ runs:
           Write-Error "OCR smoke test: text not recognised"
           exit 1
         }
+        # AI enhancing works with the bundled model
+        $ai = "$env:RUNNER_TEMP\ai-smoke"
+        & $exe convert samples/images/logo_transparent.png --to webp --resize 200% --ai -o $ai --quiet
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$ai\logo_transparent.webp")) {
+          Write-Error "AI smoke test failed"
+          exit 1
+        }
     - name: Build installer
       shell: pwsh
       working-directory: packaging
