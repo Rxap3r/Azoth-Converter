@@ -45,6 +45,35 @@ def test_pdf_to_word(tmp_path, sample_docx):
     assert "Thank you" in text
 
 
+def test_pdf_to_word_reports_progress_per_page(tmp_path):
+    pdf = make_pdf(tmp_path / "long.pdf", [f"Page number {n}" for n in range(1, 6)])
+    seen = []
+    Engine().convert(pdf, "docx", tmp_path / "o", progress=lambda f, m: seen.append((f, m)))
+    messages = [m for _, m in seen]
+    assert "Reading page 5/5" in messages and "Writing page 5/5" in messages
+    fractions = [f for f, _ in seen]
+    assert fractions == sorted(fractions)  # never jumps backwards
+
+
+def test_pdf_to_word_can_be_cancelled_between_pages(tmp_path, private_tmp):
+    import threading
+
+    from azoth.converters import ConversionCancelled
+
+    pdf = make_pdf(tmp_path / "long.pdf", [f"Page number {n}" for n in range(1, 6)])
+    cancel = threading.Event()
+
+    def progress(fraction, message):
+        if message == "Reading page 3/5":
+            cancel.set()  # the user clicks Cancel in the middle
+
+    with pytest.raises(ConversionCancelled):
+        Engine().convert(pdf, "docx", tmp_path / "o", cancel_event=cancel, progress=progress)
+    out = tmp_path / "o"
+    assert not out.exists() or not any(out.iterdir())  # nothing half-written
+    assert not list(private_tmp.iterdir())  # job temp folder removed
+
+
 def test_scan_without_any_text_gives_clear_error(tmp_path, sample_png, ocr_ready):
     pdf = make_scanned_pdf(tmp_path / "scan.pdf", sample_png)  # a logo: nothing to read
     with pytest.raises(ConversionError, match="No text was found"):

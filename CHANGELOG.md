@@ -9,6 +9,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Added
 
+- **Remove metadata from PDF, Word, Excel and PowerPoint files** (DOCX, XLSX, PPTX):
+  "Remove metadata only" and "Show metadata…" now work for them too, like for photos.
+  Removed: author, "last saved by", company, manager, title, dates, editing time,
+  template and its folder, custom properties, Word's edit history (revision marks), the
+  folder an Excel file was saved in, PDF's hidden XMP data and earlier versions kept
+  inside a PDF. Names on comments and tracked changes become "Author"; the comments and
+  changes themselves stay. Command line: `azoth clean report.docx`. Old DOC, XLS and PPT
+  files: convert them to DOCX, XLSX or PPTX first.
+- **PDF → Word shows progress page by page** ("Reading page 12/80") and can be cancelled
+  between pages; before, a large PDF showed no progress until it was done.
 - **Passwords on Word, Excel and PowerPoint files:** PDF tools → Password now also takes
   DOCX, XLSX and PPTX files: add a password (AES-256, the same encryption as current
   Office, so Office opens them as usual) or remove it from your own file (also from older
@@ -39,6 +49,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Privacy and safety
 
+- Removing document metadata never changes the content: only the parts with metadata are
+  rewritten, and before saving, the app checks that every changed part has exactly the same
+  text and structure (PDF: the same page content and text) and that no metadata is left.
+  If a check fails, nothing is saved. Digitally signed PDFs are refused (cleaning would
+  break the signature); PDF restrictions are kept.
 - Protected Office files are unlocked only into the job's private temporary folder, which
   is always deleted; Office and LibreOffice never see the password. Passwords are never
   stored. New library: msoffcrypto-tool (MIT, works offline), with cryptography and

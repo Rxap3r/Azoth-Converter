@@ -93,6 +93,7 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | Presentations | PPTX, PPT, ODP ↔ each other, → PDF, → images | LibreOffice | ✅ |
 | Images | JPG, PNG, WebP, BMP, TIFF, GIF, ICO, HEIC, AVIF | Pillow, pillow-heif | ✅ |
 | Privacy | Remove photo metadata, same format in and out (JPG, PNG, WebP, GIF, TIFF, HEIC, AVIF) | own lossless code, Pillow | ✅ |
+| Privacy | Remove document metadata (PDF, DOCX, XLSX, PPTX) | own code, PyMuPDF | ✅ |
 | Camera RAW, SVG | CR2, NEF, ARW, DNG, SVG | rawpy, resvg | 🔜 |
 | Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | 🔜 |
 | Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | 🔜 |
@@ -149,7 +150,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
 - [ ] PDF → Excel for tables
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
-  - [ ] Later: BMP and ICO (they rarely carry metadata), and removing metadata from PDF and Office files (author, company, edit history)
+  - [x] Removing metadata from PDF and Office files (author, company, edit history): DOCX, XLSX, PPTX and PDF, content checked unchanged before saving (on `dev`, Nov 2026)
+  - [ ] Later: BMP and ICO (they rarely carry metadata); OpenDocument files (ODT, ODS, ODP: `meta.xml`); old DOC/XLS/PPT (today: convert first)
   - [x] A "Show metadata" button (ⓘ) on each photo card, besides the right-click menu (0.4.0)
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
 - [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
@@ -184,7 +186,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] PDF → images in parallel: PyMuPDF isn't thread-safe, so this would need separate processes
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
 - [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
-- [ ] **PDF → Word progress and cancel** for large PDFs (the pdf2docx library has no progress callback; e.g. convert page ranges step by step)
+- [x] **PDF → Word progress and cancel** for large PDFs: pdf2docx's steps run page by page, with progress and cancel between pages (on `dev`, Nov 2026)
 - [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
 ### Phase 3: Audio and video (≈ 4 weeks)

@@ -309,7 +309,7 @@ class FileList(QWidget):
         return f"{path.name} contains:\n\n{lines}"
 
     def show_metadata(self, row: int) -> None:
-        QMessageBox.information(self, "Photo metadata", self.metadata_text(row))
+        QMessageBox.information(self, "Metadata", self.metadata_text(row))
 
     def _changed(self) -> None:
         self._update()

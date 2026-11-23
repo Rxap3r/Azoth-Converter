@@ -38,6 +38,12 @@ picture itself stays exactly the same. Works for JPG, PNG, WebP, GIF, TIFF, HEIC
 in the app, choose **Remove metadata only**; right-click a file and choose
 **Show metadata…** to see what it contains first.
 
+**Remove document metadata:** the same for PDF, Word (DOCX), Excel (XLSX) and PowerPoint
+(PPTX) files: author, company, dates, editing time, the template's folder, Word's edit
+history (revision marks) and earlier versions saved inside a PDF are removed; names on
+comments and tracked changes become "Author". The text, comments and tracked changes
+themselves stay exactly the same. Signed or password-protected PDFs are left alone.
+
 **Change picture size:** make photos smaller or bigger while converting, or keep the format
 and only change the size. Choose a screen size like Full HD or 4K (turned for portrait
 photos), a width, a height or a percentage; proportions are always kept, and nothing is

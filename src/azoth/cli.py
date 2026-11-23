@@ -459,12 +459,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser(
         "clean",
-        help="remove photo metadata (location, camera, date) without changing the picture",
-        description="Save a copy of each photo without its metadata: GPS location, camera, "
-        "date, author, comments and preview pictures. The picture itself stays exactly "
-        "the same; the original file is not changed.",
+        help="remove metadata (location, camera, author, company …) without changing the content",
+        description="Save a copy of each photo or document without its metadata. Photos: "
+        "GPS location, camera, date, author, comments and preview pictures. PDF, DOCX, "
+        "XLSX, PPTX: author, company, dates, edit history, earlier PDF versions; names on "
+        "comments become 'Author'. The picture or text stays exactly the same; the "
+        "original file is not changed.",
     )
-    p.add_argument("files", nargs="+", help="photos or images (JPG, PNG, WebP, HEIC, …)")
+    p.add_argument("files", nargs="+", help="photos, images, PDF, DOCX, XLSX or PPTX files")
     p.add_argument(
         "--output", "-o", help="output folder (default: next to each file, as 'name (clean)')"
     )

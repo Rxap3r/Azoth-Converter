@@ -126,7 +126,8 @@ def test_photo_rows_offer_remove_metadata(window):
         return [c.text() for c in rows[fmt].findChildren(QLabel) if c.property("role") == "chip"]
 
     assert "Remove metadata" in chips("jpg")
-    assert "Remove metadata" not in chips("pdf")
+    assert "Remove metadata" in chips("pdf") and "Remove metadata" in chips("docx")
+    assert "Remove metadata" not in chips("xls")  # old Office formats: convert first
 
 
 def test_theme_setting(window):
@@ -272,10 +273,12 @@ def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
     assert b"SecretCamera" not in (tmp_path / "holiday (clean).jpg").read_bytes()
 
 
-def test_remove_metadata_not_offered_for_documents(window, sample_png, sample_pdf):
+def test_remove_metadata_offered_only_if_every_file_supports_it(window, sample_png, tmp_path):
     from azoth.gui.targets import CLEAN_TARGET
 
-    window.add_files([sample_png, sample_pdf])
+    notes = tmp_path / "notes.txt"
+    notes.write_text("plain text")
+    window.add_files([sample_png, notes])
     assert CLEAN_TARGET not in _targets(window)
 
 
@@ -385,7 +388,13 @@ def test_show_metadata_text(window, sample_pdf, tmp_path):
     text = window.file_list.metadata_text(0)
     assert "Location (GPS): 47.36944° N, 8.53333° E" in text
     assert "Camera: SecretCamera" in text
-    assert "photos and images" in window.file_list.metadata_text(1)
+    assert "letter.pdf contains" in window.file_list.metadata_text(1) or "no metadata" in (
+        window.file_list.metadata_text(1)
+    )
+    notes = tmp_path / "notes.txt"
+    notes.write_text("plain text")
+    window.add_files([notes])
+    assert "photos and images" in window.file_list.metadata_text(2)
 
 
 def test_metadata_button_on_photo_cards(window, monkeypatch, sample_pdf, tmp_path):
@@ -397,7 +406,7 @@ def test_metadata_button_on_photo_cards(window, monkeypatch, sample_pdf, tmp_pat
     assert not cards[0].metadata_btn.isHidden()  # a photo: the button is there
     assert cards[0].size.text().startswith("40 × 30 px · ")  # pixels shown for photos
     assert " px" not in cards[1].size.text()
-    assert cards[1].metadata_btn.isHidden()  # a PDF: nothing to show
+    assert not cards[1].metadata_btn.isHidden()  # PDFs have metadata too
     shown = []
     monkeypatch.setattr(
         file_list.QMessageBox, "information", lambda parent, title, text: shown.append(text)

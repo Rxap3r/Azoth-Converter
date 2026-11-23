@@ -198,19 +198,55 @@ class PdfToWordConverter(Converter):
         with open_pdf(src) as doc:
             total = doc.page_count
 
-        # pdf2docx has no progress callback or cancel hook; it logs chatty INFO lines.
-        ctx.progress(0.05, f"Rebuilding layout of {total} page(s)")
-        logging.disable(logging.WARNING)
-        cv = Pdf2Docx(str(src))
+        logging.disable(logging.WARNING)  # pdf2docx logs chatty INFO lines
         try:
-            cv.convert(str(dst))
-        except Exception as exc:
-            raise ConversionError(f"PDF to Word conversion failed: {exc}") from exc
+            _rebuild_docx(Pdf2Docx, src, dst, total, ctx)
         finally:
-            cv.close()
             logging.disable(logging.NOTSET)
-        ctx.check_cancelled()
         return [dst]
+
+
+def _rebuild_docx(pdf2docx_class, src: Path, dst: Path, total: int, ctx: ConversionContext):
+    """Run pdf2docx's four steps one page at a time, so a large PDF shows progress
+    and can be cancelled between pages. Same steps and settings as
+    ``pdf2docx.Converter.convert()``: a page that fails is left out, as there."""
+    from docx import Document
+
+    ctx.progress(0.02, f"Analysing {total} page(s)")
+    cv = pdf2docx_class(str(src))
+    try:
+        settings = cv.default_settings
+        cv.load_pages()
+        ctx.check_cancelled()
+        cv.parse_document(**settings)
+        pages = [page for page in cv.pages if not page.skip_parsing]
+        count = max(len(pages), 1)
+        for i, page in enumerate(pages):
+            ctx.check_cancelled()
+            ctx.progress(0.1 + 0.75 * i / count, f"Reading page {i + 1}/{count}")
+            try:
+                page.parse(**settings)
+            except Exception:  # noqa: BLE001 - like pdf2docx's ignore_page_error
+                logging.getLogger(__name__).debug("page %d skipped", page.id + 1)
+        parsed = [page for page in cv.pages if page.finalized]
+        if not parsed:
+            raise ConversionError("PDF to Word conversion failed: no page could be read.")
+        document = Document()
+        for i, page in enumerate(parsed):
+            ctx.check_cancelled()
+            ctx.progress(0.85 + 0.13 * i / len(parsed), f"Writing page {i + 1}/{len(parsed)}")
+            try:
+                page.make_docx(document)
+            except Exception:  # noqa: BLE001 - like pdf2docx's ignore_page_error
+                logging.getLogger(__name__).debug("page %d not written", page.id + 1)
+        ctx.check_cancelled()
+        document.save(str(dst))
+    except ConversionError:  # includes ConversionCancelled
+        raise
+    except Exception as exc:
+        raise ConversionError(f"PDF to Word conversion failed: {exc}") from exc
+    finally:
+        cv.close()
 
 
 # --- PDF tools (not conversions) -------------------------------------------------
