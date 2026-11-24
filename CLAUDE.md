@@ -114,6 +114,12 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   (`git branch -m dev dev-old-local`) and `git checkout -b dev origin/dev`. Work on the
   local `dev` branch, not the automatic session branch, or an automatic "unpushed
   commits" check keeps firing after every answer.
+- **Every new session (owner, Nov 2026):** after updating `dev`, read
+  `.claude/settings.json` and follow it: it enables the owner's **cost-saver** plugin
+  (`cost-saver@rxap3r-tools`, from the `Rxap3r/Claude-Tools` marketplace). Check that its
+  skills are in the skill list and use them. If they are missing (the file only takes
+  effect when a session starts, so a session that pulled it later won't have them), tell
+  the owner in one line instead of carrying on silently.
 - **Session limits:** sessions can push branches but **not tags**, which is why releases are
   created by the Release workflow. To get a test build of `dev`, start "Build and test" with
   `workflow_dispatch` on `dev` (the owner can also do it in the Actions tab).
