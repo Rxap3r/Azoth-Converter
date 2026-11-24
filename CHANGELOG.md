@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-24
+
 ### Added
 
 - **PDF → Excel (XLSX):** tables in a PDF become real Excel cells, one sheet per page,
@@ -482,7 +484,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...v0.3.1

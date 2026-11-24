@@ -65,8 +65,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   Still to try on the owner's company PC (Office, no LibreOffice): AI on real photos;
   Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both ways; the
   right-click menu.
-- **Next release 0.6.0: everything is on `dev`, not yet released** (23 Nov 2026). Details in
-  `CHANGELOG.md` → Unreleased. Contents:
+- **0.6.0 prepared on `dev` (24 Nov 2026), not yet released**: version set, `CHANGELOG.md`
+  → 0.6.0, notes in `docs/releases/v0.6.0.md`. Next: owner says "pull it" → pull request
+  `dev` → `main`; owner merges and runs Actions → Release. Contents:
   1. **PDF → Excel** (`converters/pdf_excel.py`, openpyxl): tables as cells, one sheet per
      page, numbers only where clear;
   2. **Video and audio** (`converters/media.py`, FFmpeg 8.0.1 "full" bundled on Windows via
@@ -80,9 +81,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   5. **Menu overhaul** (owner: "not overwhelming"): 6 tiles + "More formats", "More
      options" folded with a summary, details in tooltips, Quality only where it matters,
      Settings regrouped, sidebar tools on top.
-  **Tomorrow (owner):** test the build of `dev` (Actions → Build and test → latest run →
-  Artifacts). If all is fine: prepare release 0.6.0 (see "Releasing"), then ask before the
-  pull request. Postponed to the version after: "Make smaller" for videos, PDF → Excel
+  6. `azoth-terminal.exe` double-clicked opens a Command Prompt (Enter used to close it);
+     wildcards like `*.heic` expanded by the CLI on Windows.
+  Postponed to the version after: "Make smaller" for videos, PDF → Excel
   "Tables only" / "All pages on one sheet" (in `docs/PROJECT_PLAN.md`).
 - **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
   Windows test crashed without it while the AI ran in the worker thread).
