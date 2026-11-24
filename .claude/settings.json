@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "rxap3r-tools": {
+      "source": {
+        "source": "github",
+        "repo": "Rxap3r/Claude-Tools"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "cost-saver@rxap3r-tools": true
+  }
+}

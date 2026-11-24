@@ -7,6 +7,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Development
+
+- Claude Code sessions in this repository load the owner's cost-saver plugin (`.claude/settings.json`).
+
 ## [0.6.0] - 2026-11-24
 
 ### Added
