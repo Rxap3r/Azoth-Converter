@@ -6,7 +6,7 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.5.0** (23 Nov 2026, pull request #11; 0.4.0 on 22 Nov, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.6.0** (24 Nov 2026, pull request #12; 0.5.0 on 23 Nov, pull request #11; 0.4.0 on 22 Nov, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
@@ -65,9 +65,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   Still to try on the owner's company PC (Office, no LibreOffice): AI on real photos;
   Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both ways; the
   right-click menu.
-- **0.6.0 prepared on `dev` (24 Nov 2026), not yet released**: version set, `CHANGELOG.md`
-  → 0.6.0, notes in `docs/releases/v0.6.0.md`. Next: owner says "pull it" → pull request
-  `dev` → `main`; owner merges and runs Actions → Release. Contents:
+- **0.6.0 released (24 Nov 2026, pull request #12)**. New work goes under `CHANGELOG.md` →
+  Unreleased (empty now). Contents (details in `CHANGELOG.md` → 0.6.0):
   1. **PDF → Excel** (`converters/pdf_excel.py`, openpyxl): tables as cells, one sheet per
      page, numbers only where clear;
   2. **Video and audio** (`converters/media.py`, FFmpeg 8.0.1 "full" bundled on Windows via
@@ -83,8 +82,11 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
      Settings regrouped, sidebar tools on top.
   6. `azoth-terminal.exe` double-clicked opens a Command Prompt (Enter used to close it);
      wildcards like `*.heic` expanded by the CLI on Windows.
-  Postponed to the version after: "Make smaller" for videos, PDF → Excel
-  "Tables only" / "All pages on one sheet" (in `docs/PROJECT_PLAN.md`).
+  Still to try on a real Windows PC: the double-clicked `azoth-terminal.exe` Command Prompt;
+  videos from a phone; PDF → Excel on real bills/statements.
+  **Next (candidates for 0.7.0, owner to choose):** "Make smaller" for videos, PDF → Excel
+  "Tables only" / "All pages on one sheet" (in `docs/PROJECT_PLAN.md`); smaller download;
+  code signing (waiting for SignPath).
 - **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
   Windows test crashed without it while the AI ran in the worker thread).
 - **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
