@@ -1,128 +1,29 @@
 # CLAUDE.md
 
-Guidance for Claude sessions working on this repository.
+Guidance for Claude sessions working on this repository. Sections are in order of
+priority: do "Start of every session" first, then follow the rules on how to work.
 
-## Current status (keep this section up to date)
+## Start of every session
 
-Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
+1. **Update `dev` and work there** (never on the automatic `claude/...` session branch, or
+   an automatic "unpushed commits" check keeps firing after every answer):
+   ```bash
+   git fetch origin dev && git checkout dev && git pull --ff-only origin dev
+   ```
+   If the session started on another branch that already has commits not on `dev`, bring
+   them over (`git checkout dev && git merge --no-edit <that-branch>`). If the local `dev`
+   is an old leftover and `git pull --ff-only` fails, rename it
+   (`git branch -m dev dev-old-local`) and `git checkout -b dev origin/dev`.
+2. **Read `.claude/settings.json` and follow it** (owner, Nov 2026): it enables the owner's
+   **cost-saver** plugin (`cost-saver@rxap3r-tools`, from the `Rxap3r/Claude-Tools`
+   marketplace). Check that its skills are in the skill list and use them. If they are
+   missing (the file only takes effect when a session starts, so a session that pulled it
+   later won't have them), tell the owner in one line instead of carrying on silently.
+3. **Read "Current status"** at the end of this file.
 
-- **Released:** Azoth Converter **0.6.0** (24 Nov 2026, pull request #12; 0.5.0 on 23 Nov, pull request #11; 0.4.0 on 22 Nov, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
-  (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
-  the old URL redirects, but connect new sessions to the new name).
-- **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
-  (Linux), Tests (Windows) and Windows app required). `dev` accepts direct pushes. Dependabot
-  alerts, private vulnerability reporting and two-factor authentication are on.
-- **Code signing is postponed** (owner, Nov 2026): first make the app good, then sign.
-  Releases are **not signed**; `CODE_SIGNING.md`, the README and the release notes say so
-  (keep them honest until signing really works). Planned sequence:
-  1. ✓ `CODE_SIGNING.md` is on `main` (pull request #5, merged 19 Nov 2026);
-  2. the owner applies on signpath.org with the repo link and the link to `CODE_SIGNING.md`
-     on `main` (Nov 2026: the form asks whether the app shows up in a web search; the owner
-     worries a small project may be declined). **Wait for SignPath's answer** before planning
-     more; alternatives if declined: Certum open-source certificate, Azure Trusted Signing;
-  3. after approval, the owner saves the SignPath API key as a GitHub secret (never in chat);
-  4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
-     build → sign the `.exe` files → build the installer → sign the installer, with manual
-     approval per release in SignPath.
-- **Version 0.2.1** (error log, Uninstall button, clean updates, open-folder fix) is on `main`
-  (pull request #7, merged 21 Nov 2026) and **released** as v0.2.1 on GitHub Releases. Later work goes under
-  `CHANGELOG.md` → Unreleased. Open: a crash the owner saw in
-  0.2.0 (several photos, some already PNG, then Convert); couldn't be reproduced. Probably the
-  same as the "access violation" the owner hit on 22 Nov 2026 (Python's garbage collection
-  in a conversion thread freeing Qt objects); fixed on `dev` by `gui/main_thread_gc.py`. Not yet tried with real phone photos: metadata removal.
-- **0.4.0 (released 22 Nov 2026)** contains: picture size (`resize.py`; "Picture size" with
-  ready-made screen sizes, Full HD first, turned for portrait photos; width, height, %,
-  custom; "Change size only" tile saves "name (resized)"; enlarging is normal, "Don't
-  enlarge smaller pictures" optional; "Longest side" only in the CLI: `--resize`,
-  `--only-shrink`), fully portable ZIP (`portable.py`; `portable.txt` only in the ZIP, never
-  in the installer; the build tests the unzipped app), crash fix (`gui/main_thread_gc.py`),
-  pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
-  `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
-  it on Windows before the release.
-- **0.5.0 released (23 Nov 2026, pull request #11)**. Contents (details in
-  `CHANGELOG.md` → 0.5.0):
-  1. **"Enhance with AI"** (`upscale.py`): Real-ESRGAN run by OpenCV's dnn, tiled; under
-     Picture size; Noise removal Low/Medium/High; CLI `--ai`, `--denoise`. The Windows build
-     smoke-tests it in the finished program. The bigger model (`RealESRGAN_x4plus`) was
-     measured: ~17× slower, only visibly better for ×4 of tiny photos → optional "Best
-     quality (slow)" later, owner to decide;
-  2. **Microsoft Excel and PowerPoint** as converters (`converters/msword.py`, one
-     PowerShell script for Word/Excel/PowerPoint): to PDF and between their own formats;
-     the LibreOffice banner and formats list only name what nothing installed can do;
-     settings "Use Microsoft Office", CLI `--no-office`;
-  3. **Office passwords** (`office_password.py`, msoffcrypto-tool): PDF tools → Password
-     also adds/removes passwords on DOCX/XLSX/PPTX (removes on DOC/XLS/PPT too); protected
-     files are converted after asking for the password (`options["passwords"]`, unlocked
-     only into the job's temp folder in `engine._Job.readable_source`); `azoth password`.
-  4. **PDF → Word progress and cancel** (page by page, `converters/pdf.py`);
-  5. **Remove metadata from PDF, DOCX, XLSX, PPTX** (`doc_metadata.py`; content checked
-     unchanged before saving; signed/password PDFs refused);
-  6. **Explorer right-click menu** (`context_menu.py` → generated
-     `packaging/context_menu.iss`, installer task; `gui/explorer.py`: several files → one
-     window via a local pipe with a key in the settings folder). Classic menu only (Windows
-     11: "Show more options"). The "Test installer" step checks the menu is added and
-     fully removed (owner agreed, 23 Nov 2026).
-  Still to try on the owner's company PC (Office, no LibreOffice): AI on real photos;
-  Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both ways; the
-  right-click menu.
-- **0.6.0 released (24 Nov 2026, pull request #12)**. New work goes under `CHANGELOG.md` →
-  Unreleased (empty now). Contents (details in `CHANGELOG.md` → 0.6.0):
-  1. **PDF → Excel** (`converters/pdf_excel.py`, openpyxl): tables as cells, one sheet per
-     page, numbers only where clear;
-  2. **Video and audio** (`converters/media.py`, FFmpeg 8.0.1 "full" bundled on Windows via
-     `packaging/fetch_ffmpeg.py`; Linux tests install `ffmpeg`; the Windows build
-     smoke-tests MOV → MP4/WebM/MP3 in the finished program);
-  3. **Remove metadata for videos and music** (`media_metadata.py`, owner's pick for 0.6.0);
-  4. **Right-click files go to the open window** (also when opened from the Start menu) and
-     **no more flashing small windows** (widgets were shown before having a parent; use
-     `widgets.discard()` and never `setVisible(True)` on a parentless widget;
-     `test_no_stray_windows_flash_up` checks it);
-  5. **Menu overhaul** (owner: "not overwhelming"): 6 tiles + "More formats", "More
-     options" folded with a summary, details in tooltips, Quality only where it matters,
-     Settings regrouped, sidebar tools on top.
-  6. `azoth-terminal.exe` double-clicked opens a Command Prompt (Enter used to close it);
-     wildcards like `*.heic` expanded by the CLI on Windows.
-  Still to try on a real Windows PC: the double-clicked `azoth-terminal.exe` Command Prompt;
-  videos from a phone; PDF → Excel on real bills/statements.
-  **Next (candidates for 0.7.0, owner to choose):** "Make smaller" for videos, PDF → Excel
-  "Tables only" / "All pages on one sheet" (in `docs/PROJECT_PLAN.md`); smaller download;
-  code signing (waiting for SignPath).
-- **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
-  Windows test crashed without it while the AI ran in the worker thread).
-- **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
-  Office passwords; then (for 0.5.0) PDF → Word progress, document metadata, Explorer
-  right-click menu (all released in 0.5.0). PDF → Excel and video/audio are done (for
-  0.6.0, see above). Then: the **design refresh is low priority** (the owner finds the current
-  design good). Smaller download and code signing (waiting for SignPath) as before.
-- **Earlier notes on planned work:**
-  - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
-    choice), "Done" notification, accessibility checks (see `docs/PROJECT_PLAN.md`);
-  - **0.3.0 released (22 Nov 2026, pull request #8):** compress PDF, passwords, OCR, file
-    names in every PDF tool, "Done" card. OCR selection: fine in Chrome/Edge, good enough in
-    Firefox (owner: don't tune further). Later: check OCR speed on long PDFs;
-  - later: a version check inside the app (only on click, after code signing; owner decides),
-    see Phase 5 in `docs/PROJECT_PLAN.md`;
-  - agreed order (Nov 2026): metadata tool ✓ → split `gui/main_window.py` ✓ → design
-    mockups ✓ → **style A built** ✓ (with Light / Dark / Follow Windows; not yet seen on a
-    real Windows PC; icon choice postponed by the owner) → **PDF tools** ✓ (merge, split,
-    edit pages, compress, passwords ✓) → **OCR** ✓ (all released in 0.3.0);
-  - technical improvements: **faster batches ✓ released in 0.3.1** (Word and LibreOffice: up
-    to 10 files per start; photos: up to 4 at once), plus Word → PDF that really uses Word
-    (never worked before 0.3.1) and PDF restrictions kept. Next: smaller download;
-- **Session start (Nov 2026):** the local `dev` in a fresh session can be an old leftover
-  that has diverged from `origin/dev`; if `git pull --ff-only` fails, rename it
-  (`git branch -m dev dev-old-local`) and `git checkout -b dev origin/dev`. Work on the
-  local `dev` branch, not the automatic session branch, or an automatic "unpushed
-  commits" check keeps firing after every answer.
-- **Every new session (owner, Nov 2026):** after updating `dev`, read
-  `.claude/settings.json` and follow it: it enables the owner's **cost-saver** plugin
-  (`cost-saver@rxap3r-tools`, from the `Rxap3r/Claude-Tools` marketplace). Check that its
-  skills are in the skill list and use them. If they are missing (the file only takes
-  effect when a session starts, so a session that pulled it later won't have them), tell
-  the owner in one line instead of carrying on silently.
-- **Session limits:** sessions can push branches but **not tags**, which is why releases are
-  created by the Release workflow. To get a test build of `dev`, start "Build and test" with
-  `workflow_dispatch` on `dev` (the owner can also do it in the Actions tab).
+Session limits: sessions can push branches but **not tags**, which is why releases are
+created by the Release workflow. To get a test build of `dev`, start "Build and test" with
+`workflow_dispatch` on `dev` (the owner can also do it in the Actions tab).
 
 ## Working with the owner
 
@@ -149,11 +50,9 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
 
 Rules:
 
-- **Always work on `dev`.** At the start of every session, check out `dev` and commit and push there, even if the session was started on an automatically created branch such as `claude/...`. This instruction is the owner's explicit permission to push to `dev`. Don't create or push to session or feature branches.
-  ```bash
-  git fetch origin dev && git checkout dev && git pull --ff-only origin dev
-  ```
-  If the session started on another branch that already has commits not on `dev`, bring them over (`git checkout dev && git merge --no-edit <that-branch>`) instead of losing them.
+- **Always work on `dev`** (see "Start of every session"), even if the session was started on an
+  automatically created branch. This instruction is the owner's explicit permission to push to
+  `dev`. Don't create or push to session or feature branches.
 - **Never commit or push to `main` directly.** `main` only changes through a **pull request from
   `dev` into `main` that the owner reviews and merges**. Never merge it yourself.
 - **Before opening a pull request into `main`** (owner's wish, Nov 2026): check whether the
@@ -182,40 +81,6 @@ many or slow tests, check the run times in the Actions tab; if a job regularly n
 than about half its limit, raise the limit (ask the owner, it's a workflow change)** rather
 than letting good runs fail.
 
-## Releasing (only when the owner asks)
-
-1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py`; in
-   `CHANGELOG.md` rename **Unreleased** to `[<version>] - <date>`, add a new empty Unreleased
-   section and update the links at the bottom; write the user-facing release notes in
-   `docs/releases/v<version>.md` from `docs/releases/TEMPLATE.md`, based on that changelog
-   section. Always keep the template's **Downloads** section, which explains the installer,
-   the portable ZIP and GitHub's source-code archives. All tests must pass.
-2. Ask the owner whether to open the pull request `dev` → `main`; open it only when they say
-   so ("pull it"). "Build and test" runs the full check (Linux, Windows, installer). The owner merges it.
-3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and
-   notes; runs all tests on Linux and Windows while building and testing the installer in
-   parallel; and only when all of that passed, creates the tag `v<version>` and publishes the
-   GitHub Release with exactly the tested installer and portable ZIP. No tag needs to be pushed.
-
-## Project
-
-Azoth Converter is an **offline** desktop file converter (Windows first, later macOS and Linux).
-The whole point of the project is **data safety**: files never leave the user's device.
-The roadmap is in `docs/PROJECT_PLAN.md`, and the user-facing promises are in `PRIVACY.md`.
-Future ideas and change requests from the owner go into `docs/PROJECT_PLAN.md` as unchecked items
-in the matching phase (design wishes under "Design refresh"); there is no separate wish list.
-
-Stack: Python 3.11+, PySide6 (GUI), Pillow and pillow-heif (images), PyMuPDF and pdf2docx (PDF),
-openpyxl (PDF → Excel), FFmpeg (video and audio), LibreOffice headless (office formats),
-PyInstaller (Windows build). License: GPL-3.0-or-later.
-
-## Public repository
-
-The repository is public. Never commit secrets, personal data or real user files (samples are
-made up). Commits are authored as "Claude <noreply@anthropic.com>"; don't put the owner's
-email or other personal details into commits, code or docs. Security reports go through
-GitHub's private vulnerability reporting (see `SECURITY.md`), never public issues.
-
 ## Non-negotiable rules for the code
 
 - **Quality: conversions as close to 1:1 as possible.** Prefer the highest-fidelity engine
@@ -235,6 +100,83 @@ GitHub's private vulnerability reporting (see `SECURITY.md`), never public issue
   `engine.TEMP_PREFIX`. Anything new the app writes must be removed by `[UninstallDelete]` in
   `packaging/installer.iss` and checked by the "Test installer" step of the automatic build.
 - Untrusted input: catch engine errors and raise `ConversionError` with a message a non-technical user understands.
+
+## Before every commit
+
+- Add every user-visible or workflow change to `CHANGELOG.md` under **Unreleased** (short,
+  plain sentences; sections Added / Changed / Fixed / Removed / Quality / Privacy and safety /
+  Development).
+- `pytest` passes and `ruff` is clean.
+- New features come with tests.
+- Update `docs/PROJECT_PLAN.md` checkboxes and the README's format table when features change.
+- When conversions change, regenerate the format list (also shown in the app):
+  `azoth formats --markdown docs/FORMATS.md`, and the right-click menu:
+  `python packaging/make_context_menu.py`. Tests fail if either is out of date.
+## Project
+
+Azoth Converter is an **offline** desktop file converter (Windows first, later macOS and Linux).
+The whole point of the project is **data safety**: files never leave the user's device.
+The roadmap is in `docs/PROJECT_PLAN.md`, and the user-facing promises are in `PRIVACY.md`.
+Future ideas and change requests from the owner go into `docs/PROJECT_PLAN.md` as unchecked items
+in the matching phase (design wishes under "Design refresh"); there is no separate wish list.
+
+Stack: Python 3.11+, PySide6 (GUI), Pillow and pillow-heif (images), PyMuPDF and pdf2docx (PDF),
+openpyxl (PDF → Excel), FFmpeg (video and audio), LibreOffice headless (office formats),
+PyInstaller (Windows build). License: GPL-3.0-or-later.
+
+## Public repository
+
+The repository is public. Never commit secrets, personal data or real user files (samples are
+made up). Commits are authored as "Claude <noreply@anthropic.com>"; don't put the owner's
+email or other personal details into commits, code or docs. Security reports go through
+GitHub's private vulnerability reporting (see `SECURITY.md`), never public issues.
+
+## Commands
+
+```bash
+pip install --require-hashes -r requirements-dev.lock
+```
+
+```bash
+pip install --no-deps -e .
+```
+
+```bash
+python packaging/fetch_tessdata.py
+```
+
+Library versions are locked (with hashes) in `requirements.lock` (app) and
+`requirements-dev.lock` (app + test/build tools). The automatic tests and builds install from them, so every
+build of a commit uses the same versions. After changing dependencies in `pyproject.toml`,
+regenerate both files and commit them:
+
+```bash
+uv pip compile pyproject.toml --universal --python-version 3.12 --generate-hashes -o requirements.lock
+```
+
+```bash
+uv pip compile pyproject.toml --extra dev --universal --python-version 3.12 --generate-hashes -o requirements-dev.lock
+```
+
+```bash
+pytest
+```
+
+```bash
+ruff check src tests && ruff format --check src tests
+```
+
+```bash
+python -m azoth
+```
+
+```bash
+cd packaging && pyinstaller azoth.spec --noconfirm
+```
+
+`python -m azoth` without arguments opens the GUI; with arguments it runs the CLI.
+GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftest.py`).
+Office tests are skipped when LibreOffice isn't installed. Install it to run them.
 
 ## Layout
 
@@ -288,53 +230,6 @@ samples/              test files (Word, PDF, Excel, PowerPoint, images, problem 
 To add a format family, write a new `Converter` subclass with `capabilities()` and `convert()`,
 register it, and add tests. The engine, CLI and GUI pick it up automatically.
 
-## Commands
-
-```bash
-pip install --require-hashes -r requirements-dev.lock
-```
-
-```bash
-pip install --no-deps -e .
-```
-
-```bash
-python packaging/fetch_tessdata.py
-```
-
-Library versions are locked (with hashes) in `requirements.lock` (app) and
-`requirements-dev.lock` (app + test/build tools). The automatic tests and builds install from them, so every
-build of a commit uses the same versions. After changing dependencies in `pyproject.toml`,
-regenerate both files and commit them:
-
-```bash
-uv pip compile pyproject.toml --universal --python-version 3.12 --generate-hashes -o requirements.lock
-```
-
-```bash
-uv pip compile pyproject.toml --extra dev --universal --python-version 3.12 --generate-hashes -o requirements-dev.lock
-```
-
-```bash
-pytest
-```
-
-```bash
-ruff check src tests && ruff format --check src tests
-```
-
-```bash
-python -m azoth
-```
-
-```bash
-cd packaging && pyinstaller azoth.spec --noconfirm
-```
-
-`python -m azoth` without arguments opens the GUI; with arguments it runs the CLI.
-GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftest.py`).
-Office tests are skipped when LibreOffice isn't installed. Install it to run them.
-
 ## Look and feel
 
 **Keep it calm (owner, 23 Nov 2026):** short labels; explanations go into tooltips (hover),
@@ -360,14 +255,60 @@ The app and the installer always offer the same languages (currently English onl
 a translation to the app, add the matching Inno Setup language to `packaging/installer.iss` in the
 same change, and never add an installer language the app doesn't have.
 
-## Before every commit
+## Releasing (only when the owner asks)
 
-- Add every user-visible or workflow change to `CHANGELOG.md` under **Unreleased** (short,
-  plain sentences; sections Added / Changed / Fixed / Removed / Quality / Privacy and safety /
-  Development).
-- `pytest` passes and `ruff` is clean.
-- New features come with tests.
-- Update `docs/PROJECT_PLAN.md` checkboxes and the README's format table when features change.
-- When conversions change, regenerate the format list (also shown in the app):
-  `azoth formats --markdown docs/FORMATS.md`, and the right-click menu:
-  `python packaging/make_context_menu.py`. Tests fail if either is out of date.
+1. On `dev`: set the new version in `pyproject.toml` and `src/azoth/__init__.py`; in
+   `CHANGELOG.md` rename **Unreleased** to `[<version>] - <date>`, add a new empty Unreleased
+   section and update the links at the bottom; write the user-facing release notes in
+   `docs/releases/v<version>.md` from `docs/releases/TEMPLATE.md`, based on that changelog
+   section. Always keep the template's **Downloads** section, which explains the installer,
+   the portable ZIP and GitHub's source-code archives. All tests must pass.
+2. Ask the owner whether to open the pull request `dev` → `main`; open it only when they say
+   so ("pull it"). "Build and test" runs the full check (Linux, Windows, installer). The owner merges it.
+3. The owner starts **Actions → Release → Run workflow** on `main`. It checks the version and
+   notes; runs all tests on Linux and Windows while building and testing the installer in
+   parallel; and only when all of that passed, creates the tag `v<version>` and publishes the
+   GitHub Release with exactly the tested installer and portable ZIP. No tag needs to be pushed.
+
+## Current status (keep this section up to date)
+
+Details are in `CHANGELOG.md` (what each version contains) and `docs/PROJECT_PLAN.md`
+(open ideas). Keep only what a new session needs here; move finished details out.
+
+- **Released:** **0.6.0** (24 Nov 2026, pull request #12) on GitHub Releases (installer +
+  portable ZIP). Earlier: 0.5.0 (23 Nov), 0.4.0, 0.3.1, 0.3.0 (22 Nov), 0.2.1 (21 Nov),
+  0.2.0 (19 Nov), 0.1.0 (18 Nov). New work goes under `CHANGELOG.md` → Unreleased.
+- **Repository:** public at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`; the old
+  URL redirects, but connect new sessions to the new name). A ruleset protects **only
+  `main`** (pull request required, checks Tests (Linux), Tests (Windows) and Windows app
+  required); `dev` accepts direct pushes. Dependabot alerts, private vulnerability reporting
+  and two-factor authentication are on.
+- **Next (candidates for 0.7.0, owner to choose):** "Make smaller" for videos; PDF → Excel
+  "Tables only" / "All pages on one sheet"; smaller download; code signing (waiting for
+  SignPath). The **design refresh is low priority** (the owner finds the current design
+  good): icon rework, "Done" notification, accessibility checks. Later: optional "Best
+  quality (slow)" AI model, version check inside the app (only on click, after code
+  signing), OCR speed on long PDFs. All in `docs/PROJECT_PLAN.md`.
+- **Still to try on a real Windows PC** (owner's company PC has Office, no LibreOffice): AI
+  on real photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both
+  ways; the right-click menu; the double-clicked `azoth-terminal.exe` Command Prompt; videos
+  from a phone; PDF → Excel on real bills/statements; metadata removal on real phone photos;
+  style A (Light / Dark / Follow Windows).
+- **Open:** a crash the owner saw in 0.2.0 (several photos, some already PNG, then Convert)
+  couldn't be reproduced; probably the "access violation" fixed by `gui/main_thread_gc.py`
+  (Python's garbage collection in a conversion thread freeing Qt objects).
+- **Code signing is postponed** (owner, Nov 2026): first make the app good, then sign.
+  Releases are **not signed**; `CODE_SIGNING.md`, the README and the release notes say so
+  (keep them honest until signing really works). Steps:
+  1. ✓ `CODE_SIGNING.md` is on `main` (pull request #5);
+  2. the owner applies on signpath.org (worried a small project may be declined). **Wait for
+     SignPath's answer** before planning more; alternatives if declined: Certum open-source
+     certificate, Azure Trusted Signing;
+  3. after approval, the owner saves the SignPath API key as a GitHub secret (never in chat);
+  4. then add signing to `.github/workflows/release.yml` / `.github/actions/build-windows`:
+     build → sign the `.exe` files → build the installer → sign the installer, with manual
+     approval per release in SignPath.
+- **Settled, don't reopen:** OCR text selection is fine in Chrome/Edge and good enough in
+  Firefox (owner: don't tune further).
+- **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
+  Windows test crashed without it while the AI ran in the worker thread).
