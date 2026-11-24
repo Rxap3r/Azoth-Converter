@@ -13,12 +13,18 @@ the app). Nothing is downloaded. The picture is worked on in tiles with some ove
 pictures need little memory and the tiles fit together without seams, and the result is
 shrunk to the chosen size strip by strip.
 
+"Best quality (slow)" uses the bigger Real-ESRGAN "x4plus" (BSD-3-Clause, same authors,
+``resources/upscale/realesrgan-x4plus.npz``): about 17 times more work, but more natural
+texture (hair, fur, grass) when tiny pictures are made four times bigger. It has one weight
+set, so the noise removal level doesn't apply to it.
+
 AI-added detail is invented: it looks real but isn't. Never the default.
 """
 
 from __future__ import annotations
 
 import math
+import struct
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -26,10 +32,14 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-MODEL_FILE = Path(__file__).resolve().parent / "resources" / "upscale" / "realesr-general-x4v3.npz"
+MODEL_DIR = Path(__file__).resolve().parent / "resources" / "upscale"
+MODEL_FILE = MODEL_DIR / "realesr-general-x4v3.npz"
+BEST_MODEL_FILE = MODEL_DIR / "realesrgan-x4plus.npz"
 SCALE = 4
 TILE = 256
 """Tile size in source pixels. Bigger tiles are a little faster but need more memory."""
+BEST_TILE = 128
+"""Smaller tiles for the big model: it keeps 64 layers of the ×4 picture in memory."""
 CONTEXT = 24
 """Source pixels around each tile that the network sees but that are cut off afterwards,
 so tiles fit together without visible seams."""
@@ -40,7 +50,7 @@ DENOISE = {LOW: 0.0, MEDIUM: 0.5, HIGH: 1.0}
 DENOISE_LABELS = {LOW: "Low (keeps fine grain)", MEDIUM: "Medium", HIGH: "High (smoothest)"}
 
 _lock = threading.Lock()  # one AI picture at a time: it already uses all processor cores
-_nets: dict[float, object] = {}
+_nets: dict[tuple[bool, float], object] = {}
 
 
 class UpscaleError(RuntimeError):
@@ -51,9 +61,9 @@ class Cancelled(Exception):
     """Raised by ``cancelled`` callbacks to stop between tiles."""
 
 
-def available() -> bool:
-    """True if the model is there and OpenCV can run it."""
-    if not MODEL_FILE.is_file():
+def available(best: bool = False) -> bool:
+    """True if the model (``best``: the big one) is there and OpenCV can run it."""
+    if not (BEST_MODEL_FILE if best else MODEL_FILE).is_file():
         return False
     try:
         import cv2  # noqa: F401
@@ -125,6 +135,86 @@ def onnx_model(layers) -> bytes:
     nodes.append(
         _node("DepthToSpace", [prev], "y", [_int("blocksize", SCALE), _str("mode", b"CRD")])
     )
+    return _model(nodes, weights)
+
+
+def load_best_weights() -> dict[str, np.ndarray]:
+    """The big model's arrays by their PyTorch names (``conv_first.weight`` …)."""
+    try:
+        with np.load(BEST_MODEL_FILE, allow_pickle=False) as data:
+            arrays = {n: data[n].astype(np.float32) for n in data.files if n != "sources"}
+    except OSError as exc:
+        raise UpscaleError("The AI model is missing. Please reinstall Azoth Converter.") from exc
+    if "conv_first.weight" not in arrays or "body.0.rdb1.conv1.weight" not in arrays:
+        raise UpscaleError("The AI model is damaged. Please reinstall Azoth Converter.")
+    return arrays
+
+
+def best_onnx_model(arrays: dict[str, np.ndarray]) -> bytes:
+    """The big model (RRDBNet: 23 blocks of densely connected convolutions, then two ×2
+    enlargements) as an ONNX file, built the same way as the small one."""
+    nodes, weights = [], []
+    names = iter(range(10**9))
+
+    def conv(x: str, name: str, lrelu: bool = False) -> str:
+        weights.extend(
+            [_tensor(f"{name}.weight", arrays[f"{name}.weight"]),
+             _tensor(f"{name}.bias", arrays[f"{name}.bias"])]
+        )  # fmt: skip
+        out = f"t{next(names)}"
+        attrs = [_ints("kernel_shape", [3, 3]), _ints("pads", [1, 1, 1, 1])]
+        nodes.append(_node("Conv", [x, f"{name}.weight", f"{name}.bias"], out, attrs))
+        if not lrelu:
+            return out
+        act = f"t{next(names)}"
+        nodes.append(_node("LeakyRelu", [out], act, [_float("alpha", 0.2)]))
+        return act
+
+    def scaled_add(x: str, residual: str) -> str:  # x * 0.2 + residual
+        mul, out = f"t{next(names)}", f"t{next(names)}"
+        nodes.append(_node("Mul", [x, "k0.2"], mul))
+        nodes.append(_node("Add", [mul, residual], out))
+        return out
+
+    def dense_block(x: str, name: str) -> str:
+        parts = [x]  # each convolution sees the input and all earlier results
+        for i in range(1, 6):
+            if len(parts) == 1:
+                joined = x
+            else:
+                joined = f"t{next(names)}"
+                nodes.append(_node("Concat", parts, joined, [_int("axis", 1)]))
+            parts.append(conv(joined, f"{name}.conv{i}", lrelu=i < 5))
+        return scaled_add(parts[-1], x)
+
+    def enlarge2(x: str) -> str:
+        out = f"t{next(names)}"
+        attrs = [_str("mode", b"nearest"), _str("coordinate_transformation_mode", b"asymmetric"),
+                 _str("nearest_mode", b"floor")]  # fmt: skip
+        nodes.append(_node("Resize", [x, "", "s2"], out, attrs))
+        return out
+
+    weights.append(_tensor("k0.2", np.array([0.2], np.float32)))
+    weights.append(_tensor("s2", np.array([1, 1, 2, 2], np.float32)))
+    feat = conv("x", "conv_first")
+    body = feat
+    i = 0
+    while f"body.{i}.rdb1.conv1.weight" in arrays:
+        block = body
+        for r in (1, 2, 3):
+            block = dense_block(block, f"body.{i}.rdb{r}")
+        body = scaled_add(block, body)
+        i += 1
+    added = f"t{next(names)}"
+    nodes.append(_node("Add", [feat, conv(body, "conv_body")], added))
+    up = conv(enlarge2(added), "conv_up1", lrelu=True)
+    up = conv(enlarge2(up), "conv_up2", lrelu=True)
+    last = conv(conv(up, "conv_hr", lrelu=True), "conv_last")
+    nodes.append(_node("Identity", [last], "y"))
+    return _model(nodes, weights)
+
+
+def _model(nodes: list[bytes], weights: list[bytes]) -> bytes:
     graph = (
         b"".join(_field(1, n) for n in nodes)
         + _field(2, b"upscale")
@@ -183,6 +273,15 @@ def _ints(name: str, values: list[int]) -> bytes:
     )
 
 
+def _float(name: str, value: float) -> bytes:
+    return (
+        _field(1, name.encode())
+        + _varint(2 << 3 | 5)
+        + struct.pack("<f", value)
+        + _varint_field(20, 1)
+    )
+
+
 def _str(name: str, value: bytes) -> bytes:
     return _field(1, name.encode()) + _field(4, value) + _varint_field(20, 3)
 
@@ -194,26 +293,29 @@ def _value_info(name: str) -> bytes:
     return _field(1, name.encode()) + _field(2, _field(1, tensor_type))
 
 
-def _net(denoise: float):
-    net = _nets.get(denoise)
+def _net(denoise: float, best: bool = False):
+    key = (best, 0.0 if best else denoise)
+    net = _nets.get(key)
     if net is None:
         import cv2
 
-        model = onnx_model(load_weights(denoise))
+        model = best_onnx_model(load_best_weights()) if best else onnx_model(load_weights(denoise))
         try:
             net = cv2.dnn.readNetFromONNX(np.frombuffer(model, dtype=np.uint8))
         except cv2.error as exc:  # pragma: no cover - would be a packaging problem
             raise UpscaleError(f"The AI model could not be started: {exc}") from exc
         _nets.clear()  # keep only one in memory
-        _nets[denoise] = net
+        _nets[key] = net
     return net
 
 
-def upscale4(net, rgb: np.ndarray) -> np.ndarray:
+def upscale4(net, rgb: np.ndarray, best: bool = False) -> np.ndarray:
     """One tile: ``rgb`` (height × width × 3, values 0…1, float32) four times bigger."""
     net.setInput(np.ascontiguousarray(rgb.transpose(2, 0, 1)[None]))
     out = net.forward()[0].transpose(1, 2, 0)
-    # The network predicts the difference to a plain (nearest-neighbour) enlargement.
+    if best:
+        return out
+    # The small network predicts the difference to a plain (nearest-neighbour) enlargement.
     return out + rgb.repeat(SCALE, axis=0).repeat(SCALE, axis=1)
 
 
@@ -226,15 +328,17 @@ def enhance(
     denoise: str = MEDIUM,
     progress: Callable[[float], None] | None = None,
     cancelled: Callable[[], None] | None = None,
+    best: bool = False,
 ) -> Image.Image:
     """``img`` at ``size`` (width, height), enlarged by the AI four times and then brought
     to the exact size. ``cancelled`` is called between tiles and may raise to stop.
+    ``best`` uses the big, slow model (``denoise`` then doesn't apply).
 
     Colours are worked on with 8 bits per channel; transparency (alpha) is enlarged
     smoothly the normal way. The result has the same mode as ``img`` where possible."""
     if denoise not in DENOISE:
         raise ValueError(f"Unknown noise removal level: {denoise}")
-    if not available():
+    if not available(best):
         raise UpscaleError(
             "AI enlarging isn't available: the AI model is missing. "
             "Please reinstall Azoth Converter."
@@ -246,7 +350,8 @@ def enhance(
     if alpha is not None:
         rgb = _fill_transparent(rgb, np.asarray(alpha))
     with _lock:
-        result = _enhance_rgb(rgb, size, _net(DENOISE[denoise]), progress, cancelled)
+        net = _net(DENOISE[denoise], best)
+        result = _enhance_rgb(rgb, size, net, progress, cancelled, best)
     out = Image.fromarray(result, "RGB")
     if gray:
         out = out.convert("L")
@@ -281,7 +386,8 @@ def _fill_transparent(rgb: np.ndarray, alpha: np.ndarray) -> np.ndarray:
     return filled
 
 
-def _enhance_rgb(rgb, size, net, progress, cancelled) -> np.ndarray:
+def _enhance_rgb(rgb, size, net, progress, cancelled, best=False) -> np.ndarray:
+    tile_size = BEST_TILE if best else TILE
     h, w = rgb.shape[:2]
     out_w, out_h = size
     big_w, big_h = w * SCALE, h * SCALE
@@ -292,15 +398,15 @@ def _enhance_rgb(rgb, size, net, progress, cancelled) -> np.ndarray:
     # Pixels (in the ×4 picture) the final resize looks at beyond a strip's own rows.
     margin = 0 if exact else math.ceil((3 if shrink else 2) * max(1.0, 1 / sy)) + 2
 
-    # Output strips of about TILE source rows each.
-    rows_per_strip = max(1, round(TILE * SCALE * sy))
+    # Output strips of about one tile of source rows each.
+    rows_per_strip = max(1, round(tile_size * SCALE * sy))
     strips = []
     for o0 in range(0, out_h, rows_per_strip):
         o1 = min(out_h, o0 + rows_per_strip)
         a = max(0, math.floor((o0 / sy - margin) / SCALE))
         b = min(h, math.ceil((o1 / sy + margin) / SCALE))
         strips.append((o0, o1, a, b))
-    tiles_per_strip = math.ceil(w / TILE)
+    tiles_per_strip = math.ceil(w / tile_size)
     total = len(strips) * tiles_per_strip
     done = 0
 
@@ -308,12 +414,12 @@ def _enhance_rgb(rgb, size, net, progress, cancelled) -> np.ndarray:
     for o0, o1, a, b in strips:
         big = np.empty(((b - a) * SCALE, big_w, 3), dtype=np.uint8)
         ra, rb = max(0, a - CONTEXT), min(h, b + CONTEXT)
-        for c0 in range(0, w, TILE):
+        for c0 in range(0, w, tile_size):
             if cancelled:
                 cancelled()
-            c1 = min(w, c0 + TILE)
+            c1 = min(w, c0 + tile_size)
             ca, cb = max(0, c0 - CONTEXT), min(w, c1 + CONTEXT)
-            tile = upscale4(net, rgb[ra:rb, ca:cb].astype(np.float32) / 255)
+            tile = upscale4(net, rgb[ra:rb, ca:cb].astype(np.float32) / 255, best)
             tile = tile[(a - ra) * SCALE : (b - ra) * SCALE, (c0 - ca) * SCALE : (c1 - ca) * SCALE]
             big[:, c0 * SCALE : c1 * SCALE] = np.clip(tile * 255 + 0.5, 0, 255).astype(np.uint8)
             done += 1

@@ -340,10 +340,15 @@ def test_enhance_with_ai(window, qtbot, tmp_path, upscale_ready):
     with Image.open(tmp_path / "small (enhanced).png") as im:
         assert im.size == (30, 20)
     assert window.done_card.message.text() == "Done! 1 file enhanced."
+    assert not sizes.best.isHidden() and not sizes.best.isChecked()  # never on by default
+    sizes.best.setChecked(True)  # the big model has no noise levels: the choice goes
+    assert sizes.denoise.isHidden() and sizes.spec().best
+    sizes.best.setChecked(False)
+    assert not sizes.denoise.isHidden() and not sizes.spec().best
     sizes.set_mode("percent")
     assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.toolTip()
     sizes.ai.setChecked(False)
-    assert sizes.denoise.isHidden() and not sizes.spec().ai
+    assert sizes.denoise.isHidden() and sizes.best.isHidden() and not sizes.spec().ai
 
 
 def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):

@@ -201,6 +201,13 @@ class ResizeOptions(QWidget):
         )
         if not upscale.available():
             self.ai.hide()
+        self.best = QCheckBox("Best quality (slow)")
+        self.best.setToolTip(
+            "Uses a bigger AI: more natural hair, fur and grass when small pictures are made "
+            "much bigger. About 15 times slower: several minutes per picture."
+        )
+        if not upscale.available(best=True):
+            self.best.hide()
         self.denoise = QComboBox()
         self.denoise.setAccessibleName("Noise removal")
         for level, text in upscale.DENOISE_LABELS.items():
@@ -220,12 +227,14 @@ class ResizeOptions(QWidget):
         layout.addLayout(boxes)
         layout.addWidget(self.only_shrink)
         layout.addWidget(self.ai)
+        layout.addWidget(self.best)
         layout.addWidget(self.denoise)
         layout.addWidget(self.hint)
         self.mode.currentIndexChanged.connect(self._mode_changed)
         self.preset.currentIndexChanged.connect(self._preset_changed)
         self.only_shrink.toggled.connect(self._update)
         self.ai.toggled.connect(self._update)
+        self.best.toggled.connect(self._update)
         self.denoise.currentIndexChanged.connect(self._update)
         for box in (self.width_box, self.height_box, self.percent_box):
             box.valueChanged.connect(self._update)
@@ -248,11 +257,16 @@ class ResizeOptions(QWidget):
     def uses_ai(self) -> bool:
         return self.ai.isChecked() and not self.ai.isHidden()
 
+    def uses_best(self) -> bool:
+        return self.uses_ai() and self.best.isChecked() and upscale.available(best=True)
+
     def spec(self) -> resize.Resize | None:
         """The chosen size, or None for "Keep original size" (without AI). With AI and
         the original size: 100 %, so pictures keep their size and get better."""
         mode = self.mode.currentData()
-        ai = {"ai": True, "denoise": self.denoise.currentData()} if self.uses_ai() else {}
+        ai = {}
+        if self.uses_ai():
+            ai = {"ai": True, "denoise": self.denoise.currentData(), "best": self.uses_best()}
         if mode is None:
             return resize.Resize(resize.PERCENT, percent=100, **ai) if ai else None
         if mode == resize.PERCENT:
@@ -282,7 +296,7 @@ class ResizeOptions(QWidget):
     def set_busy(self, busy: bool) -> None:
         for widget in (
             self.mode, self.preset, self.width_box, self.height_box, self.percent_box,
-            self.only_shrink, self.ai, self.denoise,
+            self.only_shrink, self.ai, self.best, self.denoise,
         ):  # fmt: skip
             widget.setEnabled(not busy)
 
@@ -320,7 +334,8 @@ class ResizeOptions(QWidget):
         self.percent_box.setVisible(custom and mode == resize.PERCENT)
         self.only_shrink.setVisible(mode not in (None, resize.PERCENT))
         ai = self.uses_ai()
-        self.denoise.setVisible(ai)
+        self.best.setVisible(ai and upscale.available(best=True))
+        self.denoise.setVisible(ai and not self.uses_best())  # the big model has one setting
         if mode is None and ai:
             hint = "Pictures keep their size and get sharper, with less noise."
         elif mode is None:

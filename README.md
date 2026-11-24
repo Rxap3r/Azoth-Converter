@@ -72,8 +72,12 @@ blocks. It runs entirely on your computer (the Real-ESRGAN model, 4.5 MB, is par
 app) and takes a while: roughly 10 seconds per megapixel of the original on a 4-core
 processor. The AI *invents* detail, so the result looks real but isn't fully true to the
 original: don't use it for documents, evidence or ID photos. Off unless you tick it; choose
-how strongly noise is removed (Low keeps fine grain). Command line:
-`azoth convert small.jpg --to png --resize 400% --ai`, or `--ai` alone to keep the size.
+how strongly noise is removed (Low keeps fine grain). **Best quality (slow)** uses the
+bigger Real-ESRGAN x4plus model (30 MB, also part of the app): more natural hair, fur and
+grass when small pictures are made much bigger, but about 15 times slower (a few minutes
+per megapixel of the original). Command line:
+`azoth convert small.jpg --to png --resize 400% --ai` (add `--ai-best` for the bigger
+model), or `--ai` alone to keep the size.
 
 **Quality first:** conversions aim to be as close to 1:1 as possible. Photos are put into PDFs
 unchanged, lossless images stay lossless, and if Microsoft Office is installed, Word, Excel

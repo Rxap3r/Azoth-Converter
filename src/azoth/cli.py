@@ -57,6 +57,12 @@ def cmd_convert(args: argparse.Namespace) -> int:
     if args.denoise and not args.ai:
         print("--denoise needs --ai", file=sys.stderr)
         return 2
+    if args.ai_best and not args.ai:
+        print("--ai-best needs --ai", file=sys.stderr)
+        return 2
+    if args.ai_best and args.denoise:
+        print("--denoise doesn't apply with --ai-best", file=sys.stderr)
+        return 2
     try:
         size = None if args.resize is None else resize.parse(args.resize, not args.only_shrink)
         if args.ai:  # without --resize: same size, better quality
@@ -64,13 +70,14 @@ def cmd_convert(args: argparse.Namespace) -> int:
                 size or resize.Resize(resize.PERCENT, percent=100),
                 ai=True,
                 denoise=args.denoise or "medium",
+                best=args.ai_best,
             )
     except resize.ResizeError as exc:
         print(exc, file=sys.stderr)
         return 2
     from . import upscale
 
-    if args.ai and not upscale.available():
+    if args.ai and not upscale.available(args.ai_best):
         print("AI enhancing isn't available: the AI model is missing.", file=sys.stderr)
         return 2
     options = {
@@ -425,6 +432,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=resize.DENOISE_LEVELS,
         default=None,
         help="with --ai: how strongly noise and JPEG blocks are removed (default: medium)",
+    )
+    p.add_argument(
+        "--ai-best",
+        action="store_true",
+        help="with --ai: use the bigger AI model: more natural hair, fur and grass when small "
+        "pictures are made much bigger, but about 15 times slower (minutes per picture)",
     )
     p.add_argument(
         "--keep-metadata",

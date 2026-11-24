@@ -7,6 +7,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Added
+
+- **"Best quality (slow)" for Enhance with AI:** a bigger AI model (Real-ESRGAN x4plus)
+  gives more natural hair, fur and grass when small pictures are made much bigger. About 15
+  times slower than the normal AI (a few minutes per picture), so it's off unless you tick
+  it. Command line: `--ai --ai-best`. The download grows by about 30 MB.
+
 ### Development
 
 - Claude Code sessions use the owner's cost-saver plugin, now installed in the owner's claude.ai account instead of `.claude/settings.json`.

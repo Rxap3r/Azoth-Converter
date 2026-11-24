@@ -135,7 +135,7 @@ def upscale_ready() -> None:
     too). Skipped on a developer's machine without it; a failure in the automatic build."""
     from azoth import upscale
 
-    if not upscale.available():
+    if not (upscale.available() and upscale.available(best=True)):
         message = "AI model missing: run python packaging/fetch_tessdata.py"
         if os.environ.get("CI"):
             pytest.fail(message)

@@ -56,6 +56,8 @@ class Resize:
     Not used for pictures that get smaller."""
     denoise: str = "medium"
     """With ``ai``: how strongly noise and JPEG blocks are removed (low, medium, high)."""
+    best: bool = False
+    """With ``ai``: use the big, slow model ("Best quality"); ``denoise`` doesn't apply."""
 
     def __post_init__(self) -> None:
         if self.mode not in MODES:
@@ -75,10 +77,10 @@ class Resize:
 
     def describe(self) -> str:
         """Short text for messages, e.g. "longest side 2000 px"."""
-        ai = " with AI" if self.ai else ""
+        ai = (" with AI (best quality)" if self.best else " with AI") if self.ai else ""
         if self.mode == PERCENT:
             if self.percent == 100 and self.ai:
-                return "improved with AI"
+                return "improved with AI" + (" (best quality)" if self.best else "")
             return f"{self.percent:g} %{ai}"
         text = {
             LONGEST: f"longest side {self.width} px",
@@ -230,7 +232,7 @@ def _apply_ai(img, size, spec, info, progress, cancelled) -> Image.Image:
             "more. Please choose the size without AI."
         )
     try:
-        result = upscale.enhance(img, size, spec.denoise, progress, cancelled)
+        result = upscale.enhance(img, size, spec.denoise, progress, cancelled, spec.best)
     except upscale.UpscaleError as exc:
         raise ResizeError(str(exc)) from exc
     result.info = info
