@@ -395,6 +395,10 @@ def plan_shrink(level: str, info: MediaInfo, tonemap: bool = True) -> list[str]:
         )
         colour = ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
     filters.append("format=yuv420p")
+    if colour:
+        # The frames themselves say "normal colours" too: newer FFmpeg versions (7 and
+        # later) take the colour labels from the frames, not only from the options above.
+        filters.append("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv")
     args = [
         "-map", f"0:{video.index}", "-c:v:0", "libx264", "-crf", str(crf),
         "-preset", "medium", "-vf", ",".join(filters), *colour,

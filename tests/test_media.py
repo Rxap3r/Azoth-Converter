@@ -364,7 +364,8 @@ def probe_video(path) -> dict[str, str]:
         "width": size[1],
         "height": size[2],
         "fps": re.search(r"([\d.]+) fps", line)[1],
-        "color_transfer": "bt709" if re.search(r"bt709[,)]", line) else "",
+        "color_transfer": "bt709" if re.search(r"bt709[,)/]", line) else "",
+        "line": line.strip(),
     }
     if "rotation of" in text:
         info["rotation"] = "yes"
@@ -428,7 +429,9 @@ def test_make_smaller_turns_hdr_into_normal_colours(tmp_path):
         "-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc",
     )  # fmt: skip
     [out] = Engine().convert(src, "mp4", tmp_path / "o", options={"shrink": "480"}).outputs
-    assert probe_video(out)["color_transfer"] == "bt709"
+    info = probe_video(out)
+    assert info["color_transfer"] == "bt709", info["line"]  # FFmpeg's description of it
+    assert "arib-std-b67" not in info["line"] and "bt2020" not in info["line"]
 
 
 def test_shrink_plan():
