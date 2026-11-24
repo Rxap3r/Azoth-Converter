@@ -311,7 +311,7 @@ Details are in `CHANGELOG.md` (what each version contains) and `docs/PROJECT_PLA
   good): icon rework, "Done" notification, accessibility checks. Later: version check
   inside the app (only on click, after code signing), OCR speed on long PDFs. All in `docs/PROJECT_PLAN.md`.
 - **0.7.0 prepared (24 Nov 2026)**: version, changelog and `docs/releases/v0.7.0.md` on
-  `dev`, pull request into `main` opened at the owner's request. The owner tests the
+  `dev`, pull request #15 into `main` opened at the owner's request. The owner tests the
   Windows build, merges, then starts Actions → Release. After that, move 0.7.0 to
   "Released" here. Contents: "Best quality (slow)" AI (`--ai-best`, bigger model, +30 MB
   download); the Windows build smoke-tests both AI models in the finished program.
