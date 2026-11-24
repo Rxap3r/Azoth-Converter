@@ -54,6 +54,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Fixed
 
+- Double-clicking `azoth-terminal.exe` now opens a window where you can type commands (a Command Prompt in your user folder); before, pressing Enter just closed it.
+- Wildcards such as `*.heic` now work in the Windows Command Prompt and PowerShell (Windows doesn't expand them itself).
 - Small empty windows no longer flash up in the middle of the screen while the app starts
   or the format choices change (parts of the window were briefly shown on their own
   before being placed in it).

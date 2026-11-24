@@ -571,7 +571,22 @@ def main(argv: list[str] | None = None) -> int:
         except AttributeError:
             pass
     args = build_parser().parse_args(argv)
+    if sys.platform == "win32" and isinstance(getattr(args, "files", None), list):
+        args.files = expand_wildcards(args.files)
     return args.func(args)
+
+
+def expand_wildcards(files: list[str]) -> list[str]:
+    """Expand ``*.heic`` and ``photo?.jpg`` ourselves: on Linux and macOS the terminal does
+    it, but Windows' Command Prompt and PowerShell pass the pattern on unchanged. A pattern
+    that matches nothing stays as it is, so the user gets the usual "not found" message."""
+    import glob
+
+    result = []
+    for name in files:
+        matches = sorted(glob.glob(name)) if glob.has_magic(name) else []
+        result.extend(matches or [name])
+    return result
 
 
 if __name__ == "__main__":
