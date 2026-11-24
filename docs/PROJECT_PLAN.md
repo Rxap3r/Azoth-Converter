@@ -160,6 +160,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
 - [x] **Release 0.5.0** (23 Nov 2026, pull request #11): AI upscaling, Excel/PowerPoint engines, Office passwords, document metadata, Explorer right-click menu
 - [x] **Release 0.6.0** (24 Nov 2026, pull request #12): PDF → Excel, video and audio, video/music metadata, menu overhaul, right-click files go to the open window
+- [ ] **Release 0.7.0** (prepared 24 Nov 2026): "Make smaller" for videos (also right-click), "Best quality (slow)" AI, PDF → Excel "Tables only" / "All pages on one sheet", STE wording for messages and help, faster file list (code review). Owner tests the Windows build first.
 
 ### Design refresh (timing flexible)
 - [x] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. **Owner's choice (Nov 2026): style A.** Icon choice postponed.*
@@ -190,7 +191,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [x] Photos: up to 4 converted at the same time (`Converter.parallel_safe`); about 4× faster for 16 large photos
   - [ ] PDF → images in parallel: PyMuPDF isn't thread-safe, so this would need separate processes
 - [x] **Split the main window code** (`gui/main_window.py`, ~550 lines: layout, state and settings in one file) into smaller parts, ideally before or as part of the design refresh. *Done (Nov 2026): `file_list`, `options_panel`, `output_folder`, `targets` (no Qt) and `worker`; the window looks the same.*
-- [ ] **Smaller download** (~140 MB installer): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
+- [ ] **Smaller download** (owner, 24 Nov 2026: **for 0.8.0**, as its own careful step: leave out only clearly unrelated parts such as Qt 3D, web browser and multimedia; measure each saving; add a check that converts one file of each family in the finished program, because a missing part only fails in that one function; recheck after library updates) (~140 MB installer, +30 MB since the "Best quality" AI model): trim unused Qt parts; check whether the PDF → Word engine can work without the full OpenCV package, or replace it
 - [x] **PDF → Word progress and cancel** for large PDFs: pdf2docx's steps run page by page, with progress and cancel between pages (on `dev`, Nov 2026)
 - [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 

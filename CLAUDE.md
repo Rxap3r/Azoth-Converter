@@ -304,16 +304,21 @@ Details are in `CHANGELOG.md` (what each version contains) and `docs/PROJECT_PLA
   `main`** (pull request required, checks Tests (Linux), Tests (Windows) and Windows app
   required); `dev` accepts direct pushes. Dependabot alerts, private vulnerability reporting
   and two-factor authentication are on.
-- **Next (candidates for 0.7.0, owner to choose):** PDF redaction (owner has something
-  to add first); German translation; smaller download; code signing (waiting for
+- **Next (for 0.8.0, owner to choose):** PDF redaction (owner has something to add
+  first); German translation; smaller download (owner: for 0.8.0, carefully, see
+  `docs/PROJECT_PLAN.md`); code signing (waiting for
   SignPath). The **design refresh is low priority** (the owner finds the current design
   good): icon rework, "Done" notification, accessibility checks. Later: version check
   inside the app (only on click, after code signing), OCR speed on long PDFs. All in `docs/PROJECT_PLAN.md`.
-- **On `dev` for 0.7.0:** "Best quality (slow)" AI (`--ai-best`, bigger model, +30 MB
+- **0.7.0 prepared (24 Nov 2026)**: version, changelog and `docs/releases/v0.7.0.md` on
+  `dev`, pull request into `main` opened at the owner's request. The owner tests the
+  Windows build, merges, then starts Actions → Release. After that, move 0.7.0 to
+  "Released" here. Contents: "Best quality (slow)" AI (`--ai-best`, bigger model, +30 MB
   download); the Windows build smoke-tests both AI models in the finished program.
   "Make smaller" for videos (`--shrink`, option `shrink`, tile `SHRINK_TARGET`), also in
   the right-click menu. PDF → Excel "Tables only" / "All pages on one sheet" (options
-  `tables_only`, `one_sheet`; `gui/options_panel.ExcelOptions`). Code review fixes.
+  `tables_only`, `one_sheet`; `gui/options_panel.ExcelOptions`). Code review fixes. STE
+  wording for messages, tooltips and help.
 - **Still to try on a real Windows PC** (owner's company PC has Office, no LibreOffice): AI
   on real photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both
   ways; the right-click menu; the double-clicked `azoth-terminal.exe` Command Prompt; videos

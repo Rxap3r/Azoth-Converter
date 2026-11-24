@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-24
+
 ### Added
 
 - **"Best quality (slow)" for Enhance with AI:** a bigger AI model (Real-ESRGAN x4plus)
@@ -43,7 +45,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 ### Development
 
 - Removed unused leftovers found in a code review (old helper functions and constants).
-
 - The automatic Windows build also tries "Best quality (slow)" once in the finished program
   (on a tiny picture, so it adds only seconds).
 - Claude Code sessions use the owner's cost-saver plugin, now installed in the owner's claude.ai account instead of `.claude/settings.json`.
@@ -526,7 +527,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0
