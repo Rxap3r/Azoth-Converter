@@ -60,7 +60,7 @@ def _ffmpeg() -> Path:
     ffmpeg = find_ffmpeg()
     if ffmpeg is None:
         raise ConversionError(
-            "Video and audio need FFmpeg, which is missing. Reinstall Azoth Converter."
+            "Video and audio need FFmpeg, and FFmpeg is missing. Install Azoth Converter again."
         )
     return ffmpeg
 
@@ -124,7 +124,7 @@ def _stream_hashes(ffmpeg: Path, path: Path) -> list[str]:
         creationflags=_no_window(),
     )
     if run.returncode != 0:
-        raise ConversionError("This file couldn't be read. It may be damaged.")
+        raise ConversionError("Cannot read this file. Possibly, the file is damaged.")
     return [line.split(",", 2)[-1] for line in run.stdout.splitlines() if "=" in line]
 
 
@@ -167,15 +167,17 @@ def clean(source: Path, target: Path, fmt: str) -> list[tuple[str, str]]:
         if run.returncode != 0 or not result.is_file():
             detail = run.stderr.strip().splitlines()[-1][:200] if run.stderr.strip() else ""
             raise ConversionError(
-                "The metadata couldn't be removed from this file. It may be damaged."
+                "Cannot remove the metadata from this file. Possibly, the file is damaged."
                 + (f" (FFmpeg: {detail})" if detail else "")
             )
         if _stream_hashes(ffmpeg, result) != _stream_hashes(ffmpeg, source):
             raise ConversionError(
-                "The metadata couldn't be removed without changing the video or sound, so "
-                "nothing was saved."
+                "Azoth Converter cannot remove the metadata without a change to the video "
+                "or sound, so it did not save a file."
             )
         if formats.detect(result) is None:
-            raise ConversionError("The cleaned copy couldn't be checked, so nothing was saved.")
+            raise ConversionError(
+                "Azoth Converter cannot check the cleaned copy, so it did not save a file."
+            )
         shutil.move(str(result), target)
     return removed

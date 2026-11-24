@@ -104,7 +104,7 @@ class Task(QObject):
             try:
                 result = job()
             except ConversionCancelled:
-                self.nothing.emit("Cancelled. Nothing was saved.")
+                self.nothing.emit("Cancelled. Azoth Converter did not save a file.")
             except pdf_tools.NotSmaller as exc:
                 self.nothing.emit(str(exc))
             except ConversionError as exc:
@@ -627,7 +627,7 @@ class _SinglePdfTool(QWidget):
             self.size = pdf.stat().st_size
         except (ConversionError, OSError) as exc:
             if isinstance(exc, OSError):
-                exc = ConversionError(f"Could not read {pdf.name}: {exc.strerror or exc}")
+                exc = ConversionError(f"Cannot read {pdf.name} ({exc.strerror or exc}).")
             self.file_label.setText(str(exc))
             self.file_label.setProperty("role", "muted")
             self.signed.setVisible(False)
@@ -665,7 +665,7 @@ class CompressTool(_SinglePdfTool):
 
     def check(self, pdf: Path) -> str | None:
         if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
-            return "This PDF is password-protected. Remove the password first (Password page)."
+            return "This PDF has a password. Remove the password first on the Password page."
         return None
 
     def level(self) -> str:
@@ -805,7 +805,7 @@ class PasswordTool(_SinglePdfTool):
             return problem
         warning = pdf_tools.password_warning(password) or ""
         if self.repeat.text() and self.repeat.text() != password:
-            return ("The passwords don't match. " + warning).strip()
+            return ("The two passwords are not the same. " + warning).strip()
         return warning
 
     def action(self) -> str | None:
@@ -866,7 +866,7 @@ class SearchableTool(_SinglePdfTool):
 
     def check(self, pdf: Path) -> str | None:
         if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
-            return "This PDF is password-protected. Remove the password first (Password page)."
+            return "This PDF has a password. Remove the password first on the Password page."
         if not ocr.needs_ocr(pdf):
             return f"{pdf.name} already has selectable text, so there is nothing to recognise."
         return None

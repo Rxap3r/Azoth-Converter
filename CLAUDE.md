@@ -250,6 +250,16 @@ All colours are in `gui/theme.py` (one set for light, one for dark); widgets nev
 colours, they set a `role` property that the stylesheet styles. `tests/test_theme.py` checks
 every colour pair for readable contrast: keep it passing when colours change.
 
+## Writing messages
+
+Error messages and warnings use the style of **Simplified Technical English** (ASD-STE100,
+owner's choice, Nov 2026): short sentences, one statement each; active voice ("Azoth
+Converter did not save a file", not "Nothing was saved"); instructions start with the verb
+("Enter …", "Select …", "Remove …"); no contractions, no "please", "Cannot …" instead of
+"Could not …", "possibly" instead of "may be", "install … again" instead of "reinstall".
+Technical details from an engine go in brackets at the end: "Cannot read the PDF (…)."
+`tests/test_messages.py` checks the raised messages.
+
 ## Languages
 
 The app and the installer always offer the same languages (currently English only). When adding

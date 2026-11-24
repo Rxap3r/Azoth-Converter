@@ -94,7 +94,7 @@ def test_files_that_fail_in_a_batch_get_the_same_error_as_alone(tmp_path):
     assert results[1].outputs[0].read_text() == "TEXT OF RETRY.TXT"  # tried alone
     assert str(results[2]) == "bad file"
     assert str(results[3]) == "bad file"  # its error from the try alone
-    assert "File not found" in str(results[4])
+    assert "Cannot find the file" in str(results[4])
     assert fake.singles == ["retry.txt", "retrybad.txt"]  # "bad" isn't tried twice
 
 
@@ -188,8 +188,8 @@ def test_a_broken_file_in_a_libreoffice_batch_fails_alone(tmp_path):
     assert "Other report" in _pdf_text(results[2].outputs[0])
     # the same clear error as when it's converted alone
     assert isinstance(results[1], ConversionError)
-    assert "LibreOffice could not convert the file" in str(results[1])
-    with pytest.raises(ConversionError, match="LibreOffice could not convert the file"):
+    assert "LibreOffice cannot convert the file" in str(results[1])
+    with pytest.raises(ConversionError, match="LibreOffice cannot convert the file"):
         Engine().convert(broken, "pdf", tmp_path / "alone")
 
 

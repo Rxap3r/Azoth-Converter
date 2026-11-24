@@ -160,10 +160,10 @@ def _office_parts(data: bytes) -> tuple[list[zipfile.ZipInfo], dict[str, bytes]]
     except (zipfile.BadZipFile, OSError, KeyError, EOFError) as exc:
         if data[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":  # encrypted Office files are OLE
             raise ConversionError(
-                "This file is protected with a password. Remove the password first "
-                "(Password page), then try again."
+                "This file has a password. Remove the password first on the Password page, "
+                "then try again."
             ) from exc
-        raise ConversionError(f"Could not read the file: {exc}") from exc
+        raise ConversionError(f"Cannot read the file ({exc}).") from exc
 
 
 def _is_word_part(name: str) -> bool:
@@ -188,7 +188,7 @@ def _office_inspect(parts: dict[str, bytes]) -> list:
             if names:
                 found.append(_finding("Custom properties", _short(names)))
     except ET.ParseError as exc:
-        raise ConversionError(f"Could not read the file properties: {exc}") from exc
+        raise ConversionError(f"Cannot read the file properties ({exc}).") from exc
 
     people, sessions, template, folder, cloud, traces = [], set(), "", "", False, False
     for name, data in parts.items():
@@ -334,11 +334,13 @@ def _check_office(before: dict[str, bytes], after: dict[str, bytes]) -> None:
                 ET.fromstring(data)
             elif _structure(name, data) != _structure(name, before[name]):
                 raise ConversionError(
-                    f"Removing the metadata would change the content ({name}). Nothing was saved."
+                    f"Removing the metadata changes the content ({name}), so Azoth Converter "
+                    "did not save a file."
                 )
         except ET.ParseError as exc:
             raise ConversionError(
-                f"The metadata can't be removed safely from this file ({name}). Nothing was saved."
+                f"Azoth Converter cannot safely remove the metadata from this file ({name}). "
+                "It did not save a file."
             ) from exc
 
 
@@ -374,12 +376,12 @@ def _open_pdf(data: bytes) -> pymupdf.Document:
     try:
         doc = pymupdf.open("pdf", data)
     except Exception as exc:
-        raise ConversionError(f"Could not read the PDF: {exc}") from exc
+        raise ConversionError(f"Cannot read the PDF ({exc}).") from exc
     if doc.needs_pass:
         doc.close()
         raise ConversionError(
-            "This PDF is protected with a password. Remove the password first "
-            "(Password page), then try again."
+            "This PDF has a password. Remove the password first on the Password page, "
+            "then try again."
         )
     return doc
 
@@ -438,8 +440,8 @@ def _pdf_clean(data: bytes) -> bytes:
     try:
         if doc.get_sigflags() > 0:
             raise ConversionError(
-                "This PDF is digitally signed. Removing its metadata would break the "
-                "signature, so nothing was saved."
+                "This PDF has a digital signature. Removing the metadata breaks the "
+                "signature, so Azoth Converter did not save a file."
             )
         before = _page_fingerprint(doc)
         doc.set_metadata({})
@@ -457,13 +459,13 @@ def _pdf_clean(data: bytes) -> bytes:
     except ConversionError:
         raise
     except Exception as exc:
-        raise ConversionError(f"Could not remove the metadata: {exc}") from exc
+        raise ConversionError(f"Cannot remove the metadata ({exc}).") from exc
     finally:
         doc.close()
     with _open_pdf(cleaned) as check:
         if check.page_count != len(before) or _page_fingerprint(check) != before:
             raise ConversionError(
-                "Removing the metadata would change the pages. Nothing was saved."
+                "Removing the metadata changes the pages, so Azoth Converter did not save a file."
             )
     return cleaned
 

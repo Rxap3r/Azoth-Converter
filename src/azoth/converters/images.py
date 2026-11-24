@@ -118,7 +118,7 @@ class ImageConverter(Converter):
         dst_id = {"jpeg": "jpg", "tif": "tiff", "heif": "heic"}.get(dst_id, dst_id)
         pil_format = PIL_SAVE_FORMATS.get(dst_id)
         if pil_format is None:
-            raise ConversionError(f"Cannot write {dst_id.upper()} images")
+            raise ConversionError(f"Azoth Converter cannot write {dst_id.upper()} images.")
 
         quality = int(ctx.option("quality", DEFAULT_QUALITY))
         src_id = {"jpeg": "jpg", "tif": "tiff", "heif": "heic"}.get(
@@ -179,7 +179,7 @@ class ImageConverter(Converter):
         except resize.ResizeError as exc:
             raise ConversionError(str(exc)) from exc
         except Exception as exc:  # Pillow raises many exception types for bad files
-            raise ConversionError(f"Could not read image: {exc}") from exc
+            raise ConversionError(f"Cannot read the image ({exc}).") from exc
 
         ctx.warnings.extend(kept)
         ctx.notes.extend(changed)
@@ -229,5 +229,5 @@ class ImageConverter(Converter):
         try:
             first.save(dst, format=pil_format, **save_args)
         except Exception as exc:
-            raise ConversionError(f"Could not save {dst_id.upper()}: {exc}") from exc
+            raise ConversionError(f"Cannot save the {dst_id.upper()} file ({exc}).") from exc
         return [dst]

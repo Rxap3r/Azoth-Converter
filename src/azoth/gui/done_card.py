@@ -47,8 +47,8 @@ def done_message(
         return f"Cancelled after {_files(converted)}." if converted else "Cancelled."
     if failed:
         if not converted:
-            return f"Nothing was saved: {_files(failed)} failed. The reason is shown on each file."
-        return f"{converted} done, {failed} failed. The reason is shown on each file."
+            return f"Nothing saved: {_files(failed)} failed. Each file shows the reason."
+        return f"{converted} done, {failed} failed. Each file shows the reason."
     if cleaning:
         return f"Done! Metadata removed from {_files(converted)}."
     if enhancing:

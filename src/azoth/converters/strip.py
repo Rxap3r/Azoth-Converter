@@ -305,8 +305,7 @@ def strip_tiff(data: bytes, *, orientation: int = 1) -> bytes:
         compression = im.info.get("compression", "raw")
         if compression not in _TIFF_LOSSLESS:
             raise ValueError(
-                f"this TIFF uses {compression.upper()} compression and can't be cleaned "
-                "without changing the picture"
+                f"this TIFF uses {compression.upper()} compression. Cleaning it changes the picture"
             )
         pages = []
         for frame in ImageSequence.Iterator(im):

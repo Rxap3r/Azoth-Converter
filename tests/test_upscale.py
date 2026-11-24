@@ -237,7 +237,7 @@ def test_progress_and_cancel(monkeypatch):
 
 def test_missing_model_gives_a_readable_message(monkeypatch, tmp_path):
     monkeypatch.setattr(upscale, "MODEL_FILE", tmp_path / "missing.npz")
-    with pytest.raises(ResizeError, match="reinstall"):
+    with pytest.raises(ResizeError, match="Install Azoth Converter again"):
         resize.apply(_scene((8, 8)), Resize(PERCENT, percent=200, ai=True))
 
 
@@ -294,7 +294,7 @@ def test_cli_ai(tmp_path, capsys):
     assert main(["convert", str(src), "--to", "png", "--ai-best"]) == 2
     assert "--ai-best needs --ai" in capsys.readouterr().err
     assert main(["convert", str(src), "--to", "png", "--ai", "--ai-best", "--denoise", "low"]) == 2
-    assert "--denoise doesn't apply" in capsys.readouterr().err
+    assert "--denoise does not apply" in capsys.readouterr().err
 
 
 # --- the build script that makes the model file ----------------------------------------

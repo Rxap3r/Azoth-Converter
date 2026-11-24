@@ -197,7 +197,7 @@ class SettingsPage(QWidget):
             QMessageBox.warning(
                 self,
                 "Uninstall Azoth Converter",
-                "The uninstaller could not be started. Use Windows Settings → Apps instead.",
+                "Cannot start the uninstaller. Use Windows Settings → Apps instead.",
             )
 
     def showEvent(self, event) -> None:

@@ -233,7 +233,7 @@ def test_password_protected_pdf_is_refused(tmp_path):
 def test_signed_pdf_is_refused(tmp_path, monkeypatch):
     src = make_annotated_pdf(tmp_path / "signed.pdf")
     monkeypatch.setattr(pymupdf.Document, "get_sigflags", lambda self: 3)
-    with pytest.raises(ConversionError, match="digitally signed"):
+    with pytest.raises(ConversionError, match="digital signature"):
         metadata.clean_file(src)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["signed.pdf"]
 
@@ -247,7 +247,7 @@ def test_nothing_saved_if_content_would_change(tmp_path, monkeypatch):
         return data.replace(b"next year", b"last year") if name == "word/document.xml" else data
 
     monkeypatch.setattr(doc_metadata, "_clean_part", careless)
-    with pytest.raises(ConversionError, match="would change the content"):
+    with pytest.raises(ConversionError, match="changes the content"):
         metadata.clean_file(src)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["plan.docx"]
 
@@ -270,9 +270,9 @@ def test_clean_command_works_for_documents(tmp_path, capsys):
 
 
 def test_damaged_office_file_gives_clear_error():
-    with pytest.raises(ConversionError, match="Could not read"):
+    with pytest.raises(ConversionError, match="Cannot read"):
         doc_metadata.inspect_bytes("docx", b"PK\x03\x04 not really a zip")
-    with pytest.raises(ConversionError, match="protected with a password"):
+    with pytest.raises(ConversionError, match="has a password"):
         doc_metadata.clean_bytes("xlsx", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 100)
 
 

@@ -77,7 +77,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
         print("--ai-best needs --ai", file=sys.stderr)
         return 2
     if args.ai_best and args.denoise:
-        print("--denoise doesn't apply with --ai-best", file=sys.stderr)
+        print("--denoise does not apply with --ai-best", file=sys.stderr)
         return 2
     try:
         size = None if args.resize is None else resize.parse(args.resize, not args.only_shrink)
@@ -94,7 +94,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
     from . import upscale
 
     if args.ai and not upscale.available(args.ai_best):
-        print("AI enhancing isn't available: the AI model is missing.", file=sys.stderr)
+        print("AI enhancement is not available because the AI model is missing.", file=sys.stderr)
         return 2
     options = {
         "resize": size,
@@ -188,7 +188,7 @@ def cmd_formats(args: argparse.Namespace) -> int:
     if args.file:
         fmt = formats.detect(Path(args.file))
         if fmt is None:
-            print(f"Unknown file type: {args.file}", file=sys.stderr)
+            print(f"Azoth Converter does not know the file type of {args.file}.", file=sys.stderr)
             return 1
         print(f"{args.file} is {fmt.name}. It can be converted to:")
         for target in engine.targets_for(fmt.id):
@@ -255,11 +255,12 @@ def cmd_pdf_edit(args: argparse.Namespace) -> int:
             page, _, degrees = item.partition("=")
             if not page.strip().isdigit() or degrees.strip() not in ("90", "180", "270", "-90"):
                 raise ConversionError(
-                    f"“{item}” should look like 2=90 (page=degrees: 90, 180, 270)."
+                    f"“{item}” is not correct. Use the form page=degrees, for example 2=90 "
+                    "(degrees: 90, 180 or 270)."
                 )
             index = int(page) - 1
             if not 0 <= index < total:
-                raise ConversionError(f"Page {page} isn't in this PDF ({total} pages).")
+                raise ConversionError(f"Page {page} is not in this PDF. The PDF has {total} pages.")
             turns[index] = (turns.get(index, 0) + int(degrees)) % 360
         pages = [pdf_tools.PageEdit(i, turns.get(i, 0)) for i in order if i not in delete]
         out = Path(args.output) if args.output else pdf_tools.edited_path(src)
@@ -280,7 +281,7 @@ def cmd_pdf_compress(args: argparse.Namespace) -> int:
         before = src.stat().st_size
         result = pdf_tools.compress(src, out, args.level, overwrite=args.overwrite)
     except OSError as exc:
-        print(f"✗ Could not read {src.name}: {exc.strerror or exc}", file=sys.stderr)
+        print(f"✗ Cannot read {src.name} ({exc.strerror or exc}).", file=sys.stderr)
         return 1
     except ConversionError as exc:
         print(f"✗ {exc}", file=sys.stderr)
@@ -336,7 +337,7 @@ def _ask_office_passwords(paths: list[Path]) -> dict[str, str] | None:
                 passwords[str(path)] = password
                 break
     except (EOFError, KeyboardInterrupt):
-        print("\n✗ Cancelled. Nothing was converted.", file=sys.stderr)
+        print("\n✗ Cancelled. Azoth Converter did not convert a file.", file=sys.stderr)
         return None
     return passwords
 
@@ -359,7 +360,9 @@ def cmd_pdf_password(args: argparse.Namespace) -> int:
             if warning:
                 print(f"! {warning}", file=sys.stderr)
             if getpass.getpass("Repeat password: ") != password:
-                raise ConversionError("The passwords don't match. Nothing was saved.")
+                raise ConversionError(
+                    "The two passwords are not the same. Azoth Converter did not save a file."
+                )
             out = Path(args.output) if args.output else pdf_tools.protected_path(src)
             result = pdf_tools.add_password(src, out, password, overwrite=args.overwrite)
             note = " Keep the password safe: without it, nobody can open the file."
@@ -371,7 +374,7 @@ def cmd_pdf_password(args: argparse.Namespace) -> int:
         print(f"✗ {exc}", file=sys.stderr)
         return 1
     except (EOFError, KeyboardInterrupt):
-        print("\n✗ Cancelled. Nothing was saved.", file=sys.stderr)
+        print("\n✗ Cancelled. Azoth Converter did not save a file.", file=sys.stderr)
         return 1
     print(f"✓ Saved {result}.{note}")
     return 0
@@ -384,7 +387,7 @@ def _bounded(low: int, high: int):
         except ValueError:
             raise argparse.ArgumentTypeError(f"{text!r} is not a whole number") from None
         if not low <= value <= high:
-            raise argparse.ArgumentTypeError(f"must be between {low} and {high}")
+            raise argparse.ArgumentTypeError(f"use a number from {low} to {high}")
         return value
 
     return parse

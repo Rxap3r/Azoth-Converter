@@ -150,7 +150,7 @@ class OfficeConverter(Converter):
     def unavailable_reason(self, missing: Iterable[tuple[str, str]] | None = None) -> str:
         """Why LibreOffice is needed. ``missing``: the conversions nothing else can do
         (Microsoft Office may do the rest)."""
-        install = "Install it from libreoffice.org, then restart Azoth Converter."
+        install = "Install it from libreoffice.org. Then start Azoth Converter again."
         if missing is not None:
             families = {FAMILY[src] for src, _ in missing if src in FAMILY}
             names = [n for f, n in _FAMILY_NAMES.items() if f in families]
@@ -202,7 +202,7 @@ class OfficeConverter(Converter):
         if len(keys) != 1 or None in keys:
             src, dst = jobs[0]
             raise ConversionError(
-                f"LibreOffice cannot convert {src.suffix.lstrip('.')} to {dst.suffix.lstrip('.')}"
+                f"LibreOffice cannot convert {src.suffix.lstrip('.')} to {dst.suffix.lstrip('.')}."
             )
         ((family, dst_id),) = keys
 
@@ -290,7 +290,7 @@ class OfficeConverter(Converter):
             if proc.returncode != 0 or not produced[0].exists():
                 detail = stderr.decode(errors="replace").strip().splitlines()
                 hint = f": {detail[-1]}" if detail else ""
-                return [ConversionError(f"LibreOffice could not convert the file{hint}")]
+                return [ConversionError(f"LibreOffice cannot convert the file{hint}")]
             shutil.move(produced[0], jobs[0][1])
             return [None]
 

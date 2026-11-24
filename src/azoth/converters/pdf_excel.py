@@ -467,9 +467,9 @@ class PdfToExcelConverter(Converter):
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
         if is_probably_scanned(src):
             raise ConversionError(
-                "This PDF looks like a scan (pictures of pages, no selectable text). "
-                "Reading tables from scans isn't possible yet. Convert it to Word "
-                "instead, which uses text recognition."
+                "This PDF looks like a scan: pictures of pages, with no text that you can "
+                "select. Azoth Converter cannot read tables from scans. Convert the PDF to "
+                "Word instead, which uses text recognition."
             )
         tables_only = bool(ctx.option("tables_only", False))
         pages: list[list[Table | TextRow]] = []
@@ -485,10 +485,10 @@ class PdfToExcelConverter(Converter):
         if not any(pages):
             if tables_only:
                 raise ConversionError(
-                    "No tables with visible lines were found in this PDF. Turn off "
-                    "“Tables only” to get its text line by line."
+                    "Azoth Converter found no tables with visible lines in this PDF. To get "
+                    "the text line by line, do not select “Tables only”."
                 )
-            raise ConversionError("This PDF has no text that could go into Excel.")
+            raise ConversionError("This PDF has no text for Excel.")
         ctx.check_cancelled()
         write_workbook(pages, dst, one_sheet=bool(ctx.option("one_sheet", False)))
         return [dst]

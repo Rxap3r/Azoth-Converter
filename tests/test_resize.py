@@ -74,7 +74,7 @@ def test_parse_rejects_bad_sizes(text):
 
 def test_too_many_pixels_is_refused():
     img = Image.new("L", (100, 100))
-    with pytest.raises(ResizeError, match="too big"):
+    with pytest.raises(ResizeError, match="too large"):
         resize.apply(img, Resize(FIT, width=60000, height=60000, enlarge=True))
 
 

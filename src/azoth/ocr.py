@@ -91,11 +91,9 @@ def default_language(locale_name: str | None = None) -> str:
 def check_language(language: str) -> str:
     """Raise a readable error unless ``language`` can be used; returns it."""
     if not is_available():
-        raise ConversionError(
-            "Text recognition (OCR) isn't installed with this copy of Azoth Converter."
-        )
+        raise ConversionError("This copy of Azoth Converter does not have text recognition (OCR).")
     if language not in available_languages():
-        raise ConversionError(f"Text recognition doesn't know the language “{language}”.")
+        raise ConversionError(f"Text recognition does not know the language “{language}”.")
     return language
 
 
@@ -270,7 +268,7 @@ def _text_layer(page: pymupdf.Page, language: str, dpi: int) -> pymupdf.Document
     try:
         data = _recognise_in_helper(pix, language)
     except Exception as exc:
-        raise ConversionError(f"Text recognition failed: {exc}") from exc
+        raise ConversionError(f"Text recognition did not work ({exc}).") from exc
     layer = pymupdf.open("pdf", data)
     lpage = layer[0]
     # MuPDF's OCR page = the rendered picture + invisible text. Keep only the text.
@@ -431,7 +429,7 @@ def make_searchable(
     with open_pdf(src) as doc:
         if not any(page_needs_ocr(page) for page in doc):
             raise ConversionError(
-                "This PDF already has selectable text, so there is nothing to recognise."
+                "This PDF already has text that you can select. There is no text to recognise."
             )
         add_text_layer(doc, language, progress=progress, cancel=cancel, turn_pages=turn_pages)
         if progress:

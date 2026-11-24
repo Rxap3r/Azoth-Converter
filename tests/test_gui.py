@@ -521,7 +521,7 @@ def test_done_messages():
     assert done_message(3, 0, False, cleaning=True) == "Done! Metadata removed from 3 files."
     assert done_message(2, 0, False, shrinking=True) == "Done! 2 files made smaller."
     assert done_message(2, 1, False).startswith("2 done, 1 failed.")
-    assert done_message(0, 2, False).startswith("Nothing was saved: 2 files failed.")
+    assert done_message(0, 2, False).startswith("Nothing saved: 2 files failed.")
     assert done_message(2, 0, True) == "Cancelled after 2 files."
     assert done_message(0, 0, True) == "Cancelled."
 

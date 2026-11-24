@@ -114,7 +114,7 @@ def test_cli_rejects_too_low_quality(sample_png, tmp_path, capsys):
 
     with pytest.raises(SystemExit):
         main(["convert", str(sample_png), "--to", "jpg", "--quality", "20"])
-    assert "between 75 and 100" in capsys.readouterr().err
+    assert "from 75 to 100" in capsys.readouterr().err
     assert (
         main(
             [

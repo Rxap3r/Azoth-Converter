@@ -195,7 +195,7 @@ def test_make_searchable_never_overwrites(tmp_path):
 
 def test_make_searchable_refuses_pdf_with_text(tmp_path):
     pdf = make_pdf(tmp_path / "real.pdf", ["This PDF has real text already"])
-    with pytest.raises(ConversionError, match="already has selectable text"):
+    with pytest.raises(ConversionError, match="already has text that you can select"):
         ocr.make_searchable(pdf, tmp_path / "out.pdf", "eng")
     assert not (tmp_path / "out.pdf").exists()
 
@@ -255,7 +255,7 @@ def test_cancel_stops_and_saves_nothing(tmp_path):
 
 
 def test_picture_without_text(tmp_path, sample_png):
-    with pytest.raises(ConversionError, match="No text was found"):
+    with pytest.raises(ConversionError, match="found no text"):
         Engine().convert(sample_png, "txt", tmp_path / "o")
     assert not (tmp_path / "o" / "logo.txt").exists()
 
@@ -270,7 +270,7 @@ def test_cli_pdf_ocr(tmp_path, capsys):
     with pymupdf.open(out) as doc:
         assert "Grüße aus Zürich" in doc[0].get_text()
     assert cli(["pdf", "ocr", str(out)]) == 1
-    assert "already has selectable text" in capsys.readouterr().err
+    assert "already has text that you can select" in capsys.readouterr().err
 
 
 def test_cli_convert_with_ocr(tmp_path):

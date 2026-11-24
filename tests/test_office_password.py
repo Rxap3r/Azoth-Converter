@@ -65,9 +65,9 @@ def test_add_and_remove_give_back_the_exact_file(tmp_path, kind):
 
 def test_wrong_or_missing_password(tmp_path):
     locked = _locked(tmp_path, "docx")
-    with pytest.raises(PasswordNeeded, match="isn't right"):
+    with pytest.raises(PasswordNeeded, match="is not correct"):
         office_password.remove_password(locked, tmp_path / "x.docx", "wrong")
-    with pytest.raises(ConversionError, match="Enter the file's password"):
+    with pytest.raises(ConversionError, match="Enter the password of the file"):
         office_password.remove_password(locked, tmp_path / "x.docx", "")
     assert not (tmp_path / "x.docx").exists()
 
@@ -78,12 +78,12 @@ def test_refused_cases(tmp_path):
         office_password.add_password(locked, tmp_path / "again.xlsx", PASSWORD)
     with pytest.raises(ConversionError, match="has no password"):
         office_password.remove_password(_make(tmp_path, "pptx"), tmp_path / "o.pptx", "x")
-    with pytest.raises(ConversionError, match="can't start or end with a space"):
+    with pytest.raises(ConversionError, match="cannot start or end with a space"):
         office_password.add_password(_make(tmp_path, "docx"), tmp_path / "o.docx", " pw ")
     old = tmp_path / "old.doc"
     old.write_bytes(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 600)
     if office_password.file_kind(old) == "doc":
-        with pytest.raises(ConversionError, match="only be added to DOCX"):
+        with pytest.raises(ConversionError, match="only to DOCX"):
             office_password.add_password(old, tmp_path / "o.doc", PASSWORD)
 
 
@@ -101,9 +101,9 @@ def test_protected_file_needs_its_password(tmp_path):
     locked = _locked(tmp_path, "docx")
     # The password is asked for before any engine runs, so this works on every PC.
     engine = Engine(all_converters(), assume_available=True)
-    with pytest.raises(PasswordNeeded, match="protected with a password"):
+    with pytest.raises(PasswordNeeded, match="has a password"):
         engine.convert(locked, "pdf", tmp_path / "o")
-    with pytest.raises(PasswordNeeded, match="isn't right"):
+    with pytest.raises(PasswordNeeded, match="is not correct"):
         engine.convert(locked, "pdf", tmp_path / "o", options={"passwords": {"*": "nope"}})
 
 

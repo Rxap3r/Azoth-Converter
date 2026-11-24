@@ -193,8 +193,8 @@ def probe(ffmpeg: Path, src: Path) -> MediaInfo:
     info = parse_info(run.stderr)
     if not info.streams:
         raise ConversionError(
-            "This file couldn't be read as a video or sound file. It may be damaged, "
-            "incomplete or not really the format its name says."
+            "Cannot read this file as a video or sound file. Possibly, the file is "
+            "damaged or incomplete, or its name shows the wrong format."
         )
     return info
 
@@ -287,7 +287,7 @@ def _audio_encoder(target: str, stream: Stream, out: int) -> list[str]:
         return [f"-c{a}", codec]
     if target == "flac":
         return [f"-c{a}", "flac", f"-sample_fmt{a}", "s32" if deep else "s16"]
-    raise ConversionError(f"Can't write sound as {target.upper()}.")
+    raise ConversionError(f"Cannot write sound as {target.upper()}.")
 
 
 def _video_encoder(target: str, stream: Stream) -> list[str]:
@@ -320,7 +320,7 @@ def plan_video(target: str, info: MediaInfo) -> list[str]:
     """Output options for a video target (stream selection, codecs)."""
     videos = info.of("video")
     if not videos:
-        raise ConversionError("This file has no picture, only sound. Choose a sound format.")
+        raise ConversionError("This file has no picture, only sound. Select a sound format.")
     if target == "mkv":  # Matroska holds everything: copy every track unchanged
         args = []
         for kind, letter in (("video", "v"), ("audio", "a"), ("subtitle", "s")):
@@ -353,7 +353,7 @@ def plan_gif(info: MediaInfo) -> list[str]:
 def plan_audio(target: str, info: MediaInfo) -> list[str]:
     sounds = info.of("audio")
     if not sounds:
-        raise ConversionError("This video has no sound, so there is nothing to save as audio.")
+        raise ConversionError("This video has no sound. There is no audio to save.")
     first = sounds[0]
     args = ["-map", f"0:{first.index}"] + _audio_encoder(target, first, 0)
     if target in COVER_TARGETS and info.covers:
@@ -371,7 +371,7 @@ def plan_shrink(level: str, info: MediaInfo, tonemap: bool = True) -> list[str]:
     level's size, at most 30 frames per second. HDR becomes normal colours (``tonemap``:
     FFmpeg has the "zscale" filter; without it the colours would look pale)."""
     if level not in quality.SHRINK_LEVELS:
-        raise ConversionError(f"Unknown size for a smaller video: {level}")
+        raise ConversionError(f"“{level}” is not a known size for a smaller video.")
     videos = info.of("video")
     if not videos:
         raise ConversionError("This file has no picture, only sound.")
@@ -455,7 +455,8 @@ class MediaConverter(Converter):
 
     def unavailable_reason(self) -> str:
         return (
-            "Video and audio conversions need FFmpeg, which is missing. Reinstall Azoth Converter."
+            "Video and audio conversions need FFmpeg, and FFmpeg is missing. Install Azoth "
+            "Converter again."
         )
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
@@ -509,7 +510,7 @@ class MediaConverter(Converter):
         shrink = ctx.option("shrink", None)
         if shrink:
             if target != "mp4":
-                raise ConversionError("A smaller video is always saved as MP4.")
+                raise ConversionError("Azoth Converter always saves a smaller video as MP4.")
             output = plan_shrink(shrink, info, has_filter(ffmpeg, "zscale"))
         else:
             output = plan(source.id if source else "", target, info)
@@ -542,15 +543,15 @@ def _smaller(src: Path, dst: Path) -> list[Path]:
     if dst.stat().st_size >= src.stat().st_size:
         dst.unlink()
         raise ConversionError(
-            "This video is already small: a smaller copy wouldn't save any space. "
-            "Nothing was saved."
+            "This video is already small. A smaller copy does not save space, so "
+            "Azoth Converter did not save a file."
         )
     return result
 
 
 def _checked(dst: Path) -> list[Path]:
     if not dst.is_file() or dst.stat().st_size == 0:
-        raise ConversionError("FFmpeg didn't produce a file.")
+        raise ConversionError("FFmpeg did not make a file.")
     return [dst]
 
 
@@ -596,8 +597,8 @@ def _run(cmd: list[str], duration: float | None, ctx: ConversionContext) -> None
     if proc.returncode != 0:
         detail = _last_error(log.read_text(encoding="utf-8", errors="replace"))
         raise ConversionError(
-            "The file couldn't be converted. It may be damaged or use an unusual format."
-            + (f" (FFmpeg: {detail})" if detail else "")
+            "Cannot convert the file. Possibly, the file is damaged or uses an unusual "
+            "format." + (f" (FFmpeg: {detail})" if detail else "")
         )
 
 

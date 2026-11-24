@@ -266,7 +266,7 @@ class MainWindow(QMainWindow):
         self.file_list.clear()
         self.add_files(found)
         if not self.file_list.files:
-            self.status_label.setText("The chosen files can't be found any more.")
+            self.status_label.setText("Azoth Converter cannot find the selected files.")
             return
         if target == OPEN:
             return

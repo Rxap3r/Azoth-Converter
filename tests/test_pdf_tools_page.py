@@ -92,7 +92,7 @@ def test_merge_refuses_unreadable_pdfs(window, tmp_path):
     doc.close()
     window.pdf_page.add_files([a, locked, tmp_path])  # a folder is ignored too
     assert [p.name for p in window.pdf_page.merge.files()] == ["a.pdf"]
-    assert "password-protected" in window.pdf_page.result.text()
+    assert "has a password" in window.pdf_page.result.text()
     assert not window.pdf_page.action_btn.isEnabled()  # one PDF can't be merged
 
 
@@ -105,7 +105,7 @@ def test_split_by_ranges(window, qtbot, tmp_path):
     page.split.by_ranges.setChecked(True)
     page.split.ranges.setText("1-2, 9")
     assert not page.action_btn.isEnabled()
-    assert "doesn't fit" in page.split.hint.text()
+    assert "is not in the PDF" in page.split.hint.text()
     page.split.ranges.setText("1-2, 4")
     assert page.action_btn.text() == "Split into 2 PDFs"
     window.output_dir = None
@@ -206,12 +206,12 @@ def test_compress_from_the_window(window, qtbot, tmp_path):
 
     page.add_files([out])  # again: nothing to gain, shown as information, not an error
     text = run(window, qtbot)
-    assert "Nothing was saved" in text and page.result.status.property("state") == "info"
+    assert "did not save a file" in text and page.result.status.property("state") == "info"
     assert not (tmp_path / "photos (compressed) (compressed).pdf").exists()
 
     locked = pdf_tools.add_password(src, tmp_path / "locked.pdf", "Long enough 123!")
     page.add_files([locked])
-    assert "password-protected" in tool.file_label.text() and not page.action_btn.isEnabled()
+    assert "has a password" in tool.file_label.text() and not page.action_btn.isEnabled()
 
 
 def test_add_and_remove_password_from_the_window(window, qtbot, tmp_path):
@@ -229,7 +229,7 @@ def test_add_and_remove_password_from_the_window(window, qtbot, tmp_path):
     assert page.action_btn.text() == "Add password"
     tool.password.setText("Grüezi Welt 2026!")
     tool.repeat.setText("Grüezi Welt 2026")
-    assert "don't match" in tool.hint.text() and not page.action_btn.isEnabled()
+    assert "are not the same" in tool.hint.text() and not page.action_btn.isEnabled()
     tool.repeat.setText("Grüezi Welt 2026!")
     assert page.action_btn.text() == "Add password"
     text = run(window, qtbot)
@@ -243,7 +243,7 @@ def test_add_and_remove_password_from_the_window(window, qtbot, tmp_path):
     tool.password.setText("wrong")
     assert page.action_btn.text() == "Remove password"
     text = run(window, qtbot)
-    assert "isn't right" in text and page.result.status.property("state") == "failed"
+    assert "is not correct" in text and page.result.status.property("state") == "failed"
     assert tool.password.text() == ""
     tool.password.setText("Grüezi Welt 2026!")
     tool.password.returnPressed.emit()  # Enter works like the button
@@ -337,7 +337,7 @@ def test_every_tool_lets_you_name_the_result(window, qtbot, tmp_path):
     page.edit.delete_selected()
     row.edit.setText("bad:name")
     page.action_btn.click()
-    assert "can't contain" in page.result.text() and not page.busy
+    assert "cannot contain" in page.result.text() and not page.busy
 
 
 def test_make_searchable_shows_progress_and_can_be_cancelled(
@@ -375,7 +375,7 @@ def test_make_searchable_shows_progress_and_can_be_cancelled(
     assert "Reading text on page" in page.result.text()
     page.cancel_btn.click()
     qtbot.waitUntil(lambda: not page.busy, timeout=60000)
-    assert page.result.text() == "Cancelled. Nothing was saved."
+    assert page.result.text() == "Cancelled. Azoth Converter did not save a file."
     assert not (tmp_path / "long (searchable).pdf").exists()
     assert not page.cancel_btn.isVisibleTo(page) and not page.progress.isVisibleTo(page)
 

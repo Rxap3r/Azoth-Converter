@@ -177,7 +177,7 @@ def start(target: str, files: list[str]) -> Listener | None:
         if listener is not None:
             return listener
         time.sleep(0.2)
-    raise RuntimeError("Azoth Converter is busy starting. Please try again.")
+    raise RuntimeError("Azoth Converter is busy starting. Try again.")
 
 
 # --- the window side (Qt) -------------------------------------------------------------

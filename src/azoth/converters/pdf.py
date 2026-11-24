@@ -25,12 +25,12 @@ def open_pdf(src: Path) -> pymupdf.Document:
         doc = pymupdf.open(src, filetype="pdf")
     except Exception as exc:
         raise ConversionError(
-            "Could not open the PDF. The file is damaged or isn't a real PDF."
+            "Cannot open the PDF. The file is damaged, or it is not a real PDF."
         ) from exc
     if doc.needs_pass:
         doc.close()
         raise ConversionError(
-            "This PDF is password-protected. Remove the password first (Password page)."
+            "This PDF has a password. Remove the password first on the Password page."
         )
     return doc
 
@@ -85,7 +85,7 @@ class PdfToImageConverter(Converter):
         with open_pdf(src) as doc:
             total = doc.page_count
             if total == 0:
-                raise ConversionError("The PDF has no pages")
+                raise ConversionError("The PDF has no pages.")
             images: list[Image.Image] = []
             for i, page in enumerate(doc):
                 ctx.check_cancelled()
@@ -186,9 +186,9 @@ class PdfToWordConverter(Converter):
 
             if not ocr.is_available() and is_probably_scanned(src):
                 raise ConversionError(
-                    "This PDF looks like a scan (pictures of pages, no selectable text). "
-                    "Converting it to Word needs text recognition (OCR), which isn't "
-                    "installed with this copy of Azoth Converter."
+                    "This PDF looks like a scan: pictures of pages, with no text that you can "
+                    "select. To convert it to Word, text recognition (OCR) is necessary. This "
+                    "copy of Azoth Converter does not have it."
                 )
             with open_pdf(src) as doc:
                 pages = recognise(doc, ctx)
@@ -230,7 +230,9 @@ def _rebuild_docx(pdf2docx_class, src: Path, dst: Path, total: int, ctx: Convers
                 logging.getLogger(__name__).debug("page %d skipped", page.id + 1)
         parsed = [page for page in cv.pages if page.finalized]
         if not parsed:
-            raise ConversionError("PDF to Word conversion failed: no page could be read.")
+            raise ConversionError(
+                "Cannot convert the PDF to Word. Azoth Converter cannot read any page."
+            )
         document = Document()
         for i, page in enumerate(parsed):
             ctx.check_cancelled()
@@ -244,7 +246,7 @@ def _rebuild_docx(pdf2docx_class, src: Path, dst: Path, total: int, ctx: Convers
     except ConversionError:  # includes ConversionCancelled
         raise
     except Exception as exc:
-        raise ConversionError(f"PDF to Word conversion failed: {exc}") from exc
+        raise ConversionError(f"Cannot convert the PDF to Word ({exc}).") from exc
     finally:
         cv.close()
 

@@ -199,7 +199,7 @@ def test_gif_both_ways(tmp_path):
 def test_damaged_file_is_refused_clearly(tmp_path):
     src = tmp_path / "broken.mp4"
     src.write_bytes(b"\x00\x00\x00\x18ftypisom" + bytes(range(256)) * 20)
-    with pytest.raises(ConversionError, match="couldn't be"):
+    with pytest.raises(ConversionError, match="Cannot read this file"):
         Engine().convert(src, "mkv", tmp_path / "out")
 
 
@@ -288,7 +288,7 @@ def test_missing_ffmpeg_says_reinstall_and_offers_no_download(monkeypatch):
     monkeypatch.setattr(media, "find_ffmpeg", lambda: None)
     engine = Engine(all_converters())
     [conv] = [c for c in engine.unavailable() if c.id == "ffmpeg"]
-    assert "Reinstall" in conv.unavailable_reason()
+    assert "Install Azoth Converter again" in conv.unavailable_reason()
     assert not conv.download_url  # FFmpeg comes with the app: nothing to download
     with pytest.raises(ConversionError):
         conv.convert(Path("a.mp4"), Path("a.mkv"), None)
@@ -332,7 +332,7 @@ def test_nothing_is_saved_if_a_track_would_change(phone_video, tmp_path, monkeyp
 
     hashes = iter([["a"], ["b"]])
     monkeypatch.setattr(media_metadata, "_stream_hashes", lambda ffmpeg, path: next(hashes))
-    with pytest.raises(ConversionError, match="nothing was saved"):
+    with pytest.raises(ConversionError, match="did not save a file"):
         metadata.clean_file(phone_video, tmp_path / "out")
     assert not list((tmp_path / "out").glob("*"))
 
@@ -462,7 +462,7 @@ def test_only_videos_can_be_made_smaller(tmp_path):
     assert targets.job_target(targets.SHRINK_TARGET, formats.FORMATS["mov"]) == "mp4"
     song = tmp_path / "a.mp3"
     song.write_bytes(b"ID3" + bytes(200))
-    with pytest.raises(ConversionError, match="only videos"):
+    with pytest.raises(ConversionError, match="only for videos"):
         engine.convert(song, "mp4", tmp_path, options={"shrink": "720"})
 
 

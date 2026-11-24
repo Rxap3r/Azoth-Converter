@@ -90,7 +90,7 @@ def load_weights(
                 if name.startswith(("strong/", "grain/"))
             }
     except OSError as exc:
-        raise UpscaleError("The AI model is missing. Please reinstall Azoth Converter.") from exc
+        raise UpscaleError("The AI model is missing. Install Azoth Converter again.") from exc
     layers = []
     i = 0
     while f"strong/body.{i}.weight" in arrays:
@@ -108,7 +108,7 @@ def load_weights(
         )
         i += 2
     if not layers:
-        raise UpscaleError("The AI model is damaged. Please reinstall Azoth Converter.")
+        raise UpscaleError("The AI model is damaged. Install Azoth Converter again.")
     return layers
 
 
@@ -144,9 +144,9 @@ def load_best_weights() -> dict[str, np.ndarray]:
         with np.load(BEST_MODEL_FILE, allow_pickle=False) as data:
             arrays = {n: data[n].astype(np.float32) for n in data.files if n != "sources"}
     except OSError as exc:
-        raise UpscaleError("The AI model is missing. Please reinstall Azoth Converter.") from exc
+        raise UpscaleError("The AI model is missing. Install Azoth Converter again.") from exc
     if "conv_first.weight" not in arrays or "body.0.rdb1.conv1.weight" not in arrays:
-        raise UpscaleError("The AI model is damaged. Please reinstall Azoth Converter.")
+        raise UpscaleError("The AI model is damaged. Install Azoth Converter again.")
     return arrays
 
 
@@ -303,7 +303,7 @@ def _net(denoise: float, best: bool = False):
         try:
             net = cv2.dnn.readNetFromONNX(np.frombuffer(model, dtype=np.uint8))
         except cv2.error as exc:  # pragma: no cover - would be a packaging problem
-            raise UpscaleError(f"The AI model could not be started: {exc}") from exc
+            raise UpscaleError(f"Cannot start the AI model ({exc}).") from exc
         _nets.clear()  # keep only one in memory
         _nets[key] = net
     return net
@@ -340,8 +340,8 @@ def enhance(
         raise ValueError(f"Unknown noise removal level: {denoise}")
     if not available(best):
         raise UpscaleError(
-            "AI enlarging isn't available: the AI model is missing. "
-            "Please reinstall Azoth Converter."
+            "AI enlargement is not available because the AI model is missing. Install "
+            "Azoth Converter again."
         )
     mode = img.mode
     alpha = img.getchannel("A") if "A" in img.getbands() else None

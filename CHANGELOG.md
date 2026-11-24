@@ -25,6 +25,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   Command line: `--to mp4 --shrink 720`. Also in Explorer's right-click menu for videos
   ("Make smaller", with the size last chosen in the app).
 
+### Changed
+
+- Error messages are rewritten in the style of Simplified Technical English: short
+  sentences, clear instructions ("Enter …", "Remove …"), no shortened words, and they
+  say plainly when no file was saved.
+
 ### Fixed
 
 - Adding many PNG pictures no longer makes the window hang: their pixel size is read from

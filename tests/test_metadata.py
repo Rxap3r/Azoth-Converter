@@ -157,7 +157,7 @@ def test_multi_page_lzw_tiff(tmp_path):
 def test_jpeg_compressed_tiff_is_refused(tmp_path):
     src = tmp_path / "scan.tif"
     picture().save(src, "TIFF", compression="jpeg", tiffinfo={315: "SecretAuthor"})
-    with pytest.raises(ConversionError, match="without changing the picture"):
+    with pytest.raises(ConversionError, match="changes the picture"):
         metadata.clean_file(src, tmp_path / "out")
     assert not (tmp_path / "out").exists() or not any((tmp_path / "out").iterdir())
 
@@ -218,7 +218,7 @@ def test_unsupported_files_are_refused(tmp_path):
     notes.write_text("plain text")
     with pytest.raises(ConversionError, match="photos and images"):
         metadata.clean_file(notes)
-    with pytest.raises(ConversionError, match="not found"):
+    with pytest.raises(ConversionError, match="Cannot find the file"):
         metadata.clean_file(tmp_path / "missing.jpg")
 
 
@@ -233,7 +233,7 @@ def test_nothing_is_saved_if_the_picture_would_change(tmp_path, monkeypatch):
         return buf.getvalue()
 
     monkeypatch.setitem(metadata._STRIPPERS, "png", broken)
-    with pytest.raises(ConversionError, match="without changing the picture"):
+    with pytest.raises(ConversionError, match="without a change to the picture"):
         metadata.clean_file(src)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["photo.png"]
 
@@ -242,7 +242,7 @@ def test_nothing_is_saved_if_metadata_is_left(tmp_path, monkeypatch):
     src = tmp_path / "photo.png"
     src.write_bytes(make("png"))
     monkeypatch.setitem(metadata._STRIPPERS, "png", lambda data, orientation=1: data)
-    with pytest.raises(ConversionError, match="could not be removed"):
+    with pytest.raises(ConversionError, match="cannot remove some metadata"):
         metadata.clean_file(src)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["photo.png"]
 
