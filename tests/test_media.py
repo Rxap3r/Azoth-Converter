@@ -424,10 +424,14 @@ def test_make_smaller_turns_hdr_into_normal_colours(tmp_path):
 
     if not has_filter(FFMPEG, "zscale"):
         pytest.skip("this FFmpeg has no zscale filter")
+    # Like an iPhone HDR video (HLG). The labels go on the frames too: FFmpeg 7 and later
+    # take them from there, not only from the options.
     src = big_phone_video(
         tmp_path / "hdr.mov", "1280x720", 30,
+        "-vf", "setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc",
         "-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc",
     )  # fmt: skip
+    assert "arib-std-b67" in probe_video(src)["line"]  # the test video really is HDR
     [out] = Engine().convert(src, "mp4", tmp_path / "o", options={"shrink": "480"}).outputs
     info = probe_video(out)
     assert info["color_transfer"] == "bt709", info["line"]  # FFmpeg's description of it
