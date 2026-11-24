@@ -16,11 +16,10 @@ priority: do "Start of every session" first, then follow the rules on how to wor
    them over (`git checkout dev && git merge --no-edit <that-branch>`). If the local `dev`
    is an old leftover and `git pull --ff-only` fails, rename it
    (`git branch -m dev dev-old-local`) and `git checkout -b dev origin/dev`.
-2. **Read `.claude/settings.json` and follow it** (owner, Nov 2026): it enables the owner's
-   **cost-saver** plugin (`cost-saver@rxap3r-tools`, from the `Rxap3r/Claude-Tools`
-   marketplace). Check that its skills are in the skill list and use them. If they are
-   missing (the file only takes effect when a session starts, so a session that pulled it
-   later won't have them), tell the owner in one line instead of carrying on silently.
+2. **Use the cost-saver plugin** (owner, Nov 2026). It is installed in the owner's claude.ai
+   account (not in this repository), so it loads in every session: load the
+   `cost-saver:cost-saver` skill before the first tool call and follow it. If it is not in
+   the skill list, tell the owner in one line instead of carrying on silently.
 3. **Read "Current status"** at the end of this file.
 
 Session limits: sessions can push branches but **not tags**, which is why releases are

@@ -9,7 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Development
 
-- Claude Code sessions in this repository load the owner's cost-saver plugin (`.claude/settings.json`).
+- Claude Code sessions use the owner's cost-saver plugin, now installed in the owner's claude.ai account instead of `.claude/settings.json`.
 - Every new Claude Code chat first updates the local `dev` to GitHub's latest version (`.claude/hooks/sync-dev.sh`); with uncommitted changes or unpushed commits it changes nothing and warns instead.
 
 ## [0.6.0] - 2026-11-24
