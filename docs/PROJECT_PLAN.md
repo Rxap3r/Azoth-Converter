@@ -157,6 +157,8 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [x] A "Show metadata" button (ⓘ) on each photo card, besides the right-click menu (0.4.0)
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
 - [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
+- [x] **Release 0.5.0** (23 Nov 2026, pull request #11): AI upscaling, Excel/PowerPoint engines, Office passwords, document metadata, Explorer right-click menu
+- [x] **Release 0.6.0** (24 Nov 2026, pull request #12): PDF → Excel, video and audio, video/music metadata, menu overhaul, right-click files go to the open window
 
 ### Design refresh (timing flexible)
 - [x] Mockups first: agree on the look before changing code. *Nov 2026: clickable mockups made (owner's private design canvas): A Windows 11 style with sidebar, B one column with a "Convert 4 photos to JPG" sentence bar, C dark with gold accent; three icon ideas (the drop, the turning page, two pages); a new Supported formats page. **Owner's choice (Nov 2026): style A.** Icon choice postponed.*
@@ -211,7 +213,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)
 - [x] **Fully portable version** (on `dev`, Nov 2026: `portable.py`; `portable.txt` only in the ZIP, never in the installer; the build tests the unzipped app; runs from a USB stick, leaves nothing on the PC): the portable ZIP gets a marker file (e.g. `portable.txt`); when the app finds it next to itself, it keeps its settings in a `data` folder beside the program instead of `%APPDATA%`. Add an automatic test that the portable app writes nothing outside its folder. Office formats still need LibreOffice or Word on the PC (a "portable + Office pack" could bundle portable LibreOffice later)
-- [x] Command-line program renamed to `azoth-terminal.exe` (owner's wish, 0.4.0); double-clicked it shows a short note instead of opening the app
+- [x] Command-line program renamed to `azoth-terminal.exe` (owner's wish, 0.4.0); double-clicked it shows a short note instead of opening the app; since 0.6.0 that window then becomes a Command Prompt where commands can be typed (owner found Enter closed it), and `*.heic` wildcards are expanded on Windows
 - [x] Windows Explorer right-click menu: "Convert with Azoth Converter → …" (on `dev`, Nov 2026): up to 6 targets per kind of file, "Remove metadata", "Open in Azoth Converter…"; added and removed by the installer (task, ticked by default), entries generated from the formats (`packaging/make_context_menu.py`); several files → one window, one batch
   - [ ] Windows 11 shows it under "Show more options"; the short Windows 11 menu needs a signed app package (after code signing)
   - Not in the portable version (it must leave nothing on the PC); owner agreed (23 Nov 2026): installer only, documented in the README and release notes
