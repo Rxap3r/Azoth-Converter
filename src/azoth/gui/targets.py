@@ -159,9 +159,6 @@ def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
     return None
 
 
-MEDIA = (formats.VIDEO, formats.AUDIO)
-
-
 LOSSY_IMAGES = ("jpg", "webp", "heic", "avif")  # their quality setting matters
 PAGED = (formats.PDF, formats.DOCUMENT, formats.SPREADSHEET, formats.PRESENTATION)
 

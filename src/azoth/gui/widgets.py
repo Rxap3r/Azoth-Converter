@@ -120,13 +120,6 @@ class Collapsible(QWidget):
         self.summary.setVisible(not self._open and bool(text))
 
 
-def divider() -> QFrame:
-    line = QFrame()
-    line.setObjectName("Divider")
-    line.setFrameShape(QFrame.Shape.NoFrame)
-    return line
-
-
 class FlowLayout(QLayout):
     """Lays out widgets left to right and wraps onto the next line, like words in text."""
 

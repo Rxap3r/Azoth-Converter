@@ -27,7 +27,6 @@ from .converters import ConversionError
 from .converters.pdf import open_pdf, page_file_name
 from .engine import TEMP_PREFIX, unique_path
 
-ROTATIONS = (0, 90, 180, 270)
 _ALL_PERMISSIONS = (
     pymupdf.PDF_PERM_PRINT
     | pymupdf.PDF_PERM_MODIFY

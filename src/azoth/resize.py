@@ -156,10 +156,34 @@ def picture_size(path) -> tuple[int, int] | None:
     try:
         with Image.open(path) as im:
             width, height = im.size
-            orientation = im.getexif().get(0x0112, 1)
+            if im.format == "PNG":  # Pillow would decode the whole picture to find EXIF
+                exif = Image.Exif()
+                exif.load(_png_exif(path))
+            else:
+                exif = im.getexif()
+            orientation = exif.get(0x0112, 1)
     except Exception:  # noqa: BLE001 - damaged or unknown files simply show no size
         return None
     return (height, width) if orientation in (5, 6, 7, 8) else (width, height)
+
+
+def _png_exif(path) -> bytes:
+    """The EXIF block of a PNG (its "eXIf" chunk), found by skipping from chunk to chunk
+    without reading the picture data. Empty if there is none."""
+    import struct
+
+    with open(path, "rb") as fh:
+        fh.seek(8)  # the PNG signature
+        while header := fh.read(8):
+            if len(header) < 8:
+                break
+            length, kind = struct.unpack(">I4s", header)
+            if kind == b"eXIf":
+                return fh.read(length)
+            if kind == b"IEND":
+                break
+            fh.seek(length + 4, 1)  # the data and its checksum
+    return b""
 
 
 # Pillow modes that resize directly; others are converted first. Transparent pictures

@@ -258,7 +258,6 @@ QFrame#DropZone {{ background: {c.drop}; border: 2px dashed {c.drop_border}; bor
 QFrame#DropZone[active="true"] {{ border-color: {c.accent}; background: {c.accent_soft}; }}
 QFrame[role="card"] {{ background: {c.surface}; border: 1px solid {c.border}; border-radius: 8px; }}
 QFrame[role="card"] QLabel {{ border: 0; }}
-QFrame#Divider {{ background: {c.border}; max-height: 1px; min-height: 1px; border: 0; }}
 
 QLineEdit, QComboBox {{ background: {c.surface}; border: 1px solid {c.border_strong}; border-radius: 8px;
     padding: 7px 10px; selection-background-color: {c.accent}; selection-color: {c.accent_text}; }}

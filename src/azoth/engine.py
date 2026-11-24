@@ -545,10 +545,6 @@ def _without_resize(options: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in options.items() if k != "resize"}
 
 
-def _no_progress(fraction: float, message: str) -> None:
-    pass
-
-
 @dataclass
 class _Job:
     """One file with its planned route."""

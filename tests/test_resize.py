@@ -236,6 +236,8 @@ def test_picture_size_as_shown(tmp_path):
     exif = Image.Exif()
     exif[0x0112] = 6  # stored sideways: shown 300 × 400
     assert resize.picture_size(_photo(tmp_path / "t.jpg", (400, 300), exif=exif)) == (300, 400)
+    # PNG: EXIF is found without decoding the picture (fast for big screenshots)
+    assert resize.picture_size(_photo(tmp_path / "t.png", (400, 300), exif=exif)) == (300, 400)
     broken = tmp_path / "broken.jpg"
     broken.write_bytes(b"not a picture")
     assert resize.picture_size(broken) is None

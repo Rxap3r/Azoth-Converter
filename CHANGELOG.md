@@ -20,7 +20,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   Command line: `--to mp4 --shrink 720`. Also in Explorer's right-click menu for videos
   ("Make smaller", with the size last chosen in the app).
 
+### Fixed
+
+- Adding many PNG pictures no longer makes the window hang: their pixel size is read from
+  the file's header instead of decoding the whole picture (100 large PNGs: from about
+  20 seconds to well under one).
+- Adding files to a long list is faster (icons are drawn once, not for every card again),
+  and page previews in the PDF tools are drawn in short slices so the window stays smooth.
+
 ### Development
+
+- Removed unused leftovers found in a code review (old helper functions and constants).
 
 - The automatic Windows build also tries "Best quality (slow)" once in the finished program
   (on a tiny picture, so it adds only seconds).

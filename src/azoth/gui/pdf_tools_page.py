@@ -9,6 +9,7 @@ choices, runs the job in a background thread and shows the result.
 from __future__ import annotations
 
 import threading
+import time
 import traceback
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -497,14 +498,17 @@ class EditTool(QWidget):
         loader = self._loader
         if loader is None:
             return
+        deadline = time.monotonic() + 0.03  # short slices: the window stays responsive
         try:
-            for _ in range(8):
+            while True:
                 index, png = next(loader)
                 item = self._item_for_page(index)
                 if item is not None:
                     image = QImage.fromData(png, "PNG")
                     item.setData(Qt.ItemDataRole.UserRole + 3, image)
                     self._show_thumbnail(item)
+                if time.monotonic() > deadline:
+                    break
         except (StopIteration, ConversionError):
             self._loader = None
             return

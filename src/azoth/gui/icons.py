@@ -5,6 +5,8 @@ Each icon is stroked in the colour asked for, so it matches the light or dark lo
 
 from __future__ import annotations
 
+import functools
+
 from PySide6.QtCore import QByteArray, QRectF, Qt
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
@@ -37,6 +39,7 @@ def _svg(name: str, color: str, stroke: float) -> bytes:
     ).encode()
 
 
+@functools.lru_cache(maxsize=256)  # drawn once per name, colour and size (Qt shares them)
 def pixmap(
     name: str, color: str, size: int = 18, *, stroke: float = 1.8, ratio: float = 2.0
 ) -> QPixmap:
@@ -50,6 +53,7 @@ def pixmap(
     return pm
 
 
+@functools.lru_cache(maxsize=256)
 def icon(name: str, color: str, size: int = 18, *, stroke: float = 1.8) -> QIcon:
     return QIcon(pixmap(name, color, size, stroke=stroke))
 

@@ -69,7 +69,6 @@ POWERPOINT = OfficeApp(
 )  # fmt: skip
 APPS = (WORD, EXCEL, POWERPOINT)
 
-WORD_SOURCES = list(WORD.sources)
 DEFAULT_TIMEOUT = 180  # seconds per document
 
 # Paths arrive in environment variables, never inside the script text, so file
