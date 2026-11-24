@@ -206,7 +206,7 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [x] "Remove metadata only" and "Show metadata…" for videos and music (`media_metadata.py`, owner's choice for 0.6.0, 23 Nov 2026): tracks copied, every packet compared before saving
   - [ ] Later: subtitles from MKV as text into MP4 work; picture subtitles (DVD, Blu-ray) are only kept in MKV
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
-  - [ ] **"Make smaller" for videos** (suggested for the version after 0.6.0, 23 Nov 2026): one click to shrink a phone video for e-mail or messengers (lower resolution, e.g. 1080p or 720p, H.264 at a sensible bitrate); say clearly that it's lossy
+  - [x] **"Make smaller" for videos** (done on `dev`, 24 Nov 2026: tile "Make smaller" with Full HD / HD / Small, H.264 + AAC in MP4, max 30 fps, HDR tone-mapped, `--shrink`; `quality.SHRINK_LEVELS`). Later maybe: a "Make smaller" entry in the right-click menu for videos; "fit in 25 MB" for e-mail (two passes). Original idea (23 Nov 2026): one click to shrink a phone video for e-mail or messengers (lower resolution, e.g. 1080p or 720p, H.264 at a sensible bitrate); say clearly that it's lossy
 - [ ] Trim, resolution, bitrate, mute; hardware encoding (NVENC, Quick Sync, AMF)
 - [x] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file (with a test)
 - [x] **Release 0.3** (0.3.0 and 0.3.1, Nov 2026)

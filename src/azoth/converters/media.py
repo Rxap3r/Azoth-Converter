@@ -18,6 +18,7 @@ FFmpeg comes with the app on Windows (``resources/ffmpeg``, fetched by
 
 from __future__ import annotations
 
+import functools
 import re
 import shutil
 import subprocess
@@ -71,6 +72,7 @@ MUSIC_TAGS = {
     "publisher", "lyrics", "compilation", "bpm", "tbpm",
 }  # fmt: skip
 
+HDR_TRANSFERS = ("smpte2084", "arib-std-b67")  # PQ (HDR10, Dolby Vision) and HLG (iPhone)
 _STREAM = re.compile(
     r"Stream #0:(\d+)(?:\[\w+\])?(?:\((\w+)\))?: (Video|Audio|Subtitle|Data|Attachment): (\w+)(.*)"
 )
@@ -110,6 +112,7 @@ class Stream:
     bits: int = 0  # audio sample size (16, 24, 32), 0 if unknown
     float_samples: bool = False
     fps: float = 0.0
+    hdr: bool = False  # HDR video (e.g. from an iPhone): needs a colour conversion for H.264
     tags: dict[str, str] = field(default_factory=dict)  # this track's own tags
 
     @property
@@ -162,6 +165,7 @@ def parse_info(text: str) -> MediaInfo:
             stream = None if indent <= 2 else stream
             continue
         stream = Stream(int(m[1]), m[3].lower(), m[4], cover="(attached pic)" in line)
+        stream.hdr = any(t in m[5] for t in HDR_TRANSFERS)
         if m[2]:
             stream.tags["language"] = m[2]
         rest = [part.strip() for part in m[5].split(",")]
@@ -362,6 +366,63 @@ def plan_audio(target: str, info: MediaInfo) -> list[str]:
     return args
 
 
+def plan_shrink(level: str, info: MediaInfo, tonemap: bool = True) -> list[str]:
+    """Output options for "Make smaller": H.264 + AAC in MP4, the shorter side at most the
+    level's size, at most 30 frames per second. HDR becomes normal colours (``tonemap``:
+    FFmpeg has the "zscale" filter; without it the colours would look pale)."""
+    if level not in quality.SHRINK_LEVELS:
+        raise ConversionError(f"Unknown size for a smaller video: {level}")
+    videos = info.of("video")
+    if not videos:
+        raise ConversionError("This file has no picture, only sound.")
+    video = videos[0]
+    side, crf = quality.SHRINK_LEVELS[level]
+    crf = min(crf, quality.MAX_SHRINK_CRF)
+    filters = []
+    if video.fps > quality.SHRINK_MAX_FPS + 0.5:
+        filters.append(f"fps={quality.SHRINK_MAX_FPS}")
+    # The shorter side becomes at most ``side`` (portrait videos too), never bigger; even
+    # numbers, as H.264 needs them. Phone videos are already turned upright here.
+    # The quotes keep the commas inside the expressions.
+    width = f"if(gte(iw,ih),-2,trunc(min(iw,{side})/2)*2)"
+    height = f"if(gte(iw,ih),trunc(min(ih,{side})/2)*2,-2)"
+    filters.append(f"scale='{width}':'{height}'")
+    colour = []
+    if video.hdr and tonemap:
+        filters.append(
+            "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
+            "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv"
+        )
+        colour = ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
+    filters.append("format=yuv420p")
+    args = [
+        "-map", f"0:{video.index}", "-c:v:0", "libx264", "-crf", str(crf),
+        "-preset", "medium", "-vf", ",".join(filters), *colour,
+    ]  # fmt: skip
+    for n, a in enumerate(info.of("audio")):
+        args += ["-map", f"0:{a.index}", *_language(a, "a", n)]
+        if a.codec == "aac":
+            args += [f"-c:a:{n}", "copy"]  # already small; copying loses nothing
+        else:
+            args += [f"-c:a:{n}", "aac", f"-b:a:{n}", f"{quality.MIN_AUDIO_KBPS}k"]
+    text = [s for s in info.of("subtitle") if s.codec in TEXT_SUBTITLES]
+    for n, s in enumerate(text):
+        args += ["-map", f"0:{s.index}", f"-c:s:{n}", "mov_text", *_language(s, "s", n)]
+    return args + ["-movflags", "+faststart"]
+
+
+@functools.cache
+def has_filter(ffmpeg: Path, name: str) -> bool:
+    try:
+        run = subprocess.run(
+            [str(ffmpeg), "-hide_banner", "-filters"],
+            capture_output=True, text=True, timeout=30, creationflags=_no_window(),
+        )  # fmt: skip
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return any(line.split()[1:2] == [name] for line in run.stdout.splitlines())
+
+
 def plan(src: str, target: str, info: MediaInfo) -> list[str]:
     if target == "gif":
         return plan_gif(info)
@@ -409,6 +470,9 @@ class MediaConverter(Converter):
         for dst in GIF_TO_VIDEO:
             yield "gif", dst
 
+    def supports_shrink(self, src: str) -> bool:
+        return src in VIDEO_SOURCES
+
     def first_only(self, src: str, dst: str) -> bool:
         return src == "gif"  # no PNG → GIF → MP4 "videos" of a single picture
 
@@ -442,13 +506,19 @@ class MediaConverter(Converter):
         target = dst.suffix.lower().lstrip(".")
         target = formats.get(target).id
         info = probe(ffmpeg, src)
-        output = plan(source.id if source else "", target, info)
+        shrink = ctx.option("shrink", None)
+        if shrink:
+            if target != "mp4":
+                raise ConversionError("A smaller video is always saved as MP4.")
+            output = plan_shrink(shrink, info, has_filter(ffmpeg, "zscale"))
+        else:
+            output = plan(source.id if source else "", target, info)
 
         cmd = [str(ffmpeg), "-hide_banner", "-nostdin", "-n", "-fflags", "+genpts", *_input(src)]
         if ctx.option("keep_metadata", False):  # the user asked to keep everything
             cmd += output + ["-progress", "pipe:1", "-nostats", str(dst)]
             _run(cmd, info.duration, ctx)
-            return _checked(dst)
+            return _smaller(src, dst) if shrink else _checked(dst)
         tags = read_tags(ffmpeg, src) if target != "gif" else {}
         keep = MUSIC_TAGS if target in AUDIO_TARGETS else VIDEO_TAGS
         if target in AUDIO_TARGETS and info.of("audio"):
@@ -463,7 +533,19 @@ class MediaConverter(Converter):
         cmd += output
         cmd += ["-progress", "pipe:1", "-nostats", str(dst)]
         _run(cmd, info.duration, ctx)
-        return _checked(dst)
+        return _smaller(src, dst) if shrink else _checked(dst)
+
+
+def _smaller(src: Path, dst: Path) -> list[Path]:
+    """ "Make smaller" result, only if it really is smaller than the original."""
+    result = _checked(dst)
+    if dst.stat().st_size >= src.stat().st_size:
+        dst.unlink()
+        raise ConversionError(
+            "This video is already small: a smaller copy wouldn't save any space. "
+            "Nothing was saved."
+        )
+    return result
 
 
 def _checked(dst: Path) -> list[Path]:

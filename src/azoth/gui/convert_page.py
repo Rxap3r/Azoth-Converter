@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -13,12 +14,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..quality import SHRINK_DEFAULT
 from . import icons
 from .done_card import DoneCard
 from .file_list import FileList
 from .options_panel import SHORT_LABELS, OcrOptions, QualitySelector, ResizeOptions
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
+from .targets import SHRINK_SIZES
 from .theme import Colors, repolish
 from .widgets import Collapsible, download_button, label, scrollable
 
@@ -34,6 +37,16 @@ class ConvertPage(QWidget):
         self.ocr.set_mode(None)
         self.resize = ResizeOptions()
         self.resize.setVisible(False)
+        self.shrink_size = QComboBox()  # only for "Make smaller" (videos)
+        self.shrink_size.setAccessibleName("Size of the smaller video")
+        for level, text, tip in SHRINK_SIZES:
+            self.shrink_size.addItem(text, level)
+            self.shrink_size.setItemData(
+                self.shrink_size.count() - 1, tip, Qt.ItemDataRole.ToolTipRole
+            )
+        self.shrink_size.setCurrentIndex(self.shrink_size.findData(SHRINK_DEFAULT))
+        self.shrink_size.setToolTip("How big the picture of the smaller video is.")
+        self.shrink_size.hide()
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()
 
@@ -109,6 +122,7 @@ class ConvertPage(QWidget):
         column.setSpacing(14)
         column.addWidget(label("Convert to", "h2"))
         column.addWidget(self.target_picker)
+        column.addWidget(self.shrink_size)
         column.addWidget(self.notes_label)
         column.addWidget(self.output_row)
         # Choices most people never change: closed, with a summary of what's chosen.

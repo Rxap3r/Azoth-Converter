@@ -161,6 +161,16 @@ class Engine:
                 return [Step(fmt, fmt, conv)]
         return None
 
+    def shrink_route(self, fmt: str) -> list[Step] | None:
+        """Saving a ``fmt`` video as a smaller MP4 (option ``shrink``), in one step."""
+        for conv in sorted(self.converters, key=lambda c: -c.priority):
+            if conv.is_available() and conv.supports_shrink(fmt):
+                return [Step(fmt, "mp4", conv)]
+        return None
+
+    def can_shrink(self, fmt: str) -> bool:
+        return self.shrink_route(fmt) is not None
+
     def can_resize(self, src: str, dst: str) -> bool:
         """True if ``src`` files can get a new picture size when converted to ``dst``
         (or saved again in a new size, when ``src == dst``)."""
@@ -383,7 +393,14 @@ class Engine:
         except KeyError as exc:
             raise ConversionError(str(exc)) from exc
         resizing = options.get("resize") is not None
-        if src_fmt.id == dst_fmt.id:
+        shrinking = bool(options.get("shrink"))
+        if shrinking:
+            route = self.shrink_route(src_fmt.id) if dst_fmt.id == "mp4" else None
+            if route is None and (src_fmt.category != formats.VIDEO or dst_fmt.id != "mp4"):
+                raise ConversionError(
+                    f"{source.name} can't be made smaller: only videos can, as MP4."
+                )
+        elif src_fmt.id == dst_fmt.id:
             route = self.resize_route(src_fmt.id) if resizing else None
             if route is None:
                 raise ConversionError(f"{source.name} is already {dst_fmt.name}")
@@ -404,6 +421,8 @@ class Engine:
             )
         if name is not None:
             stem = check_file_name(name, dst_fmt.extension)
+        elif shrinking:
+            stem = f"{source.stem} (smaller)"  # never the original's name
         elif src_fmt.id == dst_fmt.id:
             ai = getattr(options.get("resize"), "ai", False)
             stem = f"{source.stem} ({'enhanced' if ai else 'resized'})"  # never the original's name

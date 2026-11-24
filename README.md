@@ -59,6 +59,13 @@ dates, software, comments and action-camera GPS tracks are removed. Picture and 
 copied bit for bit (checked before saving); titles, song tags, album covers, chapters and
 track languages stay.
 
+**Make videos smaller:** one click saves a much smaller MP4 copy of a phone video for
+e-mail and messengers, called "name (smaller).mp4": Full HD (1080p), HD (720p, the usual
+choice) or Small (480p), at most 30 frames per second. The picture gets a little softer
+(this is lossy on purpose); HDR videos from iPhones get normal colours, upright videos stay
+upright, and smaller videos are never enlarged. Command line:
+`azoth convert clip.mov --to mp4 --shrink 720`.
+
 **Change picture size:** make photos smaller or bigger while converting, or keep the format
 and only change the size. Choose a screen size like Full HD or 4K (turned for portrait
 photos), a width, a height or a percentage; proportions are always kept, and nothing is

@@ -47,6 +47,13 @@ def _progress_printer(name: str):
     return show
 
 
+def _format_id(name: str) -> str | None:
+    try:
+        return formats.get(name).id
+    except KeyError:
+        return None
+
+
 def cmd_convert(args: argparse.Namespace) -> int:
     from .converters import all_converters
 
@@ -56,6 +63,12 @@ def cmd_convert(args: argparse.Namespace) -> int:
         return 2
     if args.denoise and not args.ai:
         print("--denoise needs --ai", file=sys.stderr)
+        return 2
+    if args.shrink and _format_id(args.to) != "mp4":
+        print("--shrink saves MP4: use --to mp4", file=sys.stderr)
+        return 2
+    if args.shrink and (args.resize or args.ai):
+        print("--shrink is for videos; --resize and --ai are for pictures", file=sys.stderr)
         return 2
     if args.ai_best and not args.ai:
         print("--ai-best needs --ai", file=sys.stderr)
@@ -82,6 +95,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
         return 2
     options = {
         "resize": size,
+        "shrink": args.shrink,
         "level": args.level,
         "quality": args.quality,
         "dpi": args.dpi,
@@ -438,6 +452,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="with --ai: use the bigger AI model: more natural hair, fur and grass when small "
         "pictures are made much bigger, but about 15 times slower (minutes per picture)",
+    )
+    p.add_argument(
+        "--shrink",
+        choices=tuple(quality.SHRINK_LEVELS),
+        default=None,
+        help='with --to mp4: save videos as a smaller MP4 copy, named "name (smaller).mp4", '
+        "for e-mail and messengers. The number is the shorter side in pixels (1080 = Full "
+        "HD, 720 = HD, 480); smaller videos aren't enlarged. Lossy: the picture gets a "
+        "little softer",
     )
     p.add_argument(
         "--keep-metadata",

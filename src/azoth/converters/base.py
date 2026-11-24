@@ -93,6 +93,11 @@ class Converter(ABC):
         """
         return False
 
+    def supports_shrink(self, src: str) -> bool:
+        """True if this converter can save a ``src`` video as a smaller MP4 (option
+        ``shrink``, a level from ``quality.SHRINK_LEVELS``)."""
+        return False
+
     def supports_resize(self, src: str, dst: str) -> bool:
         """True if this converter can change the picture size (option ``resize``) while
         converting ``src`` to ``dst``. ``src == dst``: saving again in a new size."""

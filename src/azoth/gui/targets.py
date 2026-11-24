@@ -21,6 +21,18 @@ CLEAN_TILE = ("Remove metadata only", "Same format, no hidden personal data")
 RESIZE_TARGET = "resize"  # not a format: same format, new picture size (see resize.py)
 RESIZE_TILE = ("Change size only", "Same format, new width and height")
 RESIZE_NOTE = "Saves a copy in the new size. Next to the original, it is called “name (resized)”."
+SHRINK_TARGET = "shrink"  # not a format: any video → a smaller MP4 (option "shrink")
+SHRINK_TILE = ("Make smaller", "MP4 for e-mail and messengers")
+SHRINK_NOTE = (
+    "Saves a much smaller MP4 copy for e-mail and messengers, called “name (smaller)”. "
+    "The picture gets a little softer, and videos with more than 30 frames per second are "
+    "saved with 30. Videos that are already small aren't made any bigger."
+)
+SHRINK_SIZES = (
+    ("1080", "Full HD (1080p)", "Still sharp on a TV or big screen."),
+    ("720", "HD (720p)", "Good for e-mail and messengers: sharp on phones and laptops."),
+    ("480", "Small (480p)", "The smallest files; still fine on a phone."),
+)
 
 # Short tile text: what each target is good for, in a word or two.
 _PURPOSE = {
@@ -60,9 +72,11 @@ class Choices:
     """True if "Same format, remove metadata" works for every file."""
     can_resize: bool = False
     """True if "Same format, new size" works for every file."""
+    can_shrink: bool = False
+    """True if every file is a video that can be made smaller."""
 
     def __bool__(self) -> bool:
-        return bool(self.formats) or self.can_clean or self.can_resize
+        return bool(self.formats) or self.can_clean or self.can_resize or self.can_shrink
 
 
 def source_formats(file_formats: FileFormats) -> list[str]:
@@ -99,6 +113,7 @@ def choices(engine: Engine, file_formats: FileFormats) -> Choices:
         formats=ranking.rank(common, categories),
         can_clean=all(s in metadata.CLEANABLE for s in sources),
         can_resize=all(engine.can_resize(s, s) for s in sources),
+        can_shrink=all(engine.can_shrink(s) for s in sources),
     )
 
 
@@ -106,7 +121,7 @@ def can_resize(engine: Engine, file_formats: FileFormats, target: str | None) ->
     """Whether the "Picture size" choices apply: every file is a picture that stays a
     picture (``target`` an image format, or "Change size only")."""
     sources = source_formats(file_formats)
-    if not sources or target is None or target == CLEAN_TARGET:
+    if not sources or target in (None, CLEAN_TARGET, SHRINK_TARGET):
         return False
     return all(engine.can_resize(s, s if target == RESIZE_TARGET else target) for s in sources)
 
@@ -116,6 +131,8 @@ def jobs(file_formats: FileFormats, target: str | None, resizing: bool) -> list[
     format are skipped, unless they get a new size (then a resized copy is saved)."""
     if target is None:
         return []
+    if target == SHRINK_TARGET:  # every video gets a smaller copy, MP4 ones too
+        return [i for i, fmt in enumerate(file_formats) if fmt is not None]
     return [
         i
         for i, fmt in enumerate(file_formats)
@@ -125,6 +142,8 @@ def jobs(file_formats: FileFormats, target: str | None, resizing: bool) -> list[
 
 def job_target(target: str, source: formats.Format) -> str:
     """The format a file is converted to ("Change size only": its own)."""
+    if target == SHRINK_TARGET:
+        return "mp4"
     return source.id if target == RESIZE_TARGET else target
 
 
@@ -175,6 +194,8 @@ def notes(engine: Engine, file_formats: FileFormats, target: str | None) -> list
     """Quality notes for converting the files to ``target`` (e.g. "GIF has 256 colours")."""
     if target == CLEAN_TARGET:
         return [CLEAN_NOTE]
+    if target == SHRINK_TARGET:
+        return [SHRINK_NOTE]
     result: list[str] = [RESIZE_NOTE] if target == RESIZE_TARGET else []
     if target:
         for src in source_formats(file_formats):

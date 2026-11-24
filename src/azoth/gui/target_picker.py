@@ -16,7 +16,16 @@ from PySide6.QtWidgets import (
 )
 
 from . import icons
-from .targets import CLEAN_TARGET, CLEAN_TILE, RESIZE_TARGET, RESIZE_TILE, Choices, tile_text
+from .targets import (
+    CLEAN_TARGET,
+    CLEAN_TILE,
+    RESIZE_TARGET,
+    RESIZE_TILE,
+    SHRINK_TARGET,
+    SHRINK_TILE,
+    Choices,
+    tile_text,
+)
 from .theme import LIGHT_COLORS, Colors
 from .widgets import discard, label
 
@@ -73,7 +82,8 @@ class TargetPicker(QWidget):
             self._grid.setColumnStretch(col, 1)
         self.resize_tile = Tile(RESIZE_TARGET, *RESIZE_TILE, wide=True)
         self.clean_tile = Tile(CLEAN_TARGET, *CLEAN_TILE, wide=True)
-        self.extra_tiles = [self.resize_tile, self.clean_tile]  # below the formats
+        self.shrink_tile = Tile(SHRINK_TARGET, *SHRINK_TILE, wide=True)
+        self.extra_tiles = [self.shrink_tile, self.resize_tile, self.clean_tile]  # below
         for tile in self.extra_tiles:
             tile.subtitle.hide()  # one line; the explanation is shown on hover
             tile.setVisible(False)
@@ -109,6 +119,7 @@ class TargetPicker(QWidget):
                 self.group.addButton(tile)
                 self._grid.addWidget(tile, i // COLUMNS, i % COLUMNS)
                 self.tiles.append(tile)
+            self.shrink_tile.setVisible(choices.can_shrink)
             self.resize_tile.setVisible(choices.can_resize)
             self.clean_tile.setVisible(choices.can_clean)
             for tile in self.extra_tiles:
@@ -162,6 +173,7 @@ class TargetPicker(QWidget):
         self._colors = colors
         self.clean_tile.icon_label.setPixmap(icons.pixmap("shield", colors.success, 20))
         self.resize_tile.icon_label.setPixmap(icons.pixmap("resize", colors.accent, 20))
+        self.shrink_tile.icon_label.setPixmap(icons.pixmap("shrink", colors.accent, 20))
 
     def _toggled(self, button, checked: bool) -> None:
         if checked and not self._quiet:

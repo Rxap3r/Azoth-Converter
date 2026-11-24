@@ -13,6 +13,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   gives more natural hair, fur and grass when small pictures are made much bigger. About 15
   times slower than the normal AI (a few minutes per picture), so it's off unless you tick
   it. Command line: `--ai --ai-best`. The download grows by about 30 MB.
+- **Make videos smaller:** a new "Make smaller" tile for videos saves a much smaller MP4
+  copy ("name (smaller).mp4") for e-mail and messengers: Full HD, HD (the usual choice) or
+  Small, at most 30 frames per second. iPhone HDR videos get normal colours, upright videos
+  stay upright, nothing is enlarged, and if the copy wouldn't be smaller, nothing is saved.
+  Command line: `--to mp4 --shrink 720`.
 
 ### Development
 

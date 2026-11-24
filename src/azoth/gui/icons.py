@@ -22,6 +22,7 @@ _PATHS = {
     "lock": '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
     "shield": '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
     "resize": '<path d="M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7"/>',
+    "shrink": '<path d="M10 4v6H4M14 20v-6h6M4 4l6 6M20 20l-6-6"/>',  # arrows pointing in
     "search": '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
     "arrow": '<path d="M5 12h14M13 6l6 6-6 6"/>',
     "check": '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/>',

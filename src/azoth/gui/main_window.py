@@ -40,7 +40,7 @@ from .formats_panel import FormatsPanel
 from .pdf_tools_page import PasswordPage, PdfToolsPage
 from .settings import Preferences
 from .settings_page import SettingsPage
-from .targets import CLEAN_TARGET, RESIZE_TARGET, display_name
+from .targets import CLEAN_TARGET, RESIZE_TARGET, SHRINK_TARGET, display_name
 from .widgets import label
 from .worker import ConversionWorker
 
@@ -98,6 +98,7 @@ class MainWindow(QMainWindow):
         self.quality = page.quality
         self.ocr_options = page.ocr
         self.resize_options = page.resize
+        self.shrink_size = page.shrink_size
         self.output_row = page.output_row
         self.name_row = page.name_row
         self.notes_label = page.notes_label
@@ -331,6 +332,7 @@ class MainWindow(QMainWindow):
         self.quality.set_busy(busy)
         self.ocr_options.set_busy(busy)
         self.resize_options.set_busy(busy)
+        self.shrink_size.setEnabled(not busy)
         count = self.file_list.count()
         self.convert_page.subtitle.setText(
             f"{count} file{'s' if count != 1 else ''} · drop more anywhere in this window"
@@ -354,6 +356,8 @@ class MainWindow(QMainWindow):
         files = f"{count} file{'s' if count != 1 else ''}"
         if target == CLEAN_TARGET:
             text = f"Remove metadata from {files}"
+        elif target == SHRINK_TARGET:
+            text = f"Make {files} smaller"
         elif target == RESIZE_TARGET and self.resize_options.mode.currentData() is None:
             text = f"Enhance {files}" if count else "Choose a new size"
         elif target == RESIZE_TARGET:
@@ -374,6 +378,7 @@ class MainWindow(QMainWindow):
         if target == RESIZE_TARGET and self.resize_options.spec() is None:
             self.resize_options.set_mode(resize.FIT)  # this tile is about a new size
         self.resize_options.setVisible(resizable)
+        self.shrink_size.setVisible(target == SHRINK_TARGET)
         self.quality.setVisible(targets.uses_quality(self.file_list.formats, target))
         if target == RESIZE_TARGET:
             self.convert_page.more.set_open(True)  # the size is chosen there
@@ -386,6 +391,8 @@ class MainWindow(QMainWindow):
         self._update_action()
 
     def _result_extension(self, target: str | None) -> str:
+        if target == SHRINK_TARGET:
+            return "mp4"
         if target in (CLEAN_TARGET, RESIZE_TARGET):
             files = self.file_list.files
             return files[0].suffix.lstrip(".") if len(files) == 1 else ""
@@ -484,6 +491,7 @@ class MainWindow(QMainWindow):
             "level": self.quality.level(),
             "keep_metadata": self.settings_page.metadata_check.isChecked(),
             "resize": size,
+            "shrink": self.shrink_size.currentData() if target == SHRINK_TARGET else None,
             "passwords": passwords,
             **self.ocr_options.options(),
             "ocr_turn_pages": self.settings_page.turn_check.isChecked(),
@@ -523,9 +531,11 @@ class MainWindow(QMainWindow):
 
     @Slot(int)
     def _on_started(self, row: int) -> None:
-        verb = {CLEAN_TARGET: "Removing metadata from", RESIZE_TARGET: "Resizing"}.get(
-            self._worker.target if self._worker is not None else "", "Converting"
-        )
+        verb = {
+            CLEAN_TARGET: "Removing metadata from",
+            RESIZE_TARGET: "Resizing",
+            SHRINK_TARGET: "Making smaller:",
+        }.get(self._worker.target if self._worker is not None else "", "Converting")
         self.file_list.set_progress(row, 0.0, "Working…")
         self.status_label.setText(f"{verb} {self.file_list.files[row].name}")
 
@@ -589,6 +599,7 @@ class MainWindow(QMainWindow):
             cleaning=kind == CLEAN_TARGET,
             resizing=kind == RESIZE_TARGET,
             enhancing=kind == RESIZE_TARGET and self.resize_options.mode.currentData() is None,
+            shrinking=kind == SHRINK_TARGET,
         )
         self.status_label.setText("")
         self.done_card.show_result(

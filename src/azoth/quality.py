@@ -29,6 +29,18 @@ AVI_MP3_KBPS = 320  # old players expect constant-bitrate MP3 in AVI
 MIN_AUDIO_KBPS = 192  # lossy sound is never encoded below this
 GIF_MAX_FPS = 15  # video → GIF: more frames make huge files for no visible gain
 
+# "Make smaller" for videos (the user asks for a smaller, lossy copy): H.264 + AAC in MP4,
+# which every phone, messenger and e-mail program plays. Level → (shorter side in pixels,
+# H.264 CRF). Smaller videos are never enlarged; sound is copied if it's already AAC.
+SHRINK_LEVELS = {
+    "1080": (1080, 24),  # Full HD: still sharp on a big screen
+    "720": (720, 26),  # HD: for e-mail and messengers, about a tenth of a phone video
+    "480": (480, 28),  # smallest that still looks fine on a phone
+}
+SHRINK_DEFAULT = "720"
+MAX_SHRINK_CRF = 28  # beyond this, blocks and smearing become obvious
+SHRINK_MAX_FPS = 30  # 60 fps phone videos: half the frames, about half the size
+
 
 @dataclass(frozen=True)
 class QualityLevel:

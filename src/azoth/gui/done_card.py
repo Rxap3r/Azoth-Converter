@@ -40,6 +40,7 @@ def done_message(
     cleaning: bool = False,
     resizing: bool = False,
     enhancing: bool = False,
+    shrinking: bool = False,
 ) -> str:
     """One short sentence about the finished run."""
     if cancelled:
@@ -54,6 +55,8 @@ def done_message(
         return f"Done! {_files(converted)} enhanced."
     if resizing:
         return f"Done! {_files(converted)} resized."
+    if shrinking:
+        return f"Done! {_files(converted)} made smaller."
     return f"Done! {_files(converted)} converted."
 
 
