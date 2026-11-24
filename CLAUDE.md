@@ -5,7 +5,9 @@ priority: do "Start of every session" first, then follow the rules on how to wor
 
 ## Start of every session
 
-1. **Update `dev` and work there** (never on the automatic `claude/...` session branch, or
+1. **Update `dev` and work there.** The SessionStart hook `.claude/hooks/sync-dev.sh` does
+   this automatically; if it prints a `SYNC-DEV WARNING`, tell the owner right away. Otherwise
+   (never on the automatic `claude/...` session branch, or
    an automatic "unpushed commits" check keeps firing after every answer):
    ```bash
    git fetch origin dev && git checkout dev && git pull --ff-only origin dev
