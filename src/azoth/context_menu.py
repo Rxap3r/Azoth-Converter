@@ -1,9 +1,10 @@
 """The Windows Explorer right-click menu, written as Inno Setup registry entries.
 
 Right-click a file → "Convert with Azoth Converter" → "To PDF", "To DOCX" … (the most
-useful targets for that kind of file), "Remove metadata" where that works, and "Open in
-Azoth Converter". The installer adds the entries (task "Add to the right-click menu")
-and removes them again on uninstall; the app itself never writes to the registry.
+useful targets for that kind of file), "Make smaller" for videos, "Remove metadata" where
+that works, and "Open in Azoth Converter". The installer adds the entries (task "Add to
+the right-click menu") and removes them again on uninstall; the app itself never writes to
+the registry.
 
 The entries are generated, not written by hand, so they always match what the app can
 do: ``python packaging/make_context_menu.py`` writes ``packaging/context_menu.iss``
@@ -21,7 +22,7 @@ from dataclasses import dataclass
 from . import formats, metadata
 from .engine import Engine
 from .gui.explorer import OPEN
-from .gui.targets import CLEAN_TARGET, display_name
+from .gui.targets import CLEAN_TARGET, SHRINK_TARGET, display_name
 
 MENU_KEY = "AzothConverter"
 MENU_TITLE = "Convert with Azoth Converter"
@@ -45,13 +46,19 @@ def entries_for(fmt: formats.Format, engine: Engine) -> list[Entry]:
         Entry(f"{i + 1:02d}{target.id}", f"To {display_name(target.id)}", target.id)
         for i, target in enumerate(engine.targets_for(fmt.id)[:MAX_TARGETS])
     ]
+    shrink = engine.can_shrink(fmt.id)
+    if shrink:
+        entries.append(Entry("70shrink", "Make smaller", SHRINK_TARGET, separator=True))
     if fmt.id in metadata.CLEANABLE:
-        entries.append(Entry("80clean", "Remove metadata", CLEAN_TARGET, separator=True))
+        entries.append(Entry("80clean", "Remove metadata", CLEAN_TARGET, separator=not shrink))
     if not entries:
         return []
     entries.append(
         Entry(
-            "90open", "Open in Azoth Converter…", OPEN, separator=fmt.id not in metadata.CLEANABLE
+            "90open",
+            "Open in Azoth Converter…",
+            OPEN,
+            separator=fmt.id not in metadata.CLEANABLE and not shrink,
         )
     )
     return entries

@@ -17,7 +17,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   copy ("name (smaller).mp4") for e-mail and messengers: Full HD, HD (the usual choice) or
   Small, at most 30 frames per second. iPhone HDR videos get normal colours, upright videos
   stay upright, nothing is enlarged, and if the copy wouldn't be smaller, nothing is saved.
-  Command line: `--to mp4 --shrink 720`.
+  Command line: `--to mp4 --shrink 720`. Also in Explorer's right-click menu for videos
+  ("Make smaller", with the size last chosen in the app).
 
 ### Development
 

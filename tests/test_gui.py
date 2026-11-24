@@ -883,3 +883,8 @@ def test_make_videos_smaller(window, qtbot, sample_png, tmp_path):
     assert window.done_card.message.text() == "Done! 1 file made smaller."
     out = tmp_path / "clip (smaller).mp4"
     assert out.exists() and out.stat().st_size < clip.stat().st_size
+    # The same from Explorer's right-click menu ("Make smaller"): starts right away.
+    window.output_dir = tmp_path / "menu"
+    window.run_explorer_request(SHRINK_TARGET, [clip])
+    qtbot.waitUntil(lambda: not window.is_busy(), timeout=60000)
+    assert [p.name for p in (tmp_path / "menu").iterdir()] == ["clip (smaller).mp4"]

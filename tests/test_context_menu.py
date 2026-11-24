@@ -33,9 +33,11 @@ def test_menus_offer_the_most_useful_targets():
     assert "To DOCX" in labels[".pdf"] and "Remove metadata" in labels[".pdf"]
     assert labels[".jpg"] == labels[".jpeg"] and "Remove metadata" in labels[".jpg"]
     assert "Remove metadata" not in labels[".doc"]
+    assert "Make smaller" in labels[".mov"] and "Make smaller" in labels[".mp4"]
+    assert "Make smaller" not in labels[".mp3"] and "Make smaller" not in labels[".jpg"]
     for ext, entries in all_menus.items():
         assert entries[-1].target == explorer.OPEN, ext
-        assert len(entries) <= context_menu.MAX_TARGETS + 2, ext
+        assert len(entries) <= context_menu.MAX_TARGETS + 3, ext
         assert len({e.key for e in entries}) == len(entries), ext
         assert [e.key for e in entries] == sorted(e.key for e in entries), ext  # menu order
 
@@ -53,6 +55,8 @@ def test_every_entry_is_a_real_conversion():
         for entry in entries:
             if entry.target == "clean":
                 assert fmt.id in metadata.CLEANABLE
+            elif entry.target == "shrink":
+                assert engine.can_shrink(fmt.id)
             elif entry.target != explorer.OPEN:
                 assert entry.target in offered, (ext, entry.target)
 
