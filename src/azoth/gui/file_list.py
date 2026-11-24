@@ -92,7 +92,7 @@ class FileCard(QFrame):
 
         self.metadata_btn = QPushButton()  # photos only: what's hidden in the file
         self.metadata_btn.setProperty("role", "icon")
-        self.metadata_btn.setToolTip("Show metadata (location, camera, date …)")
+        self.metadata_btn.setToolTip("Show the metadata (location, camera, date …)")
         self.metadata_btn.setAccessibleName(f"Show the metadata of {path.name}")
         if fmt is None or fmt.id not in metadata.CLEANABLE:
             self.metadata_btn.hide()

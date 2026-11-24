@@ -221,6 +221,6 @@ def test_cli_split_ranges_and_edit(tmp_path, capsys):
 
     capsys.readouterr()
     assert cli(["pdf", "edit", str(src), "--rotate", "1=45"]) == 1
-    assert "Use the form page=degrees" in capsys.readouterr().err
+    assert "Use this format: page=degrees" in capsys.readouterr().err
     assert cli(["pdf", "split", str(src), "--ranges", "9"]) == 1
     assert "is not in the PDF" in capsys.readouterr().err

@@ -255,7 +255,7 @@ def cmd_pdf_edit(args: argparse.Namespace) -> int:
             page, _, degrees = item.partition("=")
             if not page.strip().isdigit() or degrees.strip() not in ("90", "180", "270", "-90"):
                 raise ConversionError(
-                    f"“{item}” is not correct. Use the form page=degrees, for example 2=90 "
+                    f"“{item}” is not correct. Use this format: page=degrees, for example 2=90 "
                     "(degrees: 90, 180 or 270)."
                 )
             index = int(page) - 1
@@ -385,7 +385,7 @@ def _bounded(low: int, high: int):
         try:
             value = int(text)
         except ValueError:
-            raise argparse.ArgumentTypeError(f"{text!r} is not a whole number") from None
+            raise argparse.ArgumentTypeError(f"{text!r} is not a number without decimals") from None
         if not low <= value <= high:
             raise argparse.ArgumentTypeError(f"use a number from {low} to {high}")
         return value
@@ -402,11 +402,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("convert", help="convert files to another format")
+    p = sub.add_parser("convert", help="convert files to a different format")
     p.add_argument("files", nargs="+", help="files to convert")
-    p.add_argument("--to", "-t", required=True, help="target format, e.g. pdf, docx, jpg")
+    p.add_argument("--to", "-t", required=True, help="target format, for example pdf, docx, jpg")
     p.add_argument("--output", "-o", help="output folder (default: next to each file)")
-    p.add_argument("--overwrite", action="store_true", help="replace existing output files")
+    p.add_argument("--overwrite", action="store_true", help="replace output files that are there")
     p.add_argument(
         "--level",
         choices=[lv.id for lv in quality.LEVELS],
@@ -418,57 +418,59 @@ def build_parser() -> argparse.ArgumentParser:
         type=_bounded(quality.MIN_IMAGE_QUALITY, quality.MAX_IMAGE_QUALITY),
         default=None,
         help=f"photo quality {quality.MIN_IMAGE_QUALITY}-{quality.MAX_IMAGE_QUALITY} "
-        "(overrides --level)",
+        "(replaces the --level value)",
     )
     p.add_argument(
         "--dpi",
         type=_bounded(quality.MIN_DPI, quality.MAX_DPI),
         default=None,
         help=f"resolution for PDF → images, {quality.MIN_DPI}-{quality.MAX_DPI} "
-        "(overrides --level)",
+        "(replaces the --level value)",
     )
     p.add_argument(
         "--resize",
         metavar="SIZE",
-        help="new picture size, keeping proportions: 50%% (percentage), 2000 (longest "
-        "side in pixels), 1920x1080 (screen size: fits inside, turned for portrait pictures), "
-        "1920x (width), x1080 (height). Smaller pictures are enlarged (smooth, adds no "
-        "detail). "
-        "With the same format as the file (e.g. --to jpg for a JPG) a resized copy is saved",
+        help="new picture size. The proportions stay the same. 50%% (percentage), 2000 (longest "
+        "side in pixels), 1920x1080 (screen size: the picture goes in this area, turned for "
+        "portrait pictures), 1920x (width), x1080 (height). Smaller pictures become larger "
+        "(smooth, with no new shapes). If the target format is the same as the format of "
+        "the file (for example --to jpg for a JPG), the result is a copy in the new size",
     )
     p.add_argument(
         "--only-shrink",
         action="store_true",
-        help="with --resize: don't enlarge pictures that are smaller than the size",
+        help="with --resize: do not make pictures larger if they are smaller than the size",
     )
     p.add_argument(
         "--ai",
         action="store_true",
-        help="enhance pictures with AI (slow; runs on this computer): enlarging adds "
-        "detail the AI invents, so it looks sharp but isn't fully true to the original. "
-        "Without --resize the size stays and the picture gets sharper, with less noise "
-        "and fewer JPEG blocks. Not for documents, evidence or ID photos",
+        help="enhance pictures with AI (slow; on this computer only). When the AI makes a "
+        "picture larger, it adds new shapes and texture that are not in the initial picture. "
+        "The result looks sharp, but it is not fully correct. Without --resize, the size "
+        "stays the same and the picture becomes sharper, with less noise and fewer JPEG "
+        "blocks. Do not use for documents or ID photos",
     )
     p.add_argument(
         "--denoise",
         choices=resize.DENOISE_LEVELS,
         default=None,
-        help="with --ai: how strongly noise and JPEG blocks are removed (default: medium)",
+        help="with --ai: how much noise and how many JPEG blocks the AI removes (default: medium)",
     )
     p.add_argument(
         "--ai-best",
         action="store_true",
-        help="with --ai: use the bigger AI model: more natural hair, fur and grass when small "
-        "pictures are made much bigger, but about 15 times slower (minutes per picture)",
+        help="with --ai: use the larger AI model. Hair, fur and grass look better when "
+        "small pictures become much larger. But it is approximately 15× slower (some minutes "
+        "for each picture)",
     )
     p.add_argument(
         "--shrink",
         choices=tuple(quality.SHRINK_LEVELS),
         default=None,
-        help='with --to mp4: save videos as a smaller MP4 copy, named "name (smaller).mp4", '
-        "for e-mail and messengers. The number is the shorter side in pixels (1080 = Full "
-        "HD, 720 = HD, 480); smaller videos aren't enlarged. Lossy: the picture gets a "
-        "little softer",
+        help="with --to mp4: save videos as a smaller MP4 copy, with the name "
+        '"name (smaller).mp4", for e-mail and messengers. The number is the shorter side '
+        "in pixels (1080 = Full HD, 720 = HD, 480). Azoth Converter does not make smaller "
+        "videos larger. Lossy: the picture becomes less sharp",
     )
     p.add_argument(
         "--tables-only",
@@ -478,44 +480,44 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--one-sheet",
         action="store_true",
-        help="PDF → Excel: all pages on one sheet instead of one sheet per page. With "
-        "--tables-only, a table that goes on over several pages (e.g. a bank statement) "
-        "becomes one table",
+        help="PDF → Excel: all pages on one sheet, not one sheet for each page. With "
+        "--tables-only, a table that continues on more than one page (for example a bank "
+        "statement) becomes one table",
     )
     p.add_argument(
         "--keep-metadata",
         action="store_true",
-        help="keep photo and video metadata (removed by default for privacy)",
+        help="keep photo and video metadata (for privacy, Azoth Converter usually removes it)",
     )
     p.add_argument(
         "--ocr",
         action="store_true",
-        help="images → PDF: recognise the text so the PDF is searchable",
+        help="images → PDF: recognise the text, so that you can search the PDF",
     )
     p.add_argument(
         "--language",
         choices=list(LANGUAGES),
         default=None,
-        help="language of the text for text recognition (default: the computer's language)",
+        help="language of the text for text recognition (default: the language of the computer)",
     )
     p.add_argument(
         "--keep-rotation",
         action="store_true",
-        help="with --ocr: don't turn sideways or upside-down pictures the right way up",
+        help="with --ocr: do not turn pictures that are on their side or upside down",
     )
     p.add_argument(
         "--no-word",
         "--no-office",
         action="store_true",
         dest="no_word",
-        help="use LibreOffice even if Microsoft Office (Word, Excel, PowerPoint) is installed",
+        help="use LibreOffice also when Microsoft Office (Word, Excel, PowerPoint) is installed",
     )
     p.add_argument("--quiet", "-q", action="store_true")
     p.set_defaults(func=cmd_convert)
 
     p = sub.add_parser(
         "clean",
-        help="remove metadata (location, camera, author, company …) without changing the content",
+        help="remove metadata (location, camera, author, company …). The content does not change",
         description="Save a copy of each photo or document without its metadata. Photos: "
         "GPS location, camera, date, author, comments and preview pictures. PDF, DOCX, "
         "XLSX, PPTX: author, company, dates, edit history, earlier PDF versions; names on "
@@ -526,51 +528,64 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--output", "-o", help="output folder (default: next to each file, as 'name (clean)')"
     )
-    p.add_argument("--overwrite", action="store_true", help="replace existing output files")
+    p.add_argument("--overwrite", action="store_true", help="replace output files that are there")
     p.add_argument(
-        "--show", action="store_true", help="only list the metadata, don't change anything"
+        "--show", action="store_true", help="only show the metadata. Do not change the file"
     )
     p.add_argument("--quiet", "-q", action="store_true")
     p.set_defaults(func=cmd_clean)
 
-    p = sub.add_parser("formats", help="list supported conversions")
-    p.add_argument("file", nargs="?", help="show targets for this file")
-    p.add_argument("--markdown", metavar="PATH", help="write the full list as Markdown")
+    p = sub.add_parser("formats", help="show the conversions that Azoth Converter can do")
+    p.add_argument("file", nargs="?", help="show the target formats for this file")
+    p.add_argument("--markdown", metavar="PATH", help="write the full table as Markdown")
     p.set_defaults(func=cmd_formats)
 
     pdf = sub.add_parser("pdf", help="PDF tools").add_subparsers(dest="pdf_cmd", required=True)
-    p = pdf.add_parser("merge", help="join PDFs into one")
+    p = pdf.add_parser("merge", help="put PDFs together into one PDF")
     p.add_argument("files", nargs="+")
     p.add_argument("--output", "-o", required=True)
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_merge)
-    p = pdf.add_parser("split", help="save every page (or each page range) as its own PDF")
+    p = pdf.add_parser("split", help="save each page (or each range of pages) as a separate PDF")
     p.add_argument("file")
     p.add_argument("--output", "-o", help="output folder (default: name_pages next to the PDF)")
-    p.add_argument("--ranges", help='one PDF per range instead of per page, e.g. "1-3, 5, 8-"')
+    p.add_argument(
+        "--ranges", help='one PDF for each range, not for each page, for example "1-3, 5, 8-"'
+    )
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_split)
     p = pdf.add_parser(
-        "edit", help="save a copy with pages reordered, rotated or deleted (no quality loss)"
+        "edit",
+        help="save a copy with pages in a different sequence, turned or deleted (the quality stays "
+        "the same)",
     )
     p.add_argument("file")
-    p.add_argument("--pages", help='new page order, e.g. "3, 1-2" (pages left out are dropped)')
-    p.add_argument("--delete", help='pages to delete, e.g. "2, 5-6"')
     p.add_argument(
-        "--rotate", action="append", metavar="PAGE=DEGREES", help="turn a page clockwise, e.g. 2=90"
+        "--pages",
+        help='new page sequence, for example "3, 1-2" (the copy does not have the pages that '
+        "are not in the sequence)",
+    )
+    p.add_argument("--delete", help='pages to delete, for example "2, 5-6"')
+    p.add_argument(
+        "--rotate",
+        action="append",
+        metavar="PAGE=DEGREES",
+        help="turn a page clockwise, for example 2=90",
     )
     p.add_argument("--output", "-o", help="output file (default: 'name (edited).pdf')")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_edit)
-    p = pdf.add_parser("compress", help="save a smaller copy (shrinks very sharp pictures)")
+    p = pdf.add_parser(
+        "compress", help="save a smaller copy (makes very sharp pictures less sharp)"
+    )
     p.add_argument("file")
     p.add_argument(
         "--level",
         "-l",
         choices=[level.id for level in quality.COMPRESS_LEVELS],
         default=quality.DEFAULT_COMPRESS.id,
-        help="light: no quality loss; balanced (default): pictures to 200 dpi; "
-        "strong: pictures to 150 dpi JPG",
+        help="light: the quality stays the same; balanced (default): pictures at 200 dpi; "
+        "strong: pictures at 150 dpi JPG",
     )
     p.add_argument("--output", "-o", help="output file (default: 'name (compressed).pdf')")
     p.add_argument("--overwrite", action="store_true")
@@ -581,20 +596,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--language",
         choices=list(LANGUAGES),
         default=None,
-        help="language of the text for text recognition (default: the computer's language)",
+        help="language of the text for text recognition (default: the language of the computer)",
     )
     p.add_argument(
         "--keep-rotation",
         action="store_true",
-        help="don't turn sideways or upside-down pages the right way up",
+        help="do not turn pages that are on their side or upside down",
     )
     p.add_argument("--output", "-o", help="output file (default: 'name (searchable).pdf')")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_ocr)
     p = pdf.add_parser(
         "password",
-        help="add or remove a password on a PDF, or on a Word, Excel or PowerPoint file "
-        "(asks for it; it is never stored)",
+        help="add or remove a password on a PDF, or on a Word, Excel or PowerPoint file (you type "
+        "the password; Azoth Converter does not keep it)",
     )
     p.add_argument("action", choices=["add", "remove"])
     p.add_argument("file")
@@ -605,8 +620,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_pdf_password)
     p = sub.add_parser(
         "password",
-        help="add or remove a password on a PDF, Word, Excel or PowerPoint file "
-        "(the same as 'azoth pdf password')",
+        help="add or remove a password on a PDF, Word, Excel or PowerPoint file (the same as "
+        "'azoth pdf password')",
     )
     p.add_argument("action", choices=["add", "remove"])
     p.add_argument("file")
@@ -614,7 +629,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_pdf_password)
 
-    p = sub.add_parser("gui", help="open the graphical app")
+    p = sub.add_parser("gui", help="open the app with windows and buttons")
     p.set_defaults(func=lambda a: __import__("azoth.gui.app", fromlist=["main"]).main())
     return parser
 

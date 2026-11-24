@@ -27,9 +27,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Changed
 
-- Error messages are rewritten in the style of Simplified Technical English: short
-  sentences, clear instructions ("Enter …", "Remove …"), no shortened words, and they
-  say plainly when no file was saved.
+- Error messages, tooltips, notes and the command-line help are rewritten in Simplified
+  Technical English (ASD-STE100): short sentences, clear instructions ("Enter …",
+  "Remove …"), no shortened words, words from the STE dictionary, and they say plainly
+  when no file was saved.
 
 ### Fixed
 

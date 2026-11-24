@@ -258,8 +258,8 @@ def _cleanable_format(path: Path) -> str:
         if fmt is not None and fmt.id in ("doc", "xls", "ppt"):
             hint = f" Convert it to {fmt.id.upper()}X first, then remove the metadata."
         raise ConversionError(
-            f"Metadata removal works for photos and images ({names}), PDF, Word (DOCX), "
-            f"Excel (XLSX), PowerPoint (PPTX), videos and music. It does not work for "
+            f"You can remove metadata from photos and images ({names}), PDF, Word (DOCX), "
+            f"Excel (XLSX), PowerPoint (PPTX), videos and music. You cannot do it for "
             f"{kind}.{hint}"
         )
     return fmt.id

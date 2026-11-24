@@ -334,9 +334,9 @@ def test_password_tools_refuse_the_wrong_kind_of_file(photo_pdf, tmp_path):
     with pytest.raises(ConversionError, match="has no password"):
         pdf_tools.remove_password(photo_pdf, tmp_path / "o.pdf", "x")
     locked = pdf_tools.add_password(photo_pdf, tmp_path / "locked.pdf", PASSWORD)
-    with pytest.raises(ConversionError, match="already has a password"):
+    with pytest.raises(ConversionError, match="has a password. Remove that password first"):
         pdf_tools.add_password(locked, tmp_path / "twice.pdf", "another one 99!")
-    with pytest.raises(ConversionError, match="already has a password"):
+    with pytest.raises(ConversionError, match="has a password. Remove that password first"):
         pdf_tools.add_password(_restricted(tmp_path / "r.pdf"), tmp_path / "x.pdf", PASSWORD)
     with pytest.raises(ConversionError, match="damaged"):
         pdf_tools.lock_state(SAMPLES.parent / "other" / "broken_not_really.pdf")

@@ -398,13 +398,13 @@ class Engine:
             route = self.shrink_route(src_fmt.id) if dst_fmt.id == "mp4" else None
             if route is None and (src_fmt.category != formats.VIDEO or dst_fmt.id != "mp4"):
                 raise ConversionError(
-                    f"Azoth Converter cannot make {source.name} smaller. This works only for "
-                    "videos, as MP4."
+                    f"Azoth Converter cannot make {source.name} smaller. You can do this "
+                    "only with videos, as MP4."
                 )
         elif src_fmt.id == dst_fmt.id:
             route = self.resize_route(src_fmt.id) if resizing else None
             if route is None:
-                raise ConversionError(f"{source.name} is already {dst_fmt.name}.")
+                raise ConversionError(f"The format of {source.name} is {dst_fmt.name}.")
         else:
             route = self.find_route(src_fmt.id, dst_fmt.id)
         if route is None:

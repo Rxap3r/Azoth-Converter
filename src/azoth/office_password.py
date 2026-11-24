@@ -138,7 +138,7 @@ def add_password(src: Path, dst: Path, password: str, *, overwrite: bool = False
             "XLS or PPT files to these formats first."
         )
     if is_protected(src):
-        raise ConversionError("This file already has a password. Remove the password first.")
+        raise ConversionError("This file has a password. Remove that password first.")
     original = src.read_bytes()
     out = io.BytesIO()
     try:

@@ -412,7 +412,7 @@ def test_make_smaller_keeps_upright_phone_videos_upright(tmp_path):
 def test_make_smaller_never_enlarges_and_refuses_when_nothing_is_saved(tmp_path):
     # Tiny and already strongly compressed: a "smaller" copy would be bigger.
     src = make(tmp_path / "tiny.mp4", *VIDEO, "-c:v", "libx264", "-crf", "51")
-    with pytest.raises(ConversionError, match="already small"):
+    with pytest.raises(ConversionError, match="This video is small"):
         Engine().convert(src, "mp4", tmp_path / "o", options={"shrink": "1080"})
     assert not any((tmp_path / "o").glob("*"))  # nothing left behind
 
@@ -462,7 +462,7 @@ def test_only_videos_can_be_made_smaller(tmp_path):
     assert targets.job_target(targets.SHRINK_TARGET, formats.FORMATS["mov"]) == "mp4"
     song = tmp_path / "a.mp3"
     song.write_bytes(b"ID3" + bytes(200))
-    with pytest.raises(ConversionError, match="only for videos"):
+    with pytest.raises(ConversionError, match="only with videos"):
         engine.convert(song, "mp4", tmp_path, options={"shrink": "720"})
 
 

@@ -277,11 +277,13 @@ def test_libreoffice_message_names_only_what_is_missing(monkeypatch, with_ffmpeg
     assert conv.id == "libreoffice"
     assert ("docx", "pdf") not in missing and ("xlsx", "pdf") in missing
     text = conv.unavailable_reason(missing)
-    assert text.startswith("Excel files and PowerPoint files need LibreOffice")
+    assert text.startswith(
+        "LibreOffice (free) or Microsoft Office is necessary for Excel files and PowerPoint files"
+    )
     # Without any Office program: the general message.
     monkeypatch.setattr(msword, "app_installed", lambda app: False)
     [(conv, missing)] = Engine(all_converters()).needed_engines()
-    assert conv.unavailable_reason(missing).startswith("Office conversions need LibreOffice")
+    assert conv.unavailable_reason(missing).startswith("LibreOffice (free) is necessary for Office")
 
 
 def test_formats_panel_counts_office_as_installed(qtbot, monkeypatch):

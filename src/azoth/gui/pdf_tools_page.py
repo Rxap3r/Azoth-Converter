@@ -244,7 +244,7 @@ class MergeTool(QWidget):
         self.list.model().rowsMoved.connect(lambda *_: self.changed.emit())
         self.remover = RemovableDelegate(self.list, self.remove_row)
         self.list.setItemDelegate(self.remover)
-        self.list.setToolTip("Drag to change the order. Click the bin to remove a PDF.")
+        self.list.setToolTip("Drag to change the sequence. To remove a PDF, click the bin.")
         self.list.installEventFilter(self)  # Delete key removes the selected PDFs
         self.add_btn = QPushButton("Add PDFs…")
         self.add_btn.clicked.connect(lambda: self.add_files(choose_pdfs(self, many=True)))
@@ -430,8 +430,8 @@ class EditTool(QWidget):
         # Pages are shown left to right, so the buttons point the way the page moves.
         self.earlier_btn = QPushButton("◀ Move")
         self.later_btn = QPushButton("Move ▶")
-        self.earlier_btn.setToolTip("Move the selected pages one place towards the start")
-        self.later_btn.setToolTip("Move the selected pages one place towards the end")
+        self.earlier_btn.setToolTip("Move the selected pages one position to the start")
+        self.later_btn.setToolTip("Move the selected pages one position to the end")
         self.earlier_btn.setAccessibleName("Move pages towards the start")
         self.later_btn.setAccessibleName("Move pages towards the end")
         self.delete_btn = QPushButton("Delete")

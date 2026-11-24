@@ -25,7 +25,7 @@ def open_pdf(src: Path) -> pymupdf.Document:
         doc = pymupdf.open(src, filetype="pdf")
     except Exception as exc:
         raise ConversionError(
-            "Cannot open the PDF. The file is damaged, or it is not a real PDF."
+            "Cannot open the PDF. The file is damaged, or it is not a correct PDF."
         ) from exc
     if doc.needs_pass:
         doc.close()
@@ -131,7 +131,7 @@ class PdfToTextConverter(Converter):
         yield "pdf", "txt"
 
     def quality_note(self, src: str, dst: str) -> str | None:
-        return "Only the text is kept; images and layout are dropped."
+        return "Azoth Converter keeps only the text. It does not keep the images and layout."
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
         from .. import ocr
@@ -168,8 +168,8 @@ class PdfToWordConverter(Converter):
 
     def quality_note(self, src: str, dst: str) -> str | None:
         return (
-            "The Word layout is rebuilt from the PDF. Simple documents convert well; "
-            "complex layouts may need touching up."
+            "Azoth Converter makes the Word layout again from the PDF. Simple documents give "
+            "good results. Complex layouts can have small errors."
         )
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
@@ -231,7 +231,7 @@ def _rebuild_docx(pdf2docx_class, src: Path, dst: Path, total: int, ctx: Convers
         parsed = [page for page in cv.pages if page.finalized]
         if not parsed:
             raise ConversionError(
-                "Cannot convert the PDF to Word. Azoth Converter cannot read any page."
+                "Cannot convert the PDF to Word. Azoth Converter cannot read the pages."
             )
         document = Document()
         for i, page in enumerate(parsed):

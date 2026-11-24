@@ -262,7 +262,7 @@ def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
     assert (
         not window.settings_page.metadata_check.isEnabled()
     )  # "keep metadata" makes no sense here
-    assert "stays exactly the same" in window.notes_label.toolTip()  # the details on hover
+    assert "The content stays the same" in window.notes_label.toolTip()  # the details on hover
 
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
@@ -876,7 +876,7 @@ def test_make_videos_smaller(window, qtbot, sample_png, tmp_path):
     assert window.target_picker.select(SHRINK_TARGET)
     assert not window.shrink_size.isHidden() and window.shrink_size.currentData() == "720"
     assert window.convert_btn.text() == "Make 1 file smaller"  # MP4 files too
-    assert "softer" in window.notes_label.toolTip()  # says it's lossy
+    assert "less sharp" in window.notes_label.toolTip()  # says it's lossy
     window.shrink_size.setCurrentIndex(window.shrink_size.findData("480"))
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=60000)

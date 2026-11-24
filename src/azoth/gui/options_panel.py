@@ -51,8 +51,8 @@ class QualitySelector(QWidget):
             row.addWidget(button, 1)
         caption = label("Quality", "caption")
         caption.setToolTip(
-            "Only for photos and PDF pages saved as pictures. Documents → PDF always keep "
-            "full quality."
+            "Only for photos, and for PDF pages that Azoth Converter saves as pictures. "
+            "Documents → PDF always keep full quality."
         )
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -105,11 +105,12 @@ class ExcelOptions(QWidget):
 
     CHOICES = (
         ("tables_only", "Tables only",
-         "Leaves out the text outside the tables, such as headings and page footers."),
+         "Does not keep the text that is not in the tables, for example headings and page "
+         "footers."),
         ("one_sheet", "All pages on one sheet",
-         "Instead of one sheet per page. Together with “Tables only”, a table that goes "
-         "on over several pages, such as a bank statement, becomes one table you can "
-         "sort and filter."),
+         "Not one sheet for each page. With “Tables only”, a table that continues on more "
+         "than one page (for example a bank statement) becomes one table. You can sort "
+         "and filter it."),
     )  # fmt: skip
 
     def __init__(self, prefs: Preferences | None = None) -> None:
@@ -149,8 +150,9 @@ class OcrOptions(QWidget):
         self.prefs = prefs
         self.searchable = QCheckBox("Make the text searchable (OCR)")
         self.searchable.setToolTip(
-            "Reads the text in the pictures and adds it invisibly, so you can search and "
-            "copy it. The pictures stay exactly the same. Takes a few seconds per page."
+            "Azoth Converter reads the text in the pictures and adds it to the PDF. You cannot "
+            "see this text, but you can search and copy it. The pictures stay the same. This "
+            "is slow: some seconds for each page."
         )
         self.searchable.setChecked(prefs.ocr_searchable)
         self.searchable.toggled.connect(self._toggled)
@@ -229,21 +231,21 @@ class ResizeOptions(QWidget):
         boxes.addStretch(1)
         self.only_shrink = QCheckBox("Don't enlarge smaller pictures")
         self.only_shrink.setToolTip(
-            "Pictures that are already smaller than the chosen size stay as they are. "
-            "Useful to make big photos smaller (e.g. for e-mail) without blowing up small ones."
+            "Pictures that are smaller than the selected size do not change. Use this to make "
+            "large photos smaller (for example for e-mail) and to keep small photos as they are."
         )
         self.ai = QCheckBox("Enhance with AI")
         self.ai.setToolTip(
-            "Bigger pictures get new, sharp detail that the AI invents; pictures that keep "
-            "their size get sharper, with less noise and fewer JPEG blocks. Runs only on "
-            "this computer, and takes a while."
+            "When the AI makes a picture larger, it adds new, sharp shapes. When the picture "
+            "keeps its size, it becomes sharper, with less noise and fewer JPEG blocks. The AI "
+            "operates only on this computer, and it is slow."
         )
         if not upscale.available():
             self.ai.hide()
         self.best = QCheckBox("Best quality (slow)")
         self.best.setToolTip(
-            "Uses a bigger AI: more natural hair, fur and grass when small pictures are made "
-            "much bigger. About 15 times slower: several minutes per picture."
+            "Uses a larger AI. Hair, fur and grass look better when small pictures become "
+            "much larger. It is approximately 15× slower: some minutes for each picture."
         )
         if not upscale.available(best=True):
             self.best.hide()
@@ -253,8 +255,8 @@ class ResizeOptions(QWidget):
             self.denoise.addItem(f"Noise removal: {text}", level)
         self.denoise.setCurrentIndex(self.denoise.findData(upscale.MEDIUM))
         self.denoise.setToolTip(
-            "How strongly noise and JPEG blocks are smoothed away. Low keeps fine grain and "
-            "texture; High gives the cleanest, smoothest look."
+            "How much noise and how many JPEG blocks the AI removes. Low keeps the small grain "
+            "and texture. High gives the cleanest and smoothest result."
         )
         self.hint = label("", "small", wrap=True)
         layout = QVBoxLayout(self)

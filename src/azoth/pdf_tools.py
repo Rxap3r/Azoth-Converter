@@ -216,7 +216,7 @@ def parse_ranges(text: str, total: int) -> list[list[int]]:
     for part in parts:
         match = _RANGE.match(part)
         if not match or not (match.group(1) or match.group(3)):
-            raise ConversionError(f"“{part.strip()}” is not a page range. Use this form: 1-3, 5.")
+            raise ConversionError(f"“{part.strip()}” is not a page range. Use this format: 1-3, 5.")
         start = int(match.group(1)) if match.group(1) else 1
         if match.group(2):
             end = int(match.group(3)) if match.group(3) else total
@@ -457,7 +457,7 @@ def lock_state(path: Path | str) -> str:
         doc = pymupdf.open(Path(path), filetype="pdf")
     except Exception as exc:
         raise ConversionError(
-            "Cannot open the PDF. The file is damaged, or it is not a real PDF."
+            "Cannot open the PDF. The file is damaged, or it is not a correct PDF."
         ) from exc
     with doc:
         if doc.needs_pass:
@@ -511,7 +511,7 @@ def add_password(src: Path, dst: Path, password: str, *, overwrite: bool = False
     if problem:
         raise ConversionError(problem)
     if lock_state(src) != UNLOCKED:
-        raise ConversionError("This PDF already has a password. Remove the password first.")
+        raise ConversionError("This PDF has a password. Remove that password first.")
     with open_pdf(src) as doc:
         pages = doc.page_count
 

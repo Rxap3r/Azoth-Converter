@@ -47,7 +47,7 @@ class ConvertPage(QWidget):
                 self.shrink_size.count() - 1, tip, Qt.ItemDataRole.ToolTipRole
             )
         self.shrink_size.setCurrentIndex(self.shrink_size.findData(SHRINK_DEFAULT))
-        self.shrink_size.setToolTip("How big the picture of the smaller video is.")
+        self.shrink_size.setToolTip("The picture size of the smaller video.")
         self.shrink_size.hide()
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()

@@ -49,7 +49,9 @@ def download_button(text: str, url: str) -> QPushButton:
     """A button that opens an official download page in the browser. The app itself never
     goes online: only the browser does, and only when the button is clicked."""
     button = QPushButton(text)
-    button.setToolTip(f"{url}\nOpens in your browser. After installing, restart Azoth Converter.")
+    button.setToolTip(
+        f"{url}\nOpens in your browser. After you install it, start Azoth Converter again."
+    )
     button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(url)))
     return button
 

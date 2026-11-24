@@ -102,15 +102,17 @@ class ImageConverter(Converter):
     def quality_note(self, src: str, dst: str) -> str | None:
         if src == dst and dst in ("jpg", "webp", "heic", "avif"):
             return (
-                f"{dst.upper()} is a lossy format: the resized picture is saved again with "
-                "the chosen quality."
+                f"{dst.upper()} is a lossy format: Azoth Converter saves the picture again "
+                "with the selected quality."
             )
         if dst == "gif":
-            return "GIF supports only 256 colours, so photos may look grainy."
+            return "GIF has only 256 colours. Thus, photos can look grainy."
         if dst == "ico":
-            return "Icons are limited to 256×256 pixels; larger images are scaled down."
+            return (
+                "Icons are 256×256 pixels or smaller. Azoth Converter makes larger images smaller."
+            )
         if dst == "jpg" and src in ("png", "gif", "webp", "ico", "tiff"):
-            return "JPEG has no transparency; transparent areas become white."
+            return "JPEG has no transparency. Transparent areas become white."
         return None
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:

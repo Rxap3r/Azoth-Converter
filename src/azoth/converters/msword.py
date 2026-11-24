@@ -300,7 +300,7 @@ class MsOfficeConverter(Converter):
         return self._installed
 
     def unavailable_reason(self) -> str:
-        return f"{self.app.label} is not installed. It is optional: it gives exact results."
+        return f"{self.app.label} is not installed. It is optional: it gives accurate results."
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
         for src in self.app.sources:
@@ -324,7 +324,9 @@ class MsOfficeConverter(Converter):
             try:
                 produced = self.fallback.convert(src, dst, ctx)
             except ConversionError as fallback_exc:
-                raise ConversionError(f"{exc} LibreOffice also failed. {fallback_exc}") from exc
+                raise ConversionError(
+                    f"{exc} LibreOffice also cannot convert the file. {fallback_exc}"
+                ) from exc
             ctx.warnings.append(
                 f"{short} failed, LibreOffice was used (the layout may differ slightly). {exc}"
             )

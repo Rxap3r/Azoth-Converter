@@ -14,7 +14,7 @@ import pymupdf
 from .base import ConversionContext, ConversionError, Converter
 from .images import READABLE
 
-TEXT_ONLY = "Only the text is kept; pictures and layout are dropped."
+TEXT_ONLY = "Azoth Converter keeps only the text. It does not keep the pictures and layout."
 
 
 def language(ctx: ConversionContext) -> str:
@@ -57,7 +57,7 @@ def write_docx(pages: list[list[str]], dst: Path) -> None:
 def check_found(pages: list[list[str]]) -> None:
     if not any(pages):
         raise ConversionError(
-            "Azoth Converter found no text. If the picture is sideways or upside down, "
+            "Azoth Converter found no text. If the picture is on its side or upside down, "
             "turn it first. Azoth Converter cannot read very blurry or very small text."
         )
 

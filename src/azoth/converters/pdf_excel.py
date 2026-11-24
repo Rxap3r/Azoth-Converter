@@ -459,9 +459,9 @@ class PdfToExcelConverter(Converter):
 
     def quality_note(self, src: str, dst: str) -> str | None:
         return (
-            "Tables with visible lines become Excel cells, one sheet per page; other text "
-            "is kept line by line. Numbers become real numbers only where their meaning "
-            "is clear. Check important figures."
+            "Tables with lines that you can see become Excel cells, one sheet for each page. "
+            "Azoth Converter keeps the other text line by line. Numbers become Excel numbers only "
+            "if their meaning is clear. Examine important numbers."
         )
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
@@ -469,7 +469,7 @@ class PdfToExcelConverter(Converter):
             raise ConversionError(
                 "This PDF looks like a scan: pictures of pages, with no text that you can "
                 "select. Azoth Converter cannot read tables from scans. Convert the PDF to "
-                "Word instead, which uses text recognition."
+                "Word: this conversion uses text recognition."
             )
         tables_only = bool(ctx.option("tables_only", False))
         pages: list[list[Table | TextRow]] = []
@@ -485,8 +485,8 @@ class PdfToExcelConverter(Converter):
         if not any(pages):
             if tables_only:
                 raise ConversionError(
-                    "Azoth Converter found no tables with visible lines in this PDF. To get "
-                    "the text line by line, do not select “Tables only”."
+                    "Azoth Converter found no tables with lines that you can see in this PDF. "
+                    "To get the text line by line, do not select “Tables only”."
                 )
             raise ConversionError("This PDF has no text for Excel.")
         ctx.check_cancelled()

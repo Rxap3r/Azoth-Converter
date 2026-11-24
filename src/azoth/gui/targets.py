@@ -13,25 +13,28 @@ from ..engine import Engine
 
 CLEAN_TARGET = "clean"  # not a format: same format, metadata removed (see metadata.py)
 CLEAN_NOTE = (
-    "Saves a copy without hidden personal data. Removed: GPS location, camera, date, "
-    "author, comments and preview pictures. The content itself stays exactly the same. "
-    "Next to the original, the copy is called “name (clean)”."
+    "Saves a copy with no hidden personal data. Azoth Converter removes the GPS "
+    "location, camera, date, author, comments and preview pictures. The content stays "
+    "the same. Next to the initial file, the copy has the name “name (clean)”."
 )
 CLEAN_TILE = ("Remove metadata only", "Same format, no hidden personal data")
 RESIZE_TARGET = "resize"  # not a format: same format, new picture size (see resize.py)
 RESIZE_TILE = ("Change size only", "Same format, new width and height")
-RESIZE_NOTE = "Saves a copy in the new size. Next to the original, it is called “name (resized)”."
+RESIZE_NOTE = (
+    "Saves a copy in the new size. Next to the initial file, the copy has the name "
+    "“name (resized)”."
+)
 SHRINK_TARGET = "shrink"  # not a format: any video → a smaller MP4 (option "shrink")
 SHRINK_TILE = ("Make smaller", "MP4 for e-mail and messengers")
 SHRINK_NOTE = (
-    "Saves a much smaller MP4 copy for e-mail and messengers, called “name (smaller)”. "
-    "The picture gets a little softer, and videos with more than 30 frames per second are "
-    "saved with 30. Videos that are already small aren't made any bigger."
+    "Saves a much smaller MP4 copy for e-mail and messengers, with the name "
+    "“name (smaller)”. The picture becomes less sharp. Videos with more than 30 "
+    "frames for each second get 30. Azoth Converter does not make small videos larger."
 )
 SHRINK_SIZES = (
-    ("1080", "Full HD (1080p)", "Still sharp on a TV or big screen."),
-    ("720", "HD (720p)", "Good for e-mail and messengers: sharp on phones and laptops."),
-    ("480", "Small (480p)", "The smallest files; still fine on a phone."),
+    ("1080", "Full HD (1080p)", "Sharp on a TV or a large screen."),
+    ("720", "HD (720p)", "Good for e-mail and messengers. Sharp on phones and laptops."),
+    ("480", "Small (480p)", "The smallest files. Good on a phone."),
 )
 
 # Short tile text: what each target is good for, in a word or two.

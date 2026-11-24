@@ -156,8 +156,8 @@ class OfficeConverter(Converter):
             names = [n for f, n in _FAMILY_NAMES.items() if f in families]
             if names and len(names) < len(_FAMILY_NAMES):
                 what = " and ".join(names)
-                return f"{what} need LibreOffice (free) or Microsoft Office. {install}"
-        return f"Office conversions need LibreOffice (free). {install}"
+                return f"LibreOffice (free) or Microsoft Office is necessary for {what}. {install}"
+        return f"LibreOffice (free) is necessary for Office conversions. {install}"
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
         for src, family in FAMILY.items():
@@ -171,11 +171,13 @@ class OfficeConverter(Converter):
 
     def quality_note(self, src: str, dst: str) -> str | None:
         if dst == "txt":
-            return "Only the text is kept; formatting and images are dropped."
+            return (
+                "Azoth Converter keeps only the text. It does not keep the formatting and images."
+            )
         if dst == "csv":
-            return "CSV keeps only the first sheet and no formatting."
+            return "CSV keeps only the first sheet, and no formatting."
         if src in ("docx", "doc", "xlsx", "xls", "pptx", "ppt") and dst in ("odt", "ods", "odp"):
-            return "Complex Microsoft Office layouts may shift slightly."
+            return "Complex Microsoft Office layouts can move a small distance."
         return None
 
     def batch_key(self, src: str, dst: str) -> tuple[str, str] | None:

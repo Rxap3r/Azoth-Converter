@@ -17,13 +17,13 @@ EXPLORER_FLAG = "--explorer"  # see gui/explorer.py and context_menu.py
 TERMINAL_NOTE = """\
 Azoth Converter - terminal version
 
-This program is for typing commands, for example:
+This window is for commands, for example:
 
   azoth-terminal convert photo.jpg --to png
   azoth-terminal convert *.heic --to jpg --resize 1920x1080
-  azoth-terminal --help        (everything it can do)
+  azoth-terminal --help        (help for all commands)
 
-To use the normal app, open AzothConverter.exe instead.
+To use the usual app, open AzothConverter.exe.
 """
 
 
@@ -44,8 +44,8 @@ def _own_console_window() -> bool:
 
 TYPE_HERE_NOTE = """\
 Type your commands below and press Enter. Type exit to close this window.
-Tip: drag a file into this window to type its full name, or go to a folder
-first, for example: cd Downloads
+To type the full name of a file, drag the file into this window.
+To go to a folder first, type cd and the name of the folder, for example: cd Downloads
 """
 
 

@@ -61,7 +61,7 @@ class Resize:
 
     def __post_init__(self) -> None:
         if self.mode not in MODES:
-            raise ResizeError(f"“{self.mode}” is not a known size choice.")
+            raise ResizeError(f"“{self.mode}” is not a known size selection.")
         if self.denoise not in DENOISE_LEVELS:
             raise ResizeError(f"“{self.denoise}” is not a known noise removal level.")
         if self.mode == PERCENT:
@@ -131,8 +131,8 @@ def parse(text: str, enlarge: bool = True) -> Resize:
     match = _SPEC.match(text or "")
     if not match or (match.group(3) == "" and match.group(4) == ""):
         raise ResizeError(
-            f'"{text}" is not a size. Use one of these forms: 50%, 2000 (longest side), '
-            "1920x1080 (fit inside), 1920x (width), x1080 (height)."
+            f'"{text}" is not a size. Use one of these formats: 50%, 2000 (longest side), '
+            "1920x1080 (the picture goes in this area), 1920x (width), x1080 (height)."
         )
     percent, longest, width, height = match.groups()
     if percent is not None:
@@ -249,7 +249,7 @@ def _apply_ai(img, size, spec, info, progress, cancelled) -> Image.Image:
 
     if img.mode in ("I", "I;16", "F"):
         raise ResizeError(
-            "AI enhancement works only with normal pictures (8 bits for each colour). "
+            "You can use AI enhancement only with usual pictures (8 bits for each colour). "
             "This picture has more. Select the size without AI."
         )
     try:

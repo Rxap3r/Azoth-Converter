@@ -60,7 +60,8 @@ def _ffmpeg() -> Path:
     ffmpeg = find_ffmpeg()
     if ffmpeg is None:
         raise ConversionError(
-            "Video and audio need FFmpeg, and FFmpeg is missing. Install Azoth Converter again."
+            "FFmpeg is necessary for video and audio, and FFmpeg is missing. Install Azoth "
+            "Converter again."
         )
     return ffmpeg
 

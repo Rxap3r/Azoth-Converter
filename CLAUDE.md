@@ -258,7 +258,17 @@ Converter did not save a file", not "Nothing was saved"); instructions start wit
 ("Enter …", "Select …", "Remove …"); no contractions, no "please", "Cannot …" instead of
 "Could not …", "possibly" instead of "may be", "install … again" instead of "reinstall".
 Technical details from an engine go in brackets at the end: "Cannot read the PDF (…)."
-`tests/test_messages.py` checks the raised messages.
+This covers error messages, tooltips, notes (`quality_note`, `*_NOTE`) and command-line
+help; button labels stay short as they are.
+
+Words come from the STE100 Issue 9 dictionary (checked Nov 2026 with an unofficial copy
+of its word list; the official standard is free from asd-ste100.org after a request
+form). Common fixes: need → necessary, may → can / possibly, every → each, big → large,
+already / instead → rephrase, fail → cannot …, work (verb) → rephrase, real → correct,
+original → initial. Allowed as technical words: computer verbs (save, delete, copy,
+convert, search, upload …) and names of things (PDF, password, track, scan, the app's
+"Picture size" function). `tests/test_messages.py` checks all these texts for short
+forms, "please" and the most common rejected words.
 
 ## Languages
 

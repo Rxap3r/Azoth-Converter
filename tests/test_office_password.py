@@ -74,7 +74,7 @@ def test_wrong_or_missing_password(tmp_path):
 
 def test_refused_cases(tmp_path):
     locked = _locked(tmp_path, "xlsx")
-    with pytest.raises(ConversionError, match="already has a password"):
+    with pytest.raises(ConversionError, match="has a password. Remove that password first"):
         office_password.add_password(locked, tmp_path / "again.xlsx", PASSWORD)
     with pytest.raises(ConversionError, match="has no password"):
         office_password.remove_password(_make(tmp_path, "pptx"), tmp_path / "o.pptx", "x")

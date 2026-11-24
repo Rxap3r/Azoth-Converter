@@ -55,8 +55,8 @@ _WORD = re.compile(r"[^\W\d_]{3,}[.,:;!?]?")
 _TEXT_OBJECT = re.compile(rb"BT\b.*\bET\b", re.S)
 
 QUALITY_NOTE = (
-    "The text is read from the picture (OCR). Check names and numbers: unclear print "
-    "or handwriting can be misread."
+    "Azoth Converter reads the text from the picture (OCR). Examine names and numbers: "
+    "it can read unclear print or handwriting incorrectly."
 )
 
 
@@ -429,7 +429,7 @@ def make_searchable(
     with open_pdf(src) as doc:
         if not any(page_needs_ocr(page) for page in doc):
             raise ConversionError(
-                "This PDF already has text that you can select. There is no text to recognise."
+                "This PDF has text that you can select. There is no text to recognise."
             )
         add_text_layer(doc, language, progress=progress, cancel=cancel, turn_pages=turn_pages)
         if progress:

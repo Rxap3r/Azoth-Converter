@@ -118,14 +118,14 @@ def test_resize_in_the_same_format_makes_a_copy(engine, tmp_path):
     assert src.read_bytes() == before  # the original is never touched
     with Image.open(out.outputs[0]) as im:
         assert im.size == (200, 150)
-    assert any("saved again" in n for n in out.notes)  # JPG is lossy: say so
+    assert any("saves the picture again" in n for n in out.notes)  # JPG is lossy: say so
     again = engine.convert(src, "jpg", options={"resize": parse("50%")})
     assert again.outputs == [tmp_path / "p (resized) (1).jpg"]  # never overwritten
 
 
 def test_same_format_without_a_size_is_refused(engine, tmp_path):
     src = _photo(tmp_path / "p.png")
-    with pytest.raises(ConversionError, match="already"):
+    with pytest.raises(ConversionError, match="The format of p.png is"):
         engine.convert(src, "png")
 
 

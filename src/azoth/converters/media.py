@@ -194,7 +194,7 @@ def probe(ffmpeg: Path, src: Path) -> MediaInfo:
     if not info.streams:
         raise ConversionError(
             "Cannot read this file as a video or sound file. Possibly, the file is "
-            "damaged or incomplete, or its name shows the wrong format."
+            "damaged or not complete, or its name shows an incorrect format."
         )
     return info
 
@@ -455,8 +455,8 @@ class MediaConverter(Converter):
 
     def unavailable_reason(self) -> str:
         return (
-            "Video and audio conversions need FFmpeg, and FFmpeg is missing. Install Azoth "
-            "Converter again."
+            "FFmpeg is necessary for video and audio conversions, and FFmpeg is missing. "
+            "Install Azoth Converter again."
         )
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
@@ -483,17 +483,17 @@ class MediaConverter(Converter):
     def quality_note(self, src: str, dst: str) -> str | None:
         if dst == "gif":
             return (
-                f"GIF has only 256 colours and at most {quality.GIF_MAX_FPS} frames per "
-                "second here, without sound. Best for short clips."
+                f"GIF has only 256 colours and a maximum of {quality.GIF_MAX_FPS} frames for each "
+                "second here, with no sound. Use it for short clips."
             )
         if src == "gif":
             return None
         if dst == "mkv":
-            return "Every picture, sound and subtitle track is copied unchanged."
+            return "Azoth Converter copies each picture, sound and subtitle track with no change."
         if dst in LOSSY_WORDS:
             return (
-                "Tracks the new format can hold are copied unchanged; the others are "
-                f"re-encoded at high quality ({LOSSY_WORDS[dst]})."
+                "Azoth Converter copies the tracks that the new format can hold with no change. It "
+                f"encodes the other tracks again at high quality ({LOSSY_WORDS[dst]})."
             )
         return None
 
@@ -543,7 +543,7 @@ def _smaller(src: Path, dst: Path) -> list[Path]:
     if dst.stat().st_size >= src.stat().st_size:
         dst.unlink()
         raise ConversionError(
-            "This video is already small. A smaller copy does not save space, so "
+            "This video is small. A smaller copy does not save space, so "
             "Azoth Converter did not save a file."
         )
     return result
