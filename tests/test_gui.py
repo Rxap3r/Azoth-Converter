@@ -888,3 +888,31 @@ def test_make_videos_smaller(window, qtbot, sample_png, tmp_path):
     window.run_explorer_request(SHRINK_TARGET, [clip])
     qtbot.waitUntil(lambda: not window.is_busy(), timeout=60000)
     assert [p.name for p in (tmp_path / "menu").iterdir()] == ["clip (smaller).mp4"]
+
+
+def test_pdf_to_excel_choices(window, qtbot, sample_png, tmp_path):
+    from openpyxl import load_workbook
+    from test_pdf_excel import make_statement_pdf, values
+
+    from azoth.gui.settings import Preferences
+
+    statement = make_statement_pdf(tmp_path / "statement.pdf")
+    excel = window.excel_options
+    window.add_files([statement])
+    assert window.target_picker.select("docx")
+    assert excel.isHidden()  # only for PDF → Excel
+    assert window.target_picker.select("xlsx")
+    assert not excel.isHidden()
+    assert not any(excel.options().values())  # off by default: everything is kept
+    for box in excel.boxes.values():
+        box.setChecked(True)
+    assert "Tables only · All pages on one sheet" in window.convert_page.more.summary.text()
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    rows = values(load_workbook(tmp_path / "statement.xlsx").active)
+    assert rows[0] == ["Date", "Text", "Amount"] and len(rows) == 10  # one table
+    prefs = Preferences()
+    assert prefs.excel_option("tables_only") and prefs.excel_option("one_sheet")  # remembered
+    window.file_list.remove_rows([0])
+    window.add_files([sample_png])
+    assert excel.isHidden()  # photos have no Excel choices

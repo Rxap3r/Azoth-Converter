@@ -98,6 +98,7 @@ class MainWindow(QMainWindow):
         self.quality = page.quality
         self.ocr_options = page.ocr
         self.resize_options = page.resize
+        self.excel_options = page.excel
         self.shrink_size = page.shrink_size
         self.output_row = page.output_row
         self.name_row = page.name_row
@@ -332,6 +333,7 @@ class MainWindow(QMainWindow):
         self.quality.set_busy(busy)
         self.ocr_options.set_busy(busy)
         self.resize_options.set_busy(busy)
+        self.excel_options.set_busy(busy)
         self.shrink_size.setEnabled(not busy)
         count = self.file_list.count()
         self.convert_page.subtitle.setText(
@@ -378,6 +380,7 @@ class MainWindow(QMainWindow):
         if target == RESIZE_TARGET and self.resize_options.spec() is None:
             self.resize_options.set_mode(resize.FIT)  # this tile is about a new size
         self.resize_options.setVisible(resizable)
+        self.excel_options.setVisible(targets.uses_excel_options(self.file_list.formats, target))
         self.shrink_size.setVisible(target == SHRINK_TARGET)
         self.quality.setVisible(targets.uses_quality(self.file_list.formats, target))
         if target == RESIZE_TARGET:
@@ -494,6 +497,7 @@ class MainWindow(QMainWindow):
             "shrink": self.shrink_size.currentData() if target == SHRINK_TARGET else None,
             "passwords": passwords,
             **self.ocr_options.options(),
+            **self.excel_options.options(),
             "ocr_turn_pages": self.settings_page.turn_check.isChecked(),
         }
         self._thread = QThread(self)

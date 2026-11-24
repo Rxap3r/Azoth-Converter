@@ -147,6 +147,11 @@ def job_target(target: str, source: formats.Format) -> str:
     return source.id if target == RESIZE_TARGET else target
 
 
+def uses_excel_options(file_formats: FileFormats, target: str | None) -> bool:
+    """Whether the PDF → Excel choices apply: a PDF in the list becomes Excel."""
+    return target == "xlsx" and "pdf" in source_formats(file_formats)
+
+
 def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
     """Whether the "Text recognition" choices apply: "always" when photos (or scans in
     PDFs) become text or Word, "optional" when photos become a PDF, else None."""

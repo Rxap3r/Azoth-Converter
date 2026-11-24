@@ -59,6 +59,12 @@ dates, software, comments and action-camera GPS tracks are removed. Picture and 
 copied bit for bit (checked before saving); titles, song tags, album covers, chapters and
 track languages stay.
 
+**PDF → Excel choices** (under "More options"): **Tables only** leaves out headings and
+page footers; **All pages on one sheet** puts everything on one sheet instead of one per
+page. With both, a table that goes on over several pages (like a bank statement, its
+header repeated on each page) becomes one table you can sort and filter. Command line:
+`azoth convert statement.pdf --to xlsx --tables-only --one-sheet`.
+
 **Make videos smaller:** one click saves a much smaller MP4 copy of a phone video for
 e-mail and messengers, called "name (smaller).mp4": Full HD (1080p), HD (720p, the usual
 choice) or Small (480p), at most 30 frames per second. The picture gets a little softer

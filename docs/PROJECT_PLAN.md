@@ -150,11 +150,12 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
 - [x] PDF → Excel for tables. *Done (23 Nov 2026): `converters/pdf_excel.py` (PyMuPDF finds tables, openpyxl writes them); one sheet per page, merged cells, bold, colours; numbers only where clear; other text kept line by line.*
   - [ ] Later: tables without visible lines (only aligned text), tables from scans (OCR)
-  - [ ] Later: option "Tables only" (leave out the other text) and "All pages on one sheet" (suggested for the version after 0.6.0, 23 Nov 2026)
+  - [x] Option "Tables only" (leave out the other text) and "All pages on one sheet" (done on `dev`, 24 Nov 2026; with both, a table over several pages with a repeated header becomes one table) (suggested for the version after 0.6.0, 23 Nov 2026)
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [x] Removing metadata from PDF and Office files (author, company, edit history): DOCX, XLSX, PPTX and PDF, content checked unchanged before saving (on `dev`, Nov 2026)
   - [ ] Later: BMP and ICO (they rarely carry metadata); OpenDocument files (ODT, ODS, ODP: `meta.xml`); old DOC/XLS/PPT (today: convert first)
   - [x] A "Show metadata" button (ⓘ) on each photo card, besides the right-click menu (0.4.0)
+- [ ] **Black out parts of a PDF (redaction)** (suggested 24 Nov 2026; owner wants it and has something to add before work starts): mark names, account numbers or addresses; the text and pictures underneath are removed for good (not just covered), checked before saving.
 - [x] **Release 0.2.0** (19 Nov 2026): new look, PDF tools (merge, split, edit pages), remove photo metadata, choose the file name
 - [x] **Release 0.3.0** (22 Nov 2026): compress PDF, passwords, OCR, file names in every PDF tool, "Done" card
 - [x] **Release 0.5.0** (23 Nov 2026, pull request #11): AI upscaling, Excel/PowerPoint engines, Office passwords, document metadata, Explorer right-click menu

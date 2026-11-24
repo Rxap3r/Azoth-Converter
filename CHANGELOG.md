@@ -13,6 +13,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
   gives more natural hair, fur and grass when small pictures are made much bigger. About 15
   times slower than the normal AI (a few minutes per picture), so it's off unless you tick
   it. Command line: `--ai --ai-best`. The download grows by about 30 MB.
+- **PDF → Excel: "Tables only" and "All pages on one sheet"** (under "More options",
+  remembered): leave out the text around the tables, and put all pages on one sheet. With
+  both, a table that goes on over several pages, like a bank statement, becomes one table
+  with its header once, ready to sort and filter. Command line: `--tables-only`,
+  `--one-sheet`.
 - **Make videos smaller:** a new "Make smaller" tile for videos saves a much smaller MP4
   copy ("name (smaller).mp4") for e-mail and messengers: Full HD, HD (the usual choice) or
   Small, at most 30 frames per second. iPhone HDR videos get normal colours, upright videos

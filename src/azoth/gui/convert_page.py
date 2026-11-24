@@ -18,7 +18,7 @@ from ..quality import SHRINK_DEFAULT
 from . import icons
 from .done_card import DoneCard
 from .file_list import FileList
-from .options_panel import SHORT_LABELS, OcrOptions, QualitySelector, ResizeOptions
+from .options_panel import SHORT_LABELS, ExcelOptions, OcrOptions, QualitySelector, ResizeOptions
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .targets import SHRINK_SIZES
@@ -37,6 +37,8 @@ class ConvertPage(QWidget):
         self.ocr.set_mode(None)
         self.resize = ResizeOptions()
         self.resize.setVisible(False)
+        self.excel = ExcelOptions()
+        self.excel.hide()
         self.shrink_size = QComboBox()  # only for "Make smaller" (videos)
         self.shrink_size.setAccessibleName("Size of the smaller video")
         for level, text, tip in SHRINK_SIZES:
@@ -130,7 +132,7 @@ class ConvertPage(QWidget):
         options_column = QVBoxLayout(options)
         options_column.setContentsMargins(0, 6, 0, 0)
         options_column.setSpacing(14)
-        for widget in (self.resize, self.ocr, self.quality, self.name_row):
+        for widget in (self.resize, self.excel, self.ocr, self.quality, self.name_row):
             options_column.addWidget(widget)
         self.more = Collapsible("More options", options)
         column.addWidget(self.more)
@@ -139,6 +141,8 @@ class ConvertPage(QWidget):
         self.quality.level_changed.connect(self.refresh_summary)
         self.ocr.language.currentIndexChanged.connect(self.refresh_summary)
         self.ocr.searchable.toggled.connect(self.refresh_summary)
+        for box in self.excel.boxes.values():
+            box.toggled.connect(self.refresh_summary)
         self.choices_scroll = scrollable(choices)
         right = QVBoxLayout(self.right)
         right.setContentsMargins(0, 0, 0, 20)
@@ -166,6 +170,8 @@ class ConvertPage(QWidget):
         parts = []
         if not self.resize.isHidden():
             parts.append(self.resize.summary())
+        if not self.excel.isHidden() and self.excel.summary():
+            parts.append(self.excel.summary())
         if not self.ocr.isHidden() and self.ocr.options()["ocr"]:
             parts.append(f"Text in {self.ocr.language.currentText()}")
         if not self.quality.isHidden():

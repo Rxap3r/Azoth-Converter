@@ -67,6 +67,9 @@ def cmd_convert(args: argparse.Namespace) -> int:
     if args.shrink and _format_id(args.to) != "mp4":
         print("--shrink saves MP4: use --to mp4", file=sys.stderr)
         return 2
+    if (args.tables_only or args.one_sheet) and _format_id(args.to) != "xlsx":
+        print("--tables-only and --one-sheet are for PDF → Excel: use --to xlsx", file=sys.stderr)
+        return 2
     if args.shrink and (args.resize or args.ai):
         print("--shrink is for videos; --resize and --ai are for pictures", file=sys.stderr)
         return 2
@@ -96,6 +99,8 @@ def cmd_convert(args: argparse.Namespace) -> int:
     options = {
         "resize": size,
         "shrink": args.shrink,
+        "tables_only": args.tables_only,
+        "one_sheet": args.one_sheet,
         "level": args.level,
         "quality": args.quality,
         "dpi": args.dpi,
@@ -461,6 +466,18 @@ def build_parser() -> argparse.ArgumentParser:
         "for e-mail and messengers. The number is the shorter side in pixels (1080 = Full "
         "HD, 720 = HD, 480); smaller videos aren't enlarged. Lossy: the picture gets a "
         "little softer",
+    )
+    p.add_argument(
+        "--tables-only",
+        action="store_true",
+        help="PDF → Excel: only the tables, without the other text on the pages",
+    )
+    p.add_argument(
+        "--one-sheet",
+        action="store_true",
+        help="PDF → Excel: all pages on one sheet instead of one sheet per page. With "
+        "--tables-only, a table that goes on over several pages (e.g. a bank statement) "
+        "becomes one table",
     )
     p.add_argument(
         "--keep-metadata",

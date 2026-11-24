@@ -100,6 +100,45 @@ class LanguageBox(QComboBox):
             self.setCurrentIndex(index)
 
 
+class ExcelOptions(QWidget):
+    """PDF → Excel choices on the Convert page (under "More options")."""
+
+    CHOICES = (
+        ("tables_only", "Tables only",
+         "Leaves out the text outside the tables, such as headings and page footers."),
+        ("one_sheet", "All pages on one sheet",
+         "Instead of one sheet per page. Together with “Tables only”, a table that goes "
+         "on over several pages, such as a bank statement, becomes one table you can "
+         "sort and filter."),
+    )  # fmt: skip
+
+    def __init__(self, prefs: Preferences | None = None) -> None:
+        super().__init__()
+        self.prefs = prefs or Preferences()
+        self.boxes: dict[str, QCheckBox] = {}
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.addWidget(label("Excel", "caption"))
+        for name, text, tip in self.CHOICES:
+            box = QCheckBox(text)
+            box.setToolTip(tip)
+            box.setChecked(self.prefs.excel_option(name))
+            box.toggled.connect(lambda on, n=name: self.prefs.save_excel_option(n, on))
+            layout.addWidget(box)
+            self.boxes[name] = box
+
+    def options(self) -> dict[str, bool]:
+        return {name: box.isChecked() for name, box in self.boxes.items()}
+
+    def summary(self) -> str:
+        return " · ".join(box.text() for box in self.boxes.values() if box.isChecked())
+
+    def set_busy(self, busy: bool) -> None:
+        for box in self.boxes.values():
+            box.setEnabled(not busy)
+
+
 class OcrOptions(QWidget):
     """ "Text recognition" on the Convert page: shown when a scan or photo becomes text,
     Word or (optional) a searchable PDF."""
