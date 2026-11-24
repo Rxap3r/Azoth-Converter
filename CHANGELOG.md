@@ -16,6 +16,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ### Development
 
+- The automatic Windows build also tries "Best quality (slow)" once in the finished program
+  (on a tiny picture, so it adds only seconds).
 - Claude Code sessions use the owner's cost-saver plugin, now installed in the owner's claude.ai account instead of `.claude/settings.json`.
 - Every new Claude Code chat first updates the local `dev` to GitHub's latest version (`.claude/hooks/sync-dev.sh`); with uncommitted changes or unpushed commits it changes nothing and warns instead.
 

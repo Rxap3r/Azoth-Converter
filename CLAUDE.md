@@ -290,8 +290,7 @@ Details are in `CHANGELOG.md` (what each version contains) and `docs/PROJECT_PLA
   good): icon rework, "Done" notification, accessibility checks. Later: version check
   inside the app (only on click, after code signing), OCR speed on long PDFs. All in `docs/PROJECT_PLAN.md`.
 - **On `dev` for 0.7.0:** "Best quality (slow)" AI (`--ai-best`, bigger model, +30 MB
-  download); the Windows build's smoke test only tries the normal AI (adding the big one
-  there is a workflow change: ask first).
+  download); the Windows build smoke-tests both AI models in the finished program.
 - **Still to try on a real Windows PC** (owner's company PC has Office, no LibreOffice): AI
   on real photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both
   ways; the right-click menu; the double-clicked `azoth-terminal.exe` Command Prompt; videos
