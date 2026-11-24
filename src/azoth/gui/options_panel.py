@@ -40,21 +40,26 @@ class QualitySelector(QWidget):
             button.setProperty("role", "segment")
             button.setCheckable(True)
             button.setFocusPolicy(Qt.FocusPolicy.TabFocus)
-            button.setToolTip(level.label)
+            button.setToolTip(
+                f"{level.description}\nPhoto quality {level.image_quality} of 100 (JPG, WebP, "
+                f"HEIC, AVIF) · PDF pages as pictures at {level.dpi} DPI."
+            )
             button.setAccessibleName(f"Quality: {level.label}")
             button.toggled.connect(lambda on, lv=level.id: on and self._changed(lv))
             self.group.addButton(button)
             self.buttons[level.id] = button
             row.addWidget(button, 1)
-        self.hint = label("", "small", wrap=True)
+        caption = label("Quality", "caption")
+        caption.setToolTip(
+            "Only for photos and PDF pages saved as pictures. Documents → PDF always keep "
+            "full quality."
+        )
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
-        layout.addWidget(label("Quality", "caption"))
+        layout.addWidget(caption)
         layout.addWidget(frame)
-        layout.addWidget(self.hint)
         self.buttons[quality.DEFAULT.id].setChecked(True)
-        self._update_hint()
 
     def level(self) -> str:
         return next(k for k, b in self.buttons.items() if b.isChecked())
@@ -68,19 +73,7 @@ class QualitySelector(QWidget):
             button.setEnabled(not busy)
 
     def _changed(self, level_id: str) -> None:
-        self._update_hint()
         self.level_changed.emit(level_id)
-
-    def _update_hint(self) -> None:
-        level = quality.BY_ID[self.level()]
-        self.hint.setText(
-            f"{level.description} Only affects photos and PDF pages saved as pictures; "
-            "documents → PDF always keep full quality."
-        )
-        self.hint.setToolTip(
-            f"Details: photo quality {level.image_quality} of 100 (JPG, WebP, HEIC, AVIF) · "
-            f"PDF pages as pictures at {level.dpi} DPI (dots per inch, higher is sharper)."
-        )
 
 
 class LanguageBox(QComboBox):
@@ -123,11 +116,11 @@ class OcrOptions(QWidget):
         self.searchable.setChecked(prefs.ocr_searchable)
         self.searchable.toggled.connect(self._toggled)
         self.language = LanguageBox(prefs)
-        self.language_label = label("Language of the text (for scans and photos)", "small")
+        self.language.setToolTip("The language of the text in scans and photos")
+        self.language_label = label("Text language", "caption")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
-        layout.addWidget(label("Text recognition", "caption"))
         layout.addWidget(self.searchable)
         layout.addWidget(self.language_label)
         layout.addWidget(self.language)
@@ -206,7 +199,8 @@ class ResizeOptions(QWidget):
             "their size get sharper, with less noise and fewer JPEG blocks. Runs only on "
             "this computer, and takes a while."
         )
-        self.ai.setVisible(upscale.available())
+        if not upscale.available():
+            self.ai.hide()
         self.denoise = QComboBox()
         self.denoise.setAccessibleName("Noise removal")
         for level, text in upscale.DENOISE_LABELS.items():
@@ -353,5 +347,22 @@ class ResizeOptions(QWidget):
                 " The AI invents detail: it looks real but isn't fully true to the original"
                 " (not for documents, evidence or ID photos). Takes a while."
             )
-        self.hint.setText(hint)
+        self.mode.setToolTip(hint)
+        self.preset.setToolTip(hint)
+        # Only the AI's caveat stays visible: the result isn't fully true to the original.
+        warning = "The AI invents detail: not for documents or ID photos." if ai else ""
+        self.hint.setText(warning)
+        self.hint.setToolTip(hint)
+        self.hint.setVisible(bool(warning))
         self.changed.emit()
+
+    def summary(self) -> str:
+        """A few words for the closed "More options": "Original size", "Full HD · AI" …"""
+        mode = self.mode.currentData()
+        if mode is None:
+            text = "Original size"
+        elif self.is_custom():
+            text = f"{self.mode.currentText()}: custom"
+        else:
+            text = self.preset.currentText().split(" (")[0]
+        return f"{text} · AI" if self.uses_ai() else text

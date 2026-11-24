@@ -6,7 +6,7 @@ Guidance for Claude sessions working on this repository.
 
 Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHANGELOG.md`.
 
-- **Released:** Azoth Converter **0.4.0** (22 Nov 2026, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
+- **Released:** Azoth Converter **0.5.0** (23 Nov 2026, pull request #11; 0.4.0 on 22 Nov, pull request #10; 0.3.1 and 0.3.0 the same day, 0.2.1 on 21 Nov, 0.2.0 on 19 Nov, 0.1.0 on 18 Nov) on GitHub Releases
   (installer + portable ZIP). The repository is **public** at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`;
   the old URL redirects, but connect new sessions to the new name).
 - **GitHub setup:** a ruleset protects **only `main`** (pull request required, checks Tests
@@ -39,10 +39,8 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
   pixel size + "Show metadata" (ⓘ) button on photo cards, CLI renamed to
   `azoth-terminal.exe` (double-click shows a note), cached target formats. The owner tested
   it on Windows before the release.
-- **0.5.0 prepared on `dev` (23 Nov 2026)**: version, `CHANGELOG.md` section and
-  `docs/releases/v0.5.0.md` done; pull request `dev` → `main` opened on the owner's request
-  ("make a pull request and prepare the release"): pull request #11. After the owner merges it, they start
-  Actions → Release on `main`. Contents (details in `CHANGELOG.md` → 0.5.0):
+- **0.5.0 released (23 Nov 2026, pull request #11)**. Contents (details in
+  `CHANGELOG.md` → 0.5.0):
   1. **"Enhance with AI"** (`upscale.py`): Real-ESRGAN run by OpenCV's dnn, tiled; under
      Picture size; Noise removal Low/Medium/High; CLI `--ai`, `--denoise`. The Windows build
      smoke-tests it in the finished program. The bigger model (`RealESRGAN_x4plus`) was
@@ -64,16 +62,35 @@ Read this first in a new session. Details are in `docs/PROJECT_PLAN.md` and `CHA
      window via a local pipe with a key in the settings folder). Classic menu only (Windows
      11: "Show more options"). The "Test installer" step checks the menu is added and
      fully removed (owner agreed, 23 Nov 2026).
-  **Next:** the owner tests these on the company PC (Office, no LibreOffice): AI on real
-  photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; a file protected in Office;
-  a file locked here opened in Office; PowerPoint already open stays open. Then ask
-  whether to release (0.5.0) before any pull request.
+  Still to try on the owner's company PC (Office, no LibreOffice): AI on real photos;
+  Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both ways; the
+  right-click menu.
+- **0.6.0 prepared on `dev` (24 Nov 2026), not yet released**: version set, `CHANGELOG.md`
+  → 0.6.0, notes in `docs/releases/v0.6.0.md`. Next: owner says "pull it" → pull request
+  `dev` → `main`; owner merges and runs Actions → Release. Contents:
+  1. **PDF → Excel** (`converters/pdf_excel.py`, openpyxl): tables as cells, one sheet per
+     page, numbers only where clear;
+  2. **Video and audio** (`converters/media.py`, FFmpeg 8.0.1 "full" bundled on Windows via
+     `packaging/fetch_ffmpeg.py`; Linux tests install `ffmpeg`; the Windows build
+     smoke-tests MOV → MP4/WebM/MP3 in the finished program);
+  3. **Remove metadata for videos and music** (`media_metadata.py`, owner's pick for 0.6.0);
+  4. **Right-click files go to the open window** (also when opened from the Start menu) and
+     **no more flashing small windows** (widgets were shown before having a parent; use
+     `widgets.discard()` and never `setVisible(True)` on a parentless widget;
+     `test_no_stray_windows_flash_up` checks it);
+  5. **Menu overhaul** (owner: "not overwhelming"): 6 tiles + "More formats", "More
+     options" folded with a summary, details in tooltips, Quality only where it matters,
+     Settings regrouped, sidebar tools on top.
+  6. `azoth-terminal.exe` double-clicked opens a Command Prompt (Enter used to close it);
+     wildcards like `*.heic` expanded by the CLI on Windows.
+  Postponed to the version after: "Make smaller" for videos, PDF → Excel
+  "Tables only" / "All pages on one sheet" (in `docs/PROJECT_PLAN.md`).
 - **Test note:** GUI tests use `MainThreadGC` in the `window` fixture like the app (a
   Windows test crashed without it while the AI ran in the worker thread).
 - **Owner's priorities (23 Nov 2026):** done on `dev`: AI upscaling, Excel/PowerPoint,
   Office passwords; then (for 0.5.0) PDF → Word progress, document metadata, Explorer
-  right-click menu. Still wanted: PDF → Excel,
-  video/audio (FFmpeg); the **design refresh is low priority** (the owner finds the current
+  right-click menu (all released in 0.5.0). PDF → Excel and video/audio are done (for
+  0.6.0, see above). Then: the **design refresh is low priority** (the owner finds the current
   design good). Smaller download and code signing (waiting for SignPath) as before.
 - **Earlier notes on planned work:**
   - design refresh: icon rework (the seal looks like a smiley from afar; owner postponed the
@@ -181,7 +198,8 @@ Future ideas and change requests from the owner go into `docs/PROJECT_PLAN.md` a
 in the matching phase (design wishes under "Design refresh"); there is no separate wish list.
 
 Stack: Python 3.11+, PySide6 (GUI), Pillow and pillow-heif (images), PyMuPDF and pdf2docx (PDF),
-LibreOffice headless (office formats), PyInstaller (Windows build). License: GPL-3.0-or-later.
+openpyxl (PDF → Excel), FFmpeg (video and audio), LibreOffice headless (office formats),
+PyInstaller (Windows build). License: GPL-3.0-or-later.
 
 ## Public repository
 
@@ -229,6 +247,12 @@ src/azoth/
   resize.py           picture size (longest side, width, height, fit, %); used by converters/images.py
   upscale.py          "Enhance with AI" (Real-ESRGAN run by OpenCV's dnn, tiled); model in
                       resources/upscale (not in git: fetched by packaging/fetch_tessdata.py)
+  converters/media.py video and audio (FFmpeg): copies tracks where possible, removes GPS/phone
+                      metadata, keeps song tags; FFmpeg in resources/ffmpeg on Windows (not in
+                      git: fetched by packaging/fetch_ffmpeg.py, called by fetch_tessdata.py)
+  converters/pdf_excel.py  PDF → Excel (tables found by PyMuPDF, written by openpyxl)
+  media_metadata.py   show/remove metadata of videos and music (FFmpeg copies the tracks,
+                      every packet compared before saving)
   metadata.py         show/remove metadata (`azoth clean`); photos: byte-level code in converters/strip.py;
                       PDF/DOCX/XLSX/PPTX: doc_metadata.py
   context_menu.py     Explorer right-click menu entries → packaging/context_menu.iss
@@ -304,6 +328,15 @@ GUI tests need `QT_QPA_PLATFORM=offscreen` on headless machines (set in `conftes
 Office tests are skipped when LibreOffice isn't installed. Install it to run them.
 
 ## Look and feel
+
+**Keep it calm (owner, 23 Nov 2026):** short labels; explanations go into tooltips (hover),
+not into text under the control. Only warnings the user must see stay visible (e.g. the
+AI's "not for documents or ID photos"). Rarely changed choices go under "More options" on
+the Convert page. Show an option only where it changes something.
+
+Never call `setVisible(True)`/`show()` on a widget before it has a parent, and never remove
+one with `setParent(None)`: on Windows it flashes up as a small window of its own. Hide
+instead (`if not x: w.hide()`) and remove with `widgets.discard()`.
 
 Pages and panels whose content can grow are wrapped in `widgets.scrollable()`, so a low window
 (or larger Windows text) scrolls instead of squeezing buttons on top of each other;

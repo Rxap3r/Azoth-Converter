@@ -17,7 +17,7 @@ from .resources import resources_dir
 SYSTEM, LIGHT, DARK = "system", "light", "dark"
 CHOICES = [(SYSTEM, "Follow Windows"), (LIGHT, "Light"), (DARK, "Dark")]
 FONT = '"Segoe UI Variable Text", "Segoe UI", "Inter", "Noto Sans", sans-serif'
-CATEGORIES = ("image", "pdf", "document", "spreadsheet", "presentation")
+CATEGORIES = ("image", "pdf", "document", "spreadsheet", "presentation", "video", "audio")
 
 
 @dataclass(frozen=True)
@@ -84,6 +84,8 @@ LIGHT_COLORS = Colors(
         "document": ("#E4ECFB", "#1C3F8A"),
         "spreadsheet": ("#E2F4E8", "#0D5B2E"),
         "presentation": ("#FCEBDD", "#8A3B12"),
+        "video": ("#F1E6FB", "#5B2283"),
+        "audio": ("#DDF3F1", "#0B5A55"),
         "unknown": ("#EEEEF2", "#44444F"),
     },
 )
@@ -121,6 +123,8 @@ DARK_COLORS = Colors(
         "document": ("#1E2B4F", "#BCCBFF"),
         "spreadsheet": ("#173826", "#A3E5BA"),
         "presentation": ("#46291A", "#FFC9A3"),
+        "video": ("#36224A", "#DDBDF7"),
+        "audio": ("#163A38", "#9FE3DC"),
         "unknown": ("#33333D", "#D0D0DA"),
     },
 )
@@ -223,7 +227,7 @@ QPushButton[role="nav"]:checked {{ background: {c.surface}; font-weight: 600; bo
 QPushButton[role="nav"]:focus {{ border: 2px solid {c.accent}; }}
 QPushButton[role="tile"] {{ background: {c.surface}; border: 1px solid {c.border}; border-radius: 8px;
     padding: 0; text-align: left; min-height: 48px; }}
-QPushButton[role="tile"][wide="true"] {{ min-height: 54px; }}
+QPushButton[role="tile"][wide="true"] {{ min-height: 36px; }}
 QPushButton[role="tile"]:hover {{ background: {c.hover}; }}
 QPushButton[role="tile"]:checked {{ background: {c.accent_soft}; border: 2px solid {c.accent}; }}
 QPushButton[role="tile"]:focus {{ border: 2px solid {c.accent}; }}
@@ -236,6 +240,10 @@ QPushButton[role="icon"] {{ background: transparent; border: 0; border-radius: 6
     min-width: 36px; max-width: 36px; min-height: 36px; max-height: 36px; }}
 QPushButton[role="icon"]:hover {{ background: {c.hover}; }}
 QPushButton[role="icon"]:focus {{ border: 2px solid {c.accent}; }}
+QPushButton[role="section"] {{ background: transparent; border: 0; padding: 2px 0;
+    text-align: left; color: {c.text}; font-size: 13px; font-weight: 600; min-height: 24px; }}
+QPushButton[role="section"]:hover {{ color: {c.accent}; }}
+QPushButton[role="section"]:focus {{ border: 1px solid {c.accent}; }}
 QPushButton[role="link"] {{ background: transparent; border: 0; padding: 0 2px; color: {c.accent};
     font-size: 12px; min-height: 18px; }}
 QPushButton[role="link"]:hover {{ text-decoration: underline; }}

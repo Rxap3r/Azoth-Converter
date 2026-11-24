@@ -82,6 +82,14 @@ def choose_pdfs(parent: QWidget, many: bool) -> list[Path]:
     return [Path(p) for p in paths]
 
 
+def hint(text: str, details: str = ""):
+    """A one-line explanation under a tool's buttons; the details are shown on hover."""
+    widget = label(text, "muted", wrap=True)
+    if details:
+        widget.setToolTip(details)
+    return widget
+
+
 class Task(QObject):
     """Runs one job in a background thread; reports back through signals."""
 
@@ -252,9 +260,7 @@ class MergeTool(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
-        layout.addWidget(
-            label("Joins PDFs into one, in this order. Drag them to change the order.", "muted")
-        )
+        layout.addWidget(label("Joins PDFs into one. Drag them to change the order.", "muted"))
         layout.addWidget(self.list, 1)
         layout.addLayout(buttons)
 
@@ -448,11 +454,10 @@ class EditTool(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
         layout.addWidget(
-            label(
+            hint(
+                "Turn, delete or reorder pages.",
                 "Select pages to turn or delete them; drag them to change the order. "
                 "The original PDF isn't changed.",
-                "muted",
-                wrap=True,
             )
         )
         layout.addWidget(row)
@@ -582,7 +587,7 @@ class _SinglePdfTool(QWidget):
 
     changed = Signal()
 
-    def __init__(self, intro: str) -> None:
+    def __init__(self, intro: str, details: str = "") -> None:
         super().__init__()
         self.source: Path | None = None
         self.size = 0
@@ -593,7 +598,7 @@ class _SinglePdfTool(QWidget):
         self.body = QVBoxLayout(self)
         self.body.setContentsMargins(0, 0, 0, 0)
         self.body.setSpacing(10)
-        self.body.addWidget(label(intro, "muted", wrap=True))
+        self.body.addWidget(hint(intro, details))
         self.body.addWidget(row)
 
     def check(self, pdf: Path) -> str | None:
@@ -638,20 +643,18 @@ class _SinglePdfTool(QWidget):
 class CompressTool(_SinglePdfTool):
     def __init__(self) -> None:
         super().__init__(
-            "Saves a smaller copy. Text, links and form fields stay exactly as they are; "
-            "only pictures can get smaller."
+            "Saves a smaller copy of the PDF.",
+            "Text, links and form fields stay exactly as they are; only pictures can get smaller.",
         )
         self.levels = QButtonGroup(self)
         self.level_buttons: dict[str, QRadioButton] = {}
         for level in quality.COMPRESS_LEVELS:
             button = QRadioButton(level.label)
+            button.setToolTip(level.description)  # the details on hover
             button.setChecked(level is quality.DEFAULT_COMPRESS)
             self.levels.addButton(button)
             self.level_buttons[level.id] = button
-            about = label(level.description, "small", wrap=True)
-            about.setContentsMargins(26, 0, 0, 4)
             self.body.addWidget(button)
-            self.body.addWidget(about)
         self.body.addWidget(self.signed)
         self.body.addStretch(1)
         self.before = 0
@@ -682,9 +685,9 @@ class CompressTool(_SinglePdfTool):
         return f"✓ Saved {outputs[0].name}: {size(self.before)} → {size(after)} ({saved}% smaller)"
 
 
-FORGET_WARNING = (
-    "⚠ Keep the password safe. If you forget it, nobody can open the copy, "
-    "not even with this app. Your original stays as it is, without a password."
+FORGET_WARNING = "⚠ Keep the password safe: without it, nobody can open the copy."
+FORGET_DETAILS = (
+    "Not even this app can open it then. Your original stays as it is, without a password."
 )
 
 
@@ -695,9 +698,9 @@ class PasswordTool(_SinglePdfTool):
 
     def __init__(self) -> None:
         super().__init__(
-            "Lock a PDF, Word, Excel or PowerPoint file with a password (AES-256 "
-            "encryption), or remove the password from your own file. The password is "
-            "never saved."
+            "Lock a file with a password, or remove the password from your own file.",
+            "PDF, Word, Excel and PowerPoint files (DOCX, XLSX, PPTX). AES-256 encryption. "
+            "The password is never saved.",
         )
         self.lib = pdf_tools  # pdf_tools or office_password, by the chosen file
         self.file_label.setText("No file chosen yet. Drag one here, or choose it.")
@@ -717,6 +720,7 @@ class PasswordTool(_SinglePdfTool):
         self.show_check.toggled.connect(self._show)
         self.hint = label("", "small", wrap=True)
         self.forget = label(FORGET_WARNING, "banner", wrap=True)
+        self.forget.setToolTip(FORGET_DETAILS)
         for widget in (self.mode, self.password, self.repeat, self.show_check, self.hint):
             self.body.addWidget(widget)
         self.body.addWidget(self.forget)
@@ -841,9 +845,10 @@ class SearchableTool(_SinglePdfTool):
 
     def __init__(self) -> None:
         super().__init__(
+            "Makes the text in scanned pages searchable.",
             "Reads the text in scanned pages and adds it invisibly, so you can search, "
             "select and copy it. The pages look exactly the same. Pages that already "
-            "have text are left as they are."
+            "have text are left as they are.",
         )
         self.report: Callable[[float, str], None] = lambda fraction, text: None
         self.cancel = threading.Event()
@@ -952,7 +957,8 @@ class ToolsPage(QWidget):
         self.tool_buttons[keys[0]].setChecked(True)
         self.stack.setCurrentWidget(self.tools[keys[0]])
         for button in self.tool_buttons.values():
-            button.setVisible(len(keys) > 1)  # one tool: nothing to switch
+            if len(keys) == 1:  # one tool: nothing to switch
+                button.hide()
 
         self.output_row = OutputFolderRow()
         self.name_row = FileNameRow()
@@ -981,7 +987,7 @@ class ToolsPage(QWidget):
         titles = QVBoxLayout()
         titles.setSpacing(2)
         titles.addWidget(label(title, "h1"))
-        if intro:  # a single tool explains itself
+        if intro:
             titles.addWidget(label(intro, "muted", wrap=True))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 20)
@@ -1096,8 +1102,7 @@ class PdfToolsPage(ToolsPage):
         super().__init__(
             PDF_TOOLS,
             "PDF tools",
-            "Merge, split, edit, compress and make PDFs searchable. Only Compress changes "
-            "pictures; everything else copies pages as they are.",
+            "",
         )
 
 

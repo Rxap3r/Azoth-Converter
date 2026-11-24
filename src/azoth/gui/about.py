@@ -30,6 +30,8 @@ COMPONENTS = [
     ("PyMuPDF / MuPDF", "PyMuPDF", "AGPL-3.0", "PDF reading, rendering, merging"),
     ("pdf2docx", "pdf2docx", "MIT", "PDF → Word"),
     ("python-docx", "python-docx", "MIT", "Word files for PDF → Word and OCR"),
+    ("openpyxl", "openpyxl", "MIT", "Excel files for PDF → Excel"),
+    ("et-xmlfile", "et-xmlfile", "MIT", "Used by the above"),
     ("Tesseract OCR", None, "Apache-2.0", "Text recognition (built into MuPDF)"),
     ("Tesseract language data", None, "Apache-2.0", "OCR in English, German, French, Italian"),
     ("OpenCV", "opencv-python-headless", "Apache-2.0", "PDF → Word layout, runs the AI model"),
@@ -38,6 +40,7 @@ COMPONENTS = [
     ("cryptography", "cryptography", "Apache-2.0 / BSD-3-Clause", "Encryption for the above"),
     ("olefile", "olefile", "BSD-2-Clause", "Reads older Office files for the above"),
     ("NumPy", "numpy", "BSD-3-Clause", "Used by the above"),
+    ("FFmpeg", None, "GPL-3.0", "Video and audio (Windows build by Gyan Doshi)"),
     ("LibreOffice", None, "MPL-2.0", "Office formats (installed separately)"),
     ("Microsoft Word", None, "Your own Microsoft licence", "Word → PDF, optional"),
 ]

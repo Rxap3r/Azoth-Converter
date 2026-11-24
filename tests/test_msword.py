@@ -260,7 +260,7 @@ def _without_libreoffice(monkeypatch):
     monkeypatch.setattr(office.OfficeConverter, "is_available", lambda self: False)
 
 
-def test_no_libreoffice_message_when_office_does_everything(monkeypatch):
+def test_no_libreoffice_message_when_office_does_everything(monkeypatch, with_ffmpeg):
     _without_libreoffice(monkeypatch)
     monkeypatch.setattr(msword, "app_installed", lambda app: True)
     monkeypatch.setattr(msword, "find_powershell", lambda: "powershell.exe")
@@ -269,7 +269,7 @@ def test_no_libreoffice_message_when_office_does_everything(monkeypatch):
     assert engine.needed_engines() == []  # Word, Excel and PowerPoint cover it all
 
 
-def test_libreoffice_message_names_only_what_is_missing(monkeypatch):
+def test_libreoffice_message_names_only_what_is_missing(monkeypatch, with_ffmpeg):
     _without_libreoffice(monkeypatch)
     monkeypatch.setattr(msword, "app_installed", lambda app: app.key == "word")
     monkeypatch.setattr(msword, "find_powershell", lambda: "powershell.exe")

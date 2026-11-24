@@ -27,7 +27,7 @@ from ..converters import ConversionError
 from . import icons
 from .settings import forget_file_dialog_history
 from .theme import LIGHT_COLORS, Colors, repolish
-from .widgets import label
+from .widgets import discard, label
 
 # Card states, used by the stylesheet to colour the status line.
 WAITING, WORKING, DONE, FAILED, INFO = "waiting", "working", "done", "failed", "info"
@@ -94,7 +94,8 @@ class FileCard(QFrame):
         self.metadata_btn.setProperty("role", "icon")
         self.metadata_btn.setToolTip("Show metadata (location, camera, date …)")
         self.metadata_btn.setAccessibleName(f"Show the metadata of {path.name}")
-        self.metadata_btn.setVisible(fmt is not None and fmt.id in metadata.CLEANABLE)
+        if fmt is None or fmt.id not in metadata.CLEANABLE:
+            self.metadata_btn.hide()
         self.metadata_btn.clicked.connect(lambda: owner.show_metadata(owner.cards.index(self)))
 
         self.remove_btn = QPushButton()
@@ -225,8 +226,7 @@ class FileList(QWidget):
             return
         for row in sorted(set(rows), reverse=True):
             card = self.cards.pop(row)
-            card.setParent(None)
-            card.deleteLater()
+            discard(card)
             del self.files[row]
             del self.formats[row]
         self._changed()

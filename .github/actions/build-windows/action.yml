@@ -57,6 +57,26 @@ runs:
           Write-Error "AI smoke test failed"
           exit 1
         }
+        # Video and sound work with the bundled FFmpeg (PATH limited to Windows itself,
+        # so an FFmpeg installed on the build machine can't stand in for it)
+        $ffmpeg = "packaging/dist/AzothConverter/_internal/azoth/resources/ffmpeg/ffmpeg.exe"
+        if (-not (Test-Path $ffmpeg)) { Write-Error "FFmpeg missing in the built program"; exit 1 }
+        $media = "$env:RUNNER_TEMP\media-smoke"
+        New-Item -ItemType Directory -Force $media | Out-Null
+        & $ffmpeg -v error -f lavfi -i testsrc=size=320x240:duration=2 -f lavfi -i sine=duration=2 `
+          -c:v libx264 -c:a aac -shortest "$media\clip.mov"
+        if ($LASTEXITCODE -ne 0) { Write-Error "FFmpeg can't make the test clip"; exit 1 }
+        $oldPath = $env:PATH
+        $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+        foreach ($to in "mp4", "webm", "mp3") {
+          & $exe convert "$media\clip.mov" --to $to -o "$media\out" --quiet
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$media\out\clip.$to")) {
+            $env:PATH = $oldPath
+            Write-Error "Video smoke test failed: MOV → $($to.ToUpper())"
+            exit 1
+          }
+        }
+        $env:PATH = $oldPath
     - name: Build installer
       shell: pwsh
       working-directory: packaging

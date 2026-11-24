@@ -7,6 +7,87 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-24
+
+### Added
+
+- **PDF → Excel (XLSX):** tables in a PDF become real Excel cells, one sheet per page,
+  with merged cells, bold text, background colours and column widths. Numbers become real
+  numbers you can calculate with ("CHF 1'240.50" stays shown like that) only where their
+  meaning is clear; "1.234" alone, codes like "007" and long account numbers stay text.
+  Text outside the tables is kept line by line, so nothing is lost. Tables need visible
+  lines; scans aren't supported yet (convert them to Word instead). Shows progress page by
+  page and can be cancelled.
+
+- **Video and audio** (with FFmpeg, now part of the Windows app):
+  - Video: MP4, MOV (iPhone), MKV, WebM, AVI, WMV, MPG, MTS (camcorders), FLV, 3GP →
+    MP4, MOV, MKV, WebM, AVI or GIF; or just the sound as MP3, M4A, WAV, FLAC, OGG, Opus.
+  - Audio: MP3, M4A, WAV, FLAC, OGG, Opus, WMA, AIFF, AAC → MP3, M4A, WAV, FLAC, OGG, Opus.
+  - Animated GIF → MP4 or WebM (a much smaller file).
+  - Shows progress ("0:42 of 3:10") and can be cancelled.
+  - Right-click menu entries for video and sound files.
+  - **Remove metadata only** and **Show metadata…** for videos (MP4, MOV, MKV, WebM, AVI,
+    3GP) and music (MP3, M4A, WAV, FLAC, OGG, Opus, AIFF): removes the filming place
+    (GPS), phone model, dates, software, comments and action-camera GPS tracks. Picture and
+    sound are copied bit for bit and checked before saving; titles, song tags, covers,
+    chapters and track languages stay. Also `azoth clean video.mov`.
+
+### Changed
+
+- **Calmer, tidier app** (owner's wish: less overwhelming):
+  - Convert: the 6 most useful formats are shown, the rest under "More formats". Picture
+    size, text language, quality and file name are under **More options** (closed, with a
+    one-line summary such as "Original size · Maximum quality"; it remembers whether you
+    leave it open). "Change size only" and "Remove metadata only" are slimmer.
+  - Quality is only shown where it changes something (photos saved as JPG, WebP, HEIC,
+    AVIF; pages saved as pictures), not for e.g. PDF → Word.
+  - Long explanations under choices and buttons are gone: hover over them to read the
+    details. Notes show their first sentence, the rest on hover. The AI's caveat ("not for
+    documents or ID photos") stays visible.
+  - Settings: short labels, the theme choice in one row, a separate **Privacy** group.
+  - Sidebar: the tools at the top; Supported formats and Settings at the bottom.
+  - PDF tools and Password: one short line per tool; Compress choices without paragraphs.
+  - A long "Save to" folder is shortened with "…" instead of being cut off.
+- **Right-click menu uses the open window:** files chosen with "Convert with Azoth
+  Converter" now go to the window that is already open, also when you opened it from the
+  Start menu, instead of starting a second copy. "Open in Azoth Converter" adds the files
+  to the ones already in the list; "To PDF" etc. converts just the chosen files. The window
+  comes to the front.
+
+### Fixed
+
+- Double-clicking `azoth-terminal.exe` now opens a window where you can type commands (a Command Prompt in your user folder); before, pressing Enter just closed it.
+- Wildcards such as `*.heic` now work in the Windows Command Prompt and PowerShell (Windows doesn't expand them itself).
+- Small empty windows no longer flash up in the middle of the screen while the app starts
+  or the format choices change (parts of the window were briefly shown on their own
+  before being placed in it).
+
+### Quality
+
+- Video and sound tracks the new format can hold are **copied unchanged** (MKV ↔ MP4 ↔ MOV
+  takes seconds and loses nothing; MKV keeps every sound and subtitle track). Only what
+  doesn't fit is re-encoded, at high settings (H.264 "visually lossless", AAC 256 kbit/s,
+  MP3 V0, Opus 192 kbit/s). Lossless sound stays lossless: FLAC → M4A uses Apple Lossless,
+  24-bit sound stays 24-bit in WAV and FLAC.
+
+### Privacy and safety
+
+- Converted videos lose the place they were filmed (GPS), the phone model and dates, like
+  photos (the "Keep … metadata" setting now covers video and sound too). Song tags (title,
+  artist, album, track, cover) and track languages are kept.
+- FFmpeg may only open files on your computer: a playlist or crafted video can't make it
+  connect to the internet.
+
+### Development
+
+- FFmpeg 8.0.1 for Windows ("full" build by Gyan Doshi, GPL-3.0, about 75 MB more in the
+  download) is fetched by `packaging/fetch_ffmpeg.py` (pinned, checked by SHA-256), called by
+  `fetch_tessdata.py`. Elsewhere the system's `ffmpeg` is used.
+- "Build and test": the Linux tests install FFmpeg (and stop if it's missing, so the video
+  and audio tests can't be skipped unnoticed); the Windows build converts a test video to
+  MP4, WebM and MP3 with the bundled FFmpeg in the finished program.
+- New library for the app: openpyxl (MIT, works offline) writes the Excel files.
+
 ## [0.5.0] - 2026-11-23
 
 ### Added
@@ -403,7 +484,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.0...v0.3.1

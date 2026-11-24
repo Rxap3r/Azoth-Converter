@@ -95,8 +95,8 @@ implement `convert()`. The engine and GUI pick it up automatically.
 | Privacy | Remove photo metadata, same format in and out (JPG, PNG, WebP, GIF, TIFF, HEIC, AVIF) | own lossless code, Pillow | ✅ |
 | Privacy | Remove document metadata (PDF, DOCX, XLSX, PPTX) | own code, PyMuPDF | ✅ |
 | Camera RAW, SVG | CR2, NEF, ARW, DNG, SVG | rawpy, resvg | 🔜 |
-| Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | 🔜 |
-| Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | 🔜 |
+| Audio | MP3, WAV, FLAC, AAC/M4A, OGG, OPUS | FFmpeg | ✅ |
+| Video | MP4, MKV, MOV, AVI, WebM, GIF | FFmpeg | ✅ |
 | Markup / e-books | Markdown, HTML, EPUB, MOBI | Pandoc, Calibre | 🔜 |
 | Data | CSV, JSON, XML, YAML, XLSX | pandas | 🔜 |
 | Archives | ZIP, 7Z, TAR, (RAR extract) | py7zr, 7-Zip | 🔜 |
@@ -148,7 +148,9 @@ Time estimates assume one developer working part-time. Treat them as rough guide
   - [ ] Later: check OCR speed on long PDFs (a few seconds per page now) and make it faster if needed
   - [ ] **Owner's wish (Nov 2026):** OCR → a "real" text PDF like one made from Word (visible, selectable text with exact selection boxes, editable in Word with formatting), as an option next to the 1:1 searchable PDF (picture + invisible text). Needs layout rebuilding (fonts, sizes, columns); the picture would no longer be kept 1:1
 - [x] **File name in every PDF tool** (owner's wish, Nov 2026): Merge, Split (folder name), Edit pages, Compress, Password, Make searchable
-- [ ] PDF → Excel for tables
+- [x] PDF → Excel for tables. *Done (23 Nov 2026): `converters/pdf_excel.py` (PyMuPDF finds tables, openpyxl writes them); one sheet per page, merged cells, bold, colours; numbers only where clear; other text kept line by line.*
+  - [ ] Later: tables without visible lines (only aligned text), tables from scans (OCR)
+  - [ ] Later: option "Tables only" (leave out the other text) and "All pages on one sheet" (suggested for the version after 0.6.0, 23 Nov 2026)
 - [x] **Remove photo metadata** without changing the format (e.g. JPG → clean JPG): strips GPS location, camera and date, keeps the picture upright. Batch-capable, in the GUI and as `azoth clean`. Also show what metadata a file contains before removing it. *Done (Nov 2026): picture data copied byte for byte, checked pixel by pixel before saving.*
   - [x] Removing metadata from PDF and Office files (author, company, edit history): DOCX, XLSX, PPTX and PDF, content checked unchanged before saving (on `dev`, Nov 2026)
   - [ ] Later: BMP and ICO (they rarely carry metadata); OpenDocument files (ODT, ODS, ODP: `meta.xml`); old DOC/XLS/PPT (today: convert first)
@@ -189,11 +191,22 @@ Time estimates assume one developer working part-time. Treat them as rough guide
 - [x] **PDF → Word progress and cancel** for large PDFs: pdf2docx's steps run page by page, with progress and cancel between pages (on `dev`, Nov 2026)
 - [x] Cache the list of possible target formats per source format (computed repeatedly today; fine now, matters with many more formats)
 
+### Menu overhaul (owner's wish, 23 Nov 2026, before release 0.6.0)
+- [x] Less overwhelming: fewer tiles at first ("More formats"), "More options" folded with a summary, explanations on hover, Quality only where it matters, Settings regrouped (Appearance, Privacy, Converting, About), sidebar with tools on top and Formats/Settings at the bottom
+  - [ ] Owner to check on Windows: does anything feel hidden that should be visible?
+
 ### Phase 3: Audio and video (≈ 4 weeks)
-- [ ] FFmpeg plugin with progress parsed from FFmpeg's output
+**Decided (owner, 23 Nov 2026): bundle the full FFmpeg** (~80–100 MB more download is fine).
+- [x] FFmpeg plugin with progress parsed from FFmpeg's output. *Done (23 Nov 2026, on `dev`): `converters/media.py`; video MP4/MOV/MKV/WebM/AVI/WMV/MPG/MTS/FLV/3GP → MP4/MOV/MKV/WebM/AVI/GIF and sound; audio MP3/M4A/WAV/FLAC/OGG/Opus/WMA/AIFF/AAC → MP3/M4A/WAV/FLAC/OGG/Opus; tracks copied unchanged where the target can hold them, lossless stays lossless; GPS/phone metadata removed, song tags and covers kept; Windows FFmpeg 8.0.1 "full" (Gyan) fetched by `packaging/fetch_ffmpeg.py`.*
+  - [ ] Owner to try on Windows: an iPhone video (MOV, HEVC) → MP4, a long video (progress, cancel), music with covers → M4A/MP3
+  - [x] Linux tests use the system's FFmpeg; the automatic Linux tests don't install it (media tests are skipped there if the runner has none; they always run on Windows with the bundled FFmpeg). *Done (owner agreed, 23 Nov 2026): installed in the Linux step, checked like LibreOffice.*
+  - [x] The Windows build smoke-tests FFmpeg in the finished program (MOV → MP4, WebM, MP3; owner agreed, 23 Nov 2026)
+  - [x] "Remove metadata only" and "Show metadata…" for videos and music (`media_metadata.py`, owner's choice for 0.6.0, 23 Nov 2026): tracks copied, every packet compared before saving
+  - [ ] Later: subtitles from MKV as text into MP4 work; picture subtitles (DVD, Blu-ray) are only kept in MKV
 - [ ] Presets: "MP4 for sharing", "MP3 320k", "Extract audio", "Make GIF", "Shrink video"
+  - [ ] **"Make smaller" for videos** (suggested for the version after 0.6.0, 23 Nov 2026): one click to shrink a phone video for e-mail or messengers (lower resolution, e.g. 1080p or 720p, H.264 at a sensible bitrate); say clearly that it's lossy
 - [ ] Trim, resolution, bitrate, mute; hardware encoding (NVENC, Quick Sync, AMF)
-- [ ] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file
+- [x] Hardening: `-protocol_whitelist file` so FFmpeg can't reach the network through a malicious playlist file (with a test)
 - [x] **Release 0.3** (0.3.0 and 0.3.1, Nov 2026)
 
 ### Phase 4: More formats and convenience (≈ 6–8 weeks, pick by demand)

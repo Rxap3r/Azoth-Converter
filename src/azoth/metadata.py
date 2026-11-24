@@ -22,7 +22,7 @@ from pathlib import Path
 
 from PIL import ExifTags, Image, ImageSequence
 
-from . import doc_metadata, formats
+from . import doc_metadata, formats, media_metadata
 from .converters import ConversionError, jpeg_tools, strip
 from .converters import images as _images  # registers the HEIC opener
 from .engine import check_file_name, unique_path
@@ -35,6 +35,7 @@ if _images.AVIF_SUPPORTED:
 
 PICTURES = list(CLEANABLE)
 CLEANABLE += doc_metadata.CLEANABLE
+CLEANABLE += media_metadata.CLEANABLE
 
 CLEAN_SUFFIX = " (clean)"  # added to the name when the copy goes next to the original
 
@@ -241,6 +242,8 @@ def inspect_bytes(fmt: str, data: bytes) -> list[Finding]:
 def inspect(path: Path | str) -> list[Finding]:
     path = Path(path)
     fmt = _cleanable_format(path)
+    if fmt in media_metadata.CLEANABLE:  # videos can be huge: never read into memory
+        return [Finding(label, detail) for label, detail in media_metadata.inspect(path, fmt)]
     return inspect_bytes(fmt, path.read_bytes())
 
 
@@ -256,7 +259,7 @@ def _cleanable_format(path: Path) -> str:
             hint = f" Convert it to {fmt.id.upper()}X first, then remove the metadata."
         raise ConversionError(
             f"Removing metadata works for photos and images ({names}), PDF, Word (DOCX), "
-            f"Excel (XLSX) and PowerPoint (PPTX) files, not for {kind}.{hint}"
+            f"Excel (XLSX), PowerPoint (PPTX), videos and music, not for {kind}.{hint}"
         )
     return fmt.id
 
@@ -354,6 +357,8 @@ def clean_file(
     """Save a copy of ``source`` without metadata. The original is never changed."""
     source = Path(source)
     fmt = _cleanable_format(source)
+    if fmt in media_metadata.CLEANABLE:
+        return _clean_media(source, fmt, output_dir, overwrite=overwrite, name=name)
     data = source.read_bytes()
     removed = inspect_bytes(fmt, data)
     cleaned = clean_bytes(fmt, data)
@@ -369,3 +374,21 @@ def clean_file(
     except OSError as exc:
         raise ConversionError(f"Could not save {target.name}: {exc.strerror or exc}") from exc
     return CleanResult(source=source, output=target, removed=removed)
+
+
+def _clean_media(
+    source: Path, fmt: str, output_dir: Path | str | None, *, overwrite: bool, name: str | None
+) -> CleanResult:
+    folder = Path(output_dir) if output_dir is not None else None
+    if folder is not None:
+        folder.mkdir(parents=True, exist_ok=True)
+    target = output_path(source, fmt, folder, name)
+    if not overwrite or target.resolve() == source.resolve():
+        target = unique_path(target)
+    try:
+        removed = media_metadata.clean(source, target, fmt)
+    except OSError as exc:
+        raise ConversionError(f"Could not save {target.name}: {exc.strerror or exc}") from exc
+    return CleanResult(
+        source=source, output=target, removed=[Finding(label, d) for label, d in removed]
+    )

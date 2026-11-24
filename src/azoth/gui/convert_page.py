@@ -16,11 +16,11 @@ from PySide6.QtWidgets import (
 from . import icons
 from .done_card import DoneCard
 from .file_list import FileList
-from .options_panel import OcrOptions, QualitySelector, ResizeOptions
+from .options_panel import SHORT_LABELS, OcrOptions, QualitySelector, ResizeOptions
 from .output_folder import FileNameRow, OutputFolderRow
 from .target_picker import TargetPicker
 from .theme import Colors, repolish
-from .widgets import download_button, label, scrollable
+from .widgets import Collapsible, download_button, label, scrollable
 
 
 class ConvertPage(QWidget):
@@ -58,7 +58,7 @@ class ConvertPage(QWidget):
         drop_title = label("Drag files or folders here")
         drop_title.setStyleSheet("font-weight: 600;")
         drop_text.addWidget(drop_title)
-        drop_text.addWidget(label("Photos, PDFs, Word, Excel and PowerPoint files", "small"))
+        drop_text.addWidget(label("Photos, PDFs, Office files, videos and music", "small"))
         drop_row = QHBoxLayout(self.drop_zone)
         drop_row.setContentsMargins(18, 14, 18, 14)
         drop_row.setSpacing(16)
@@ -110,12 +110,21 @@ class ConvertPage(QWidget):
         column.addWidget(label("Convert to", "h2"))
         column.addWidget(self.target_picker)
         column.addWidget(self.notes_label)
-        column.addWidget(self.ocr)
-        column.addWidget(self.resize)
-        column.addWidget(self.quality)
         column.addWidget(self.output_row)
-        column.addWidget(self.name_row)
+        # Choices most people never change: closed, with a summary of what's chosen.
+        options = QWidget()
+        options_column = QVBoxLayout(options)
+        options_column.setContentsMargins(0, 6, 0, 0)
+        options_column.setSpacing(14)
+        for widget in (self.resize, self.ocr, self.quality, self.name_row):
+            options_column.addWidget(widget)
+        self.more = Collapsible("More options", options)
+        column.addWidget(self.more)
         column.addStretch(1)
+        self.resize.changed.connect(self.refresh_summary)
+        self.quality.level_changed.connect(self.refresh_summary)
+        self.ocr.language.currentIndexChanged.connect(self.refresh_summary)
+        self.ocr.searchable.toggled.connect(self.refresh_summary)
         self.choices_scroll = scrollable(choices)
         right = QVBoxLayout(self.right)
         right.setContentsMargins(0, 0, 0, 20)
@@ -137,6 +146,19 @@ class ConvertPage(QWidget):
         layout.setSpacing(0)
         layout.addLayout(left, 1)
         layout.addWidget(self.right)
+
+    def refresh_summary(self) -> None:
+        """The line under the closed "More options": what's chosen there."""
+        parts = []
+        if not self.resize.isHidden():
+            parts.append(self.resize.summary())
+        if not self.ocr.isHidden() and self.ocr.options()["ocr"]:
+            parts.append(f"Text in {self.ocr.language.currentText()}")
+        if not self.quality.isHidden():
+            parts.append(f"{SHORT_LABELS.get(self.quality.level(), '')} quality")
+        if not parts:
+            parts.append("File name")
+        self.more.set_summary(" · ".join(p for p in parts if p))
 
     def set_drop_active(self, active: bool) -> None:
         self.drop_zone.setProperty("active", "true" if active else "false")

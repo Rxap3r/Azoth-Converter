@@ -126,6 +126,15 @@ class Preferences:
         self.store.sync()
 
     @property
+    def options_open(self) -> bool:
+        """ "More options" on the Convert page is open (closed by default)."""
+        return self._get("options_open", False, bool)
+
+    def save_options_open(self, on: bool) -> None:
+        self.store.setValue("options_open", on)
+        self.store.sync()
+
+    @property
     def ocr_turn_pages(self) -> bool:
         """Text recognition turns sideways or upside-down pages upright (on by default)."""
         return self._get("ocr_turn_pages", True, bool)

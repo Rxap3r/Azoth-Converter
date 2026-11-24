@@ -1,6 +1,6 @@
 # PyInstaller spec: builds a folder with two programs that share one runtime:
 #   AzothConverter.exe  - the window (no console)
-#   azoth-terminal.exe  - the command-line tool (typed commands; double-clicked: a short note)
+#   azoth-terminal.exe  - the command-line tool (typed commands; double-clicked: a note, then a Command Prompt)
 # Build with:  pyinstaller packaging/azoth.spec --noconfirm
 from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
@@ -22,11 +22,15 @@ if missing:
     raise SystemExit(f"OCR language files missing: {missing}. Run python packaging/fetch_tessdata.py")
 if not AI_MODEL.is_file():  # "Enhance with AI" needs it
     raise SystemExit(f"AI model missing: {AI_MODEL.name}. Run python packaging/fetch_tessdata.py")
+from fetch_ffmpeg import EXE as FFMPEG  # noqa: E402
+
+if sys.platform == "win32" and not FFMPEG.is_file():  # video and audio need it
+    raise SystemExit("FFmpeg missing. Run python packaging/fetch_tessdata.py")
 
 # App resources (icon, OCR languages) plus package metadata, so the About window can show versions.
 datas = [("../src/azoth/resources", "azoth/resources")]
 for dist in ("PySide6-Essentials", "pillow", "pillow-heif", "PyMuPDF", "pdf2docx",
-             "python-docx", "opencv-python-headless", "numpy", "msoffcrypto-tool"):
+             "python-docx", "opencv-python-headless", "numpy", "msoffcrypto-tool", "openpyxl", "et-xmlfile"):
     datas += copy_metadata(dist)
 
 a = Analysis(

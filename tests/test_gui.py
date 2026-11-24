@@ -262,7 +262,7 @@ def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
     assert (
         not window.settings_page.metadata_check.isEnabled()
     )  # "keep metadata" makes no sense here
-    assert "stays exactly the same" in window.notes_label.text()
+    assert "stays exactly the same" in window.notes_label.toolTip()  # the details on hover
 
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
@@ -305,7 +305,7 @@ def test_change_size_only(window, qtbot, sample_png, tmp_path):
     sizes.set_mode("percent")
     assert sizes.preset.currentText() == "50 %"  # a ready-made size, not "Custom"
     assert window.convert_btn.isEnabled() and window.convert_btn.text() == "Resize 2 files"
-    assert "(resized)" in window.notes_label.text()
+    assert "(resized)" in window.notes_label.toolTip()  # the details on hover
 
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
@@ -333,14 +333,15 @@ def test_enhance_with_ai(window, qtbot, tmp_path, upscale_ready):
     assert not sizes.denoise.isHidden() and sizes.denoise.currentData() == "medium"
     assert sizes.spec() == Resize(PERCENT, percent=100, ai=True)  # same size, better
     assert window.convert_btn.text() == "Enhance 1 file"
-    assert "isn't fully true to the original" in sizes.hint.text()
+    assert "not for documents" in sizes.hint.text()  # the AI's caveat stays visible
+    assert "isn't fully true to the original" in sizes.hint.toolTip()
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=60000)
     with Image.open(tmp_path / "small (enhanced).png") as im:
         assert im.size == (30, 20)
     assert window.done_card.message.text() == "Done! 1 file enhanced."
     sizes.set_mode("percent")
-    assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.text()
+    assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.toolTip()
     sizes.ai.setChecked(False)
     assert sizes.denoise.isHidden() and not sizes.spec().ai
 
@@ -578,7 +579,7 @@ def test_no_page_squeezes_its_buttons(qtbot, tmp_path, sample_png):
                 assert height >= roomy[key][1], (page, text, height, roomy[key][1])
 
 
-def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch):
+def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch, with_ffmpeg):
     from azoth.converters import office
     from azoth.gui import widgets
 
@@ -595,7 +596,7 @@ def test_missing_libreoffice_offers_its_download_page(qtbot, monkeypatch):
     assert office.DOWNLOAD_URL.startswith("https://www.libreoffice.org/")
 
 
-def test_no_download_button_when_libreoffice_is_installed(window):
+def test_no_download_button_when_libreoffice_is_installed(with_ffmpeg, window):
     from azoth.converters.office import find_soffice
 
     if find_soffice() is None:
@@ -669,10 +670,97 @@ def test_explorer_request_converts_right_away(window, qtbot, sample_png, tmp_pat
     assert [p.suffix for p in out.iterdir()] == [".jpg"]
 
 
-def test_explorer_open_only_adds_the_files(window, sample_png, sample_pdf):
+def test_explorer_open_adds_to_the_files_already_there(window, sample_png, sample_pdf):
     window.add_files([sample_pdf])
     window.run_explorer_request("open", [sample_png])
-    assert window.file_list.files == [sample_png] and not window.is_busy()
+    assert window.file_list.files == [sample_pdf, sample_png] and not window.is_busy()
+
+
+def test_explorer_convert_starts_a_fresh_list(window, qtbot, sample_png, sample_pdf, tmp_path):
+    window.add_files([sample_pdf])
+    window.output_dir = tmp_path / "out"
+    window.run_explorer_request("jpg", [sample_png])
+    assert window.file_list.files == [sample_png]  # only what was chosen is converted
+    qtbot.waitUntil(lambda: not window.is_busy(), timeout=20000)
+
+
+def test_window_opened_normally_takes_right_click_files(
+    qtbot, monkeypatch, tmp_path, local_sockets, sample_png
+):
+    """Started from the Start menu, the window still receives files chosen later in
+    Explorer's right-click menu, instead of a second window opening."""
+    from PySide6.QtWidgets import QApplication
+
+    from azoth.gui import app, explorer, settings
+    from azoth.gui.main_window import MainWindow
+
+    storage = tmp_path / "settings"
+    storage.mkdir()
+    monkeypatch.setattr(explorer, "_storage", lambda: storage)
+    monkeypatch.setattr(settings, "configure_storage", lambda *a: None)
+    from azoth import engine
+    from azoth.gui import error_log
+
+    monkeypatch.setattr(engine, "cleanup_stale_temp_folders", lambda: None)
+    monkeypatch.setattr(error_log, "install", lambda: None)
+    from azoth.gui import main_window
+
+    created, seen = [], []
+
+    class Recorded(MainWindow):
+        def __init__(self):
+            super().__init__()
+            created.append(self)
+
+    monkeypatch.setattr(main_window, "MainWindow", Recorded)
+
+    def run_instead_of_waiting(self):
+        [window] = created
+        qtbot.addWidget(window)
+        assert explorer.forward("open", [str(sample_png)], storage)  # a right-click later
+        qtbot.waitUntil(lambda: window.file_list.files == [sample_png], timeout=10000)
+        seen.append(window)
+        window.close()
+        return 0
+
+    monkeypatch.setattr(QApplication, "exec", run_instead_of_waiting)
+    assert app.main() == 0
+    assert seen
+
+
+def test_no_stray_windows_flash_up(window, qtbot, sample_png, sample_pdf, tmp_path):
+    """A widget shown before it has a place in the window is a window of its own: on
+    Windows it flashes up as a small empty window. Only real windows may appear."""
+    from PySide6.QtCore import QEvent, QObject
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    shown = []
+
+    class Spy(QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QEvent.Type.Show and isinstance(obj, QWidget) and obj.isWindow():
+                shown.append(type(obj).__name__)
+            return False
+
+    spy = Spy()
+    QApplication.instance().installEventFilter(spy)
+    try:
+        fresh = MainWindow()
+        qtbot.addWidget(fresh)
+        fresh.show()
+        fresh.add_files([sample_png, sample_pdf])
+        fresh.file_list.remove_rows([0])
+        fresh.add_files([sample_png])
+        for page in ("pdf", "settings", "convert"):
+            fresh.show_page(page)
+        fresh.output_dir = tmp_path / "out"
+        fresh.run_explorer_request("open", [sample_pdf])
+        fresh.run_explorer_request("png", [sample_pdf])
+        qtbot.waitUntil(lambda: not fresh.is_busy(), timeout=20000)
+        QApplication.processEvents()
+    finally:
+        QApplication.instance().removeEventFilter(spy)
+    assert shown == ["MainWindow"]
 
 
 def test_explorer_files_selected_together_are_one_batch(window, qtbot, tmp_path, local_sockets):
@@ -700,3 +788,57 @@ def test_explorer_files_selected_together_are_one_batch(window, qtbot, tmp_path,
         assert batches == [3] and len(list(out.iterdir())) == 3
     finally:
         requests.close()
+
+
+def test_only_the_most_useful_formats_show_at_first(window, sample_pdf):
+    picker = window.target_picker
+    window.add_files([sample_pdf])
+    shown = [t.target for t in picker.tiles if not t.isHidden()]
+    assert len(shown) == 6 and shown[0] == "docx"
+    assert "More formats" in picker.more_btn.text()
+    picker.more_btn.click()
+    assert all(not t.isHidden() for t in picker.tiles)
+    assert picker.select("doc")  # a rare one, behind "More formats"
+    picker.more_btn.click()  # fold again
+    from azoth.gui import targets
+
+    choices = targets.choices(window.engine, window.file_list.formats)
+    picker.set_choices(choices, keep=["doc"])  # e.g. remembered from last time
+    assert picker.current() == "doc"
+    assert not next(t for t in picker.tiles if t.target == "doc").isHidden()
+
+
+def test_more_options_are_folded_with_a_summary(window, sample_png):
+    more = window.convert_page.more
+    window.add_files([sample_png])
+    window.target_picker.select("jpg")
+    assert not more.is_open() and more.content.isHidden()
+    assert more.summary.text() == "Original size · Maximum quality"
+    window.quality.set_level("high")
+    assert more.summary.text() == "Original size · High quality"
+    more.header.click()
+    assert more.is_open() and window.prefs.options_open  # remembered for next time
+    more.header.click()
+    window.target_picker.select("resize")
+    assert more.is_open()  # "Change size only": the size is chosen in there
+
+
+def test_quality_only_where_it_changes_something(window, sample_png, sample_pdf):
+    window.add_files([sample_pdf])
+    window.target_picker.select("docx")
+    assert window.quality.isHidden()  # PDF → Word: nothing to choose
+    window.target_picker.select("png")
+    assert not window.quality.isHidden()  # pages as pictures: sharpness
+    window.file_list.clear()
+    window.add_files([sample_png])
+    window.target_picker.select("jpg")
+    assert not window.quality.isHidden()
+
+
+def test_notes_show_one_sentence_and_the_rest_on_hover():
+    from azoth.gui.targets import first_sentence
+
+    assert first_sentence("The layout is rebuilt. Simple ones work.") == "The layout is rebuilt."
+    assert first_sentence("VAT is 8.1 % here. More") == "VAT is 8.1 % here."
+    assert first_sentence("Removed: GPS, camera. Rest") == "Removed: GPS, camera."
+    assert first_sentence("One sentence") == "One sentence"

@@ -394,3 +394,129 @@ def test_removing_document_metadata_keeps_the_content_exactly(tmp_path):
     d.save(word)
     cleaned = docx.Document(metadata.clean_file(word).output)
     assert [p.text for p in cleaned.paragraphs] == ["Exact text  with  spaces"]
+
+
+def test_pdf_to_excel_keeps_every_figure_exactly(tmp_path):
+    """PDF → Excel: each number in a table arrives with exactly its printed value (no
+    rounding, no float noise like 1240.4999), and every text in the table arrives
+    unchanged."""
+    from openpyxl import load_workbook
+
+    figures = ["CHF 1'240.50", "0.10", "99'999.99", "-3.75", "12 %", "100", "Office chair"]
+    rows = "".join(f"<tr><td>Item {i}</td><td>{f}</td></tr>" for i, f in enumerate(figures))
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_htmlbox(
+        pymupdf.Rect(50, 50, 545, 800),
+        f"<table>{rows}</table>",
+        css="td {border: 1px solid black; padding: 3px;}",
+    )
+    src = tmp_path / "figures.pdf"
+    doc.save(src)
+    [out] = Engine().convert(src, "xlsx", tmp_path / "out").outputs
+    ws = load_workbook(out).worksheets[0]
+    got = [ws.cell(i + 1, 2).value for i in range(len(figures))]
+    assert got == [1240.5, 0.1, 99999.99, -3.75, 0.12, 100, "Office chair"]
+    assert [ws.cell(i + 1, 1).value for i in range(len(figures))] == [
+        f"Item {i}" for i in range(len(figures))
+    ]
+
+
+def test_video_and_audio_settings_stay_high():
+    from azoth import quality
+
+    assert quality.VIDEO_CRF <= quality.MAX_VIDEO_CRF <= 23  # never below H.264's default
+    assert min(quality.AAC_KBPS, quality.OPUS_KBPS, quality.AVI_MP3_KBPS) >= 192
+    assert quality.MIN_AUDIO_KBPS >= 192
+    assert quality.MP3_VBR == 0 and quality.VORBIS_QUALITY >= 6
+
+
+def _ffmpeg_or_skip():
+    from azoth.converters.media import find_ffmpeg
+
+    ffmpeg = find_ffmpeg()
+    if ffmpeg is None:
+        pytest.skip("FFmpeg isn't installed")
+    return str(ffmpeg)
+
+
+def test_remuxing_video_copies_every_bit(tmp_path):
+    """MP4 ↔ MKV ↔ MOV only repackages: picture and sound data stay identical."""
+    import subprocess
+
+    ffmpeg = _ffmpeg_or_skip()
+    src = tmp_path / "clip.mp4"
+    subprocess.run(
+        [ffmpeg, "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x240:duration=1",
+         "-f", "lavfi", "-i", "sine=duration=1", "-c:v", "libx264", "-c:a", "aac",
+         "-shortest", str(src)],
+        check=True,
+    )  # fmt: skip
+
+    def data(path, stream):
+        return subprocess.run(
+            [ffmpeg, "-v", "error", "-i", str(path), "-map", stream, "-c", "copy",
+             "-f", "md5", "-"],
+            capture_output=True, text=True, check=True,
+        ).stdout  # fmt: skip
+
+    [mkv] = Engine().convert(src, "mkv", tmp_path / "a").outputs
+    [mov] = Engine().convert(mkv, "mov", tmp_path / "b").outputs
+    for out in (mkv, mov):
+        assert data(out, "0:v") == data(src, "0:v")
+        assert data(out, "0:a") == data(src, "0:a")
+
+
+def test_lossless_sound_stays_lossless(tmp_path):
+    """24-bit FLAC → WAV, M4A (Apple Lossless) and back: every sample identical."""
+    import subprocess
+
+    ffmpeg = _ffmpeg_or_skip()
+    src = tmp_path / "studio.flac"
+    subprocess.run(
+        [ffmpeg, "-v", "error", "-f", "lavfi", "-i", "sine=frequency=1000:duration=1",
+         "-af", "aformat=s32", "-c:a", "flac", "-sample_fmt", "s32",
+         "-bits_per_raw_sample", "24", str(src)],
+        check=True,
+    )  # fmt: skip
+
+    def samples(path):
+        return subprocess.run(
+            [ffmpeg, "-v", "error", "-i", str(path), "-f", "s32le", "-"],
+            capture_output=True, check=True,
+        ).stdout  # fmt: skip
+
+    original = samples(src)
+    [wav] = Engine().convert(src, "wav", tmp_path / "w").outputs
+    [m4a] = Engine().convert(src, "m4a", tmp_path / "m").outputs
+    [flac] = Engine().convert(wav, "flac", tmp_path / "f").outputs
+    for out in (wav, m4a, flac):
+        assert samples(out) == original, out.name
+    info = subprocess.run([ffmpeg, "-hide_banner", "-i", str(m4a)], capture_output=True, text=True)
+    assert "alac" in info.stderr and "24 bit" in info.stderr
+
+
+def test_removing_video_metadata_copies_every_bit(tmp_path):
+    """ "Remove metadata only" on a video: picture and sound are copied, never re-encoded."""
+    import subprocess
+
+    from azoth import metadata
+
+    ffmpeg = _ffmpeg_or_skip()
+    src = tmp_path / "clip.mp4"
+    subprocess.run(
+        [ffmpeg, "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x240:duration=1",
+         "-f", "lavfi", "-i", "sine=duration=1", "-c:v", "libx264", "-c:a", "aac",
+         "-shortest", "-metadata", "location=+47.1+008.5/", str(src)],
+        check=True,
+    )  # fmt: skip
+
+    def data(path):
+        return subprocess.run(
+            [ffmpeg, "-v", "error", "-i", str(path), "-map", "0", "-c", "copy",
+             "-f", "streamhash", "-"],
+            capture_output=True, text=True, check=True,
+        ).stdout  # fmt: skip
+
+    out = metadata.clean_file(src).output
+    assert data(out) == data(src)

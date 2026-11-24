@@ -13,7 +13,7 @@ from . import formats
 # Most useful targets first, per kind of source file. Formats not listed here
 # follow afterwards in a stable order.
 TARGET_ORDER: dict[str, list[str]] = {
-    formats.PDF: ["docx", "jpg", "png", "txt", "odt", "rtf", "webp", "tiff", "bmp", "doc"],
+    formats.PDF: ["docx", "xlsx", "jpg", "png", "txt", "odt", "rtf", "webp", "tiff", "bmp", "doc"],
     formats.DOCUMENT: [
         "pdf", "docx", "odt", "txt", "jpg", "png", "rtf", "webp", "tiff", "bmp", "doc",
     ],
@@ -22,12 +22,17 @@ TARGET_ORDER: dict[str, list[str]] = {
     ],
     formats.PRESENTATION: ["pdf", "pptx", "png", "jpg", "odp", "webp", "tiff", "bmp", "ppt"],
     formats.IMAGE: ["jpg", "png", "pdf", "webp", "heic", "avif", "tiff", "gif", "bmp", "ico"],
+    formats.VIDEO: [
+        "mp4", "mp3", "mkv", "mov", "webm", "gif", "m4a", "wav", "flac", "ogg", "opus", "avi",
+    ],
+    formats.AUDIO: ["mp3", "m4a", "wav", "flac", "ogg", "opus"],
 }  # fmt: skip
 
 # Used when files of different kinds are converted together.
 MIXED_ORDER = [
     "pdf", "docx", "jpg", "png", "xlsx", "pptx", "webp", "txt", "csv", "odt", "ods", "odp",
-    "heic", "avif", "tiff", "gif", "rtf", "bmp", "ico", "doc", "xls", "ppt",
+    "heic", "avif", "tiff", "gif", "rtf", "bmp", "ico", "mp4", "mp3", "mkv", "mov",
+    "webm", "m4a", "wav", "flac", "ogg", "opus", "avi", "doc", "xls", "ppt",
 ]  # fmt: skip
 
 

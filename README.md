@@ -10,10 +10,12 @@ Status: early development (0.1). What changed in each version: [CHANGELOG.md](CH
 | From | To |
 |------|----|
 | Word (DOCX, DOC), ODT, RTF, TXT | PDF, other text formats, images |
-| **PDF** | **Word (DOCX)**, ODT, RTF, TXT, PNG, JPG, WebP, BMP, TIFF |
+| **PDF** | **Word (DOCX)**, **Excel (XLSX)**: tables as cells, ODT, RTF, TXT, PNG, JPG, WebP, BMP, TIFF |
 | Excel (XLSX, XLS), ODS, CSV | PDF, other spreadsheet formats, images |
 | PowerPoint (PPTX, PPT), ODP | PDF, other presentation formats, images |
 | JPG, PNG, WebP, HEIC, AVIF, BMP, TIFF, GIF, ICO | each other, and PDF |
+| **Video:** MP4, MOV, MKV, WebM, AVI, WMV, MPG, MTS, FLV, 3GP | MP4, MOV, MKV, WebM, AVI, GIF, and sound only (MP3, M4A, WAV, FLAC, OGG, Opus) |
+| **Audio:** MP3, M4A, WAV, FLAC, OGG, Opus, WMA, AIFF, AAC | MP3, M4A, WAV, FLAC, OGG, Opus |
 | Scans and photos of text (images, scanned PDFs) | Word (DOCX) and TXT by text recognition (OCR), searchable PDF |
 
 **Full list of every format and what it converts into: [docs/FORMATS.md](docs/FORMATS.md).** The app shows the same list under **Supported formats**.
@@ -50,6 +52,12 @@ in the app, choose **Remove metadata only**; right-click a file and choose
 history (revision marks) and earlier versions saved inside a PDF are removed; names on
 comments and tracked changes become "Author". The text, comments and tracked changes
 themselves stay exactly the same. Signed or password-protected PDFs are left alone.
+
+**Remove video and music metadata:** the same for videos (MP4, MOV, MKV, WebM, AVI, 3GP)
+and music (MP3, M4A, WAV, FLAC, OGG, Opus, AIFF): the filming place (GPS), phone model,
+dates, software, comments and action-camera GPS tracks are removed. Picture and sound are
+copied bit for bit (checked before saving); titles, song tags, album covers, chapters and
+track languages stay.
 
 **Change picture size:** make photos smaller or bigger while converting, or keep the format
 and only change the size. Choose a screen size like Full HD or 4K (turned for portrait
@@ -248,3 +256,8 @@ Found a security or privacy problem? Please report it privately; see [SECURITY.m
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+The Windows app includes FFmpeg (GPL-3.0, build by Gyan Doshi, unchanged; its licence is in
+`resources/ffmpeg/LICENSE.txt`). Its source code: [ffmpeg.org](https://ffmpeg.org/download.html)
+and [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) (the exact version is in
+`packaging/fetch_ffmpeg.py`).

@@ -3,9 +3,11 @@
 With arguments the command-line interface runs, except ``--explorer <target> <files>``
 (from the Explorer right-click menu), which opens the app. Without arguments the app
 starts, except in ``azoth-terminal.exe`` (the command-line program): there a short note
-explains how to use it, so double-clicking it doesn't look like a second app.
+explains how to use it, so double-clicking it doesn't look like a second app. When it was
+double-clicked, a Command Prompt then opens in the same window, so commands can be typed.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -40,10 +42,39 @@ def _own_console_window() -> bool:
     return ctypes.windll.kernel32.GetConsoleProcessList(processes, 2) == 1
 
 
+TYPE_HERE_NOTE = """\
+Type your commands below and press Enter. Type exit to close this window.
+Tip: drag a file into this window to type its full name, or go to a folder
+first, for example: cd Downloads
+"""
+
+
+def _open_command_prompt() -> bool:
+    """Turn the double-clicked window into a Command Prompt where ``azoth-terminal`` works:
+    in the user's own folder (not the program folder, where nothing can be saved), with the
+    program folder on PATH. Returns False if the Command Prompt could not be started."""
+    import signal
+    import subprocess
+
+    program_dir = str(Path(sys.executable).parent)
+    env = dict(os.environ)
+    env["PATH"] = program_dir + os.pathsep + env.get("PATH", "")
+    cmd = os.path.join(env.get("SystemRoot", r"C:\Windows"), "System32", "cmd.exe")
+    # Ctrl+C is meant for the command running in the prompt, not for this waiting program
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    try:
+        subprocess.call([cmd, "/k"], env=env, cwd=Path.home())
+    except OSError:
+        return False
+    return True
+
+
 def show_terminal_note() -> int:
     print(TERMINAL_NOTE)
-    if _own_console_window():  # else the window would close before it can be read
-        input("Press Enter to close this window.")
+    if _own_console_window():  # double-clicked: else the window closes at once
+        print(TYPE_HERE_NOTE)
+        if not _open_command_prompt():
+            input("Press Enter to close this window.")
     return 0
 
 

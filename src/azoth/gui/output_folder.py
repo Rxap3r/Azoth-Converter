@@ -9,14 +9,13 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QPushButton,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
 from ..engine import check_file_name
 from .settings import forget_file_dialog_history
-from .widgets import label
+from .widgets import ElidedLabel, label
 
 SAME_FOLDER = "Same folder as the original"
 
@@ -25,8 +24,7 @@ class OutputFolderRow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self._folder: Path | None = None
-        self.label = label(SAME_FOLDER)
-        self.label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.label = ElidedLabel(SAME_FOLDER)
         self.choose_btn = QPushButton("Change…")
         self.choose_btn.setAccessibleName("Choose the folder to save to")
         self.choose_btn.clicked.connect(self._choose)
