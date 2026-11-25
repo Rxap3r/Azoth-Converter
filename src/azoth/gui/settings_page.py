@@ -90,9 +90,10 @@ class SettingsPage(QWidget):
 
         self.word_check = QCheckBox("Use Microsoft Office where installed")
         self.word_check.setToolTip(
-            "Word, Excel and PowerPoint give the exact layout and fonts.\n"
-            "Office converts the file on this computer; nothing is uploaded.\n"
-            "Macros stay off. If Office fails, LibreOffice is used instead (when installed)."
+            "Word, Excel and PowerPoint give the accurate layout and fonts.\n"
+            "Office converts the file on this computer. Azoth Converter does not upload it.\n"
+            "Macros stay off. If Office cannot convert the file, Azoth Converter uses LibreOffice "
+            "(if it is installed)."
         )
         self.word_check.setChecked(use_word)
         if not word_installed:  # only when Office is installed (never show() it here)
@@ -100,13 +101,13 @@ class SettingsPage(QWidget):
         self.word_check.toggled.connect(self.use_word_changed)
         self.turn_check = QCheckBox("Turn sideways scans upright")
         self.turn_check.setToolTip(
-            "Text recognition turns sideways or upside-down pages the right way up.\n"
-            "Only the page's direction changes; the picture itself stays exactly the same."
+            "Text recognition turns pages that are on their side or upside down.\n"
+            "Only the direction of the page changes. The picture stays the same."
         )
         self.turn_check.setChecked(True)
         self.notify_check = QCheckBox("Notify me when work is done")
         self.notify_check.setToolTip(
-            "A Windows notification when the app finishes while it's in the background."
+            "A Windows notification when Azoth Converter completes its task in the background."
         )
         self.notify_check.setChecked(True)
         conversion = [
@@ -120,8 +121,8 @@ class SettingsPage(QWidget):
         self.about_btn.clicked.connect(self.about_requested)
         self.updates_btn = QPushButton("Check for updates…")
         self.updates_btn.setToolTip(
-            "Opens the download page in your browser, where you can compare the newest "
-            "version with yours. The app itself never goes online.\n" + RELEASES_URL
+            "Opens the download page in your browser. There you can compare the newest version "
+            "with your version. The app does not go online.\n" + RELEASES_URL
         )
         self.updates_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
         self.log_btn = QPushButton("Error log…")
@@ -139,8 +140,8 @@ class SettingsPage(QWidget):
         version = label(f"Version {__version__}" + (" · portable" if data else ""), "small")
         if data is not None:
             version.setToolTip(
-                f"Settings and the error log are kept next to the program in {data}; "
-                "nothing is saved on this computer."
+                "Azoth Converter keeps the settings and the error log next to the app "
+                f"in {data}. It does not keep data on this computer."
             )
         about = [label("About", "h2"), version, buttons]
 
@@ -197,7 +198,7 @@ class SettingsPage(QWidget):
             QMessageBox.warning(
                 self,
                 "Uninstall Azoth Converter",
-                "The uninstaller could not be started. Use Windows Settings → Apps instead.",
+                "Cannot start the uninstaller. Use Windows Settings → Apps instead.",
             )
 
     def showEvent(self, event) -> None:
@@ -208,9 +209,10 @@ class SettingsPage(QWidget):
         exists = error_log.log_path().is_file()
         self.log_btn.setEnabled(exists)
         self.log_btn.setToolTip(
-            "Details of errors, saved on this computer only. Attach it when reporting a problem."
+            "Data about errors, kept on this computer only. Attach it when you tell us about a "
+            "problem."
             if exists
-            else "No errors so far."
+            else "No errors at this time."
         )
 
     def theme_choice(self) -> str:

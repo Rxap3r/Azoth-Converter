@@ -262,7 +262,7 @@ def test_remove_metadata_option(window, qtbot, sample_png, tmp_path):
     assert (
         not window.settings_page.metadata_check.isEnabled()
     )  # "keep metadata" makes no sense here
-    assert "stays exactly the same" in window.notes_label.toolTip()  # the details on hover
+    assert "The content stays the same" in window.notes_label.toolTip()  # the details on hover
 
     window.start_conversion()
     qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
@@ -340,10 +340,15 @@ def test_enhance_with_ai(window, qtbot, tmp_path, upscale_ready):
     with Image.open(tmp_path / "small (enhanced).png") as im:
         assert im.size == (30, 20)
     assert window.done_card.message.text() == "Done! 1 file enhanced."
+    assert not sizes.best.isHidden() and not sizes.best.isChecked()  # never on by default
+    sizes.best.setChecked(True)  # the big model has no noise levels: the choice goes
+    assert sizes.denoise.isHidden() and sizes.spec().best
+    sizes.best.setChecked(False)
+    assert not sizes.denoise.isHidden() and not sizes.spec().best
     sizes.set_mode("percent")
     assert sizes.spec().ai and "bigger or keep their size" in sizes.hint.toolTip()
     sizes.ai.setChecked(False)
-    assert sizes.denoise.isHidden() and not sizes.spec().ai
+    assert sizes.denoise.isHidden() and sizes.best.isHidden() and not sizes.spec().ai
 
 
 def test_size_while_converting(window, qtbot, sample_png, sample_pdf, tmp_path):
@@ -514,8 +519,9 @@ def test_done_messages():
 
     assert done_message(1, 0, False) == "Done! 1 file converted."
     assert done_message(3, 0, False, cleaning=True) == "Done! Metadata removed from 3 files."
+    assert done_message(2, 0, False, shrinking=True) == "Done! 2 files made smaller."
     assert done_message(2, 1, False).startswith("2 done, 1 failed.")
-    assert done_message(0, 2, False).startswith("Nothing was saved: 2 files failed.")
+    assert done_message(0, 2, False).startswith("Nothing saved: 2 files failed.")
     assert done_message(2, 0, True) == "Cancelled after 2 files."
     assert done_message(0, 0, True) == "Cancelled."
 
@@ -842,3 +848,71 @@ def test_notes_show_one_sentence_and_the_rest_on_hover():
     assert first_sentence("VAT is 8.1 % here. More") == "VAT is 8.1 % here."
     assert first_sentence("Removed: GPS, camera. Rest") == "Removed: GPS, camera."
     assert first_sentence("One sentence") == "One sentence"
+
+
+def test_make_videos_smaller(window, qtbot, sample_png, tmp_path):
+    import subprocess
+
+    from azoth.converters.media import find_ffmpeg
+    from azoth.gui.targets import SHRINK_TARGET
+
+    ffmpeg = find_ffmpeg()
+    if ffmpeg is None:
+        pytest.skip("FFmpeg isn't installed")
+    clip = tmp_path / "clip.mp4"
+    subprocess.run(
+        [str(ffmpeg), "-v", "error", "-f", "lavfi", "-i",
+         "testsrc2=size=1280x720:rate=30:duration=1", "-c:v", "libx264", "-crf", "8",
+         "-preset", "ultrafast", str(clip)],
+        check=True,
+    )  # fmt: skip
+    window.add_files([sample_png])
+    assert SHRINK_TARGET not in _targets(window)  # pictures can't be "made smaller"
+    window.file_list.remove_rows([0])
+    window.add_files([clip])
+    targets = _targets(window)
+    assert SHRINK_TARGET in targets and targets[0] != SHRINK_TARGET  # never the default
+    assert window.shrink_size.isHidden()  # only shown for this tile
+    assert window.target_picker.select(SHRINK_TARGET)
+    assert not window.shrink_size.isHidden() and window.shrink_size.currentData() == "720"
+    assert window.convert_btn.text() == "Make 1 file smaller"  # MP4 files too
+    assert "less sharp" in window.notes_label.toolTip()  # says it's lossy
+    window.shrink_size.setCurrentIndex(window.shrink_size.findData("480"))
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=60000)
+    assert window.done_card.message.text() == "Done! 1 file made smaller."
+    out = tmp_path / "clip (smaller).mp4"
+    assert out.exists() and out.stat().st_size < clip.stat().st_size
+    # The same from Explorer's right-click menu ("Make smaller"): starts right away.
+    window.output_dir = tmp_path / "menu"
+    window.run_explorer_request(SHRINK_TARGET, [clip])
+    qtbot.waitUntil(lambda: not window.is_busy(), timeout=60000)
+    assert [p.name for p in (tmp_path / "menu").iterdir()] == ["clip (smaller).mp4"]
+
+
+def test_pdf_to_excel_choices(window, qtbot, sample_png, tmp_path):
+    from openpyxl import load_workbook
+    from test_pdf_excel import make_statement_pdf, values
+
+    from azoth.gui.settings import Preferences
+
+    statement = make_statement_pdf(tmp_path / "statement.pdf")
+    excel = window.excel_options
+    window.add_files([statement])
+    assert window.target_picker.select("docx")
+    assert excel.isHidden()  # only for PDF → Excel
+    assert window.target_picker.select("xlsx")
+    assert not excel.isHidden()
+    assert not any(excel.options().values())  # off by default: everything is kept
+    for box in excel.boxes.values():
+        box.setChecked(True)
+    assert "Tables only · All pages on one sheet" in window.convert_page.more.summary.text()
+    window.start_conversion()
+    qtbot.waitUntil(lambda: window._thread is None, timeout=30000)
+    rows = values(load_workbook(tmp_path / "statement.xlsx").active)
+    assert rows[0] == ["Date", "Text", "Amount"] and len(rows) == 10  # one table
+    prefs = Preferences()
+    assert prefs.excel_option("tables_only") and prefs.excel_option("one_sheet")  # remembered
+    window.file_list.remove_rows([0])
+    window.add_files([sample_png])
+    assert excel.isHidden()  # photos have no Excel choices

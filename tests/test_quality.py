@@ -114,7 +114,7 @@ def test_cli_rejects_too_low_quality(sample_png, tmp_path, capsys):
 
     with pytest.raises(SystemExit):
         main(["convert", str(sample_png), "--to", "jpg", "--quality", "20"])
-    assert "between 75 and 100" in capsys.readouterr().err
+    assert "from 75 to 100" in capsys.readouterr().err
     assert (
         main(
             [
@@ -429,6 +429,17 @@ def test_video_and_audio_settings_stay_high():
     assert min(quality.AAC_KBPS, quality.OPUS_KBPS, quality.AVI_MP3_KBPS) >= 192
     assert quality.MIN_AUDIO_KBPS >= 192
     assert quality.MP3_VBR == 0 and quality.VORBIS_QUALITY >= 6
+
+
+def test_smaller_videos_stay_watchable():
+    """ "Make smaller" is lossy on purpose, but never blocky, choppy or badly sounding."""
+    from azoth import quality
+
+    assert quality.MAX_SHRINK_CRF <= 28
+    assert all(crf <= quality.MAX_SHRINK_CRF for _side, crf in quality.SHRINK_LEVELS.values())
+    assert min(side for side, _crf in quality.SHRINK_LEVELS.values()) >= 480
+    assert quality.SHRINK_MAX_FPS >= 30
+    assert quality.SHRINK_DEFAULT in quality.SHRINK_LEVELS
 
 
 def _ffmpeg_or_skip():

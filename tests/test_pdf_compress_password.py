@@ -189,7 +189,7 @@ def test_pictures_with_transparency_keep_it(tmp_path):
 
 def test_nothing_is_saved_when_it_would_not_get_smaller(photo_pdf, tmp_path):
     once = pdf_tools.compress(photo_pdf, tmp_path / "once.pdf", "strong")
-    with pytest.raises(pdf_tools.NotSmaller, match="Nothing was saved"):
+    with pytest.raises(pdf_tools.NotSmaller, match="did not save a file"):
         pdf_tools.compress(once, tmp_path / "twice.pdf", "strong")
     assert not (tmp_path / "twice.pdf").exists()
 
@@ -222,7 +222,7 @@ def test_compress_never_overwrites(photo_pdf, tmp_path):
 def test_compress_errors_are_readable(tmp_path):
     with pytest.raises(ConversionError, match="password"):
         pdf_tools.compress(SAMPLES / "password_protected_test123.pdf", tmp_path / "o.pdf")
-    with pytest.raises(ConversionError, match="Unknown compression level"):
+    with pytest.raises(ConversionError, match="not a known compression level"):
         pdf_tools.compress(SAMPLES / "invoice.pdf", tmp_path / "o.pdf", "extreme")
 
 
@@ -245,7 +245,7 @@ def test_cli_compress(photo_pdf, capsys):
     out = photo_pdf.with_name("report (compressed).pdf")
     assert out.exists() and "smaller" in capsys.readouterr().out
     assert cli(["pdf", "compress", str(out), "--level", "strong", "-o", str(out)]) == 1
-    assert "Nothing was saved" in capsys.readouterr().err
+    assert "did not save a file" in capsys.readouterr().err
 
 
 # --- passwords ---------------------------------------------------------------------
@@ -288,7 +288,7 @@ def test_other_pdf_readers_accept_the_password(photo_pdf, tmp_path):
 
 def test_wrong_password_saves_nothing(photo_pdf, tmp_path):
     locked = pdf_tools.add_password(photo_pdf, tmp_path / "locked.pdf", PASSWORD)
-    with pytest.raises(ConversionError, match="isn't right"):
+    with pytest.raises(ConversionError, match="is not correct"):
         pdf_tools.remove_password(locked, tmp_path / "open.pdf", "grüezi welt 2026!")
     with pytest.raises(ConversionError, match="Enter"):
         pdf_tools.remove_password(locked, tmp_path / "open.pdf", "")
@@ -314,7 +314,7 @@ def _restricted(path, user=""):
 def test_restrictions_need_the_owner_password(tmp_path):
     src = _restricted(tmp_path / "r.pdf")
     assert pdf_tools.lock_state(src) == pdf_tools.RESTRICTED
-    with pytest.raises(ConversionError, match="isn't right"):
+    with pytest.raises(ConversionError, match="is not correct"):
         pdf_tools.remove_password(src, tmp_path / "o.pdf", "guess")
     out = pdf_tools.remove_password(src, tmp_path / "o.pdf", "boss")
     assert pdf_tools.lock_state(out) == pdf_tools.UNLOCKED
@@ -334,9 +334,9 @@ def test_password_tools_refuse_the_wrong_kind_of_file(photo_pdf, tmp_path):
     with pytest.raises(ConversionError, match="has no password"):
         pdf_tools.remove_password(photo_pdf, tmp_path / "o.pdf", "x")
     locked = pdf_tools.add_password(photo_pdf, tmp_path / "locked.pdf", PASSWORD)
-    with pytest.raises(ConversionError, match="already has a password"):
+    with pytest.raises(ConversionError, match="has a password. Remove that password first"):
         pdf_tools.add_password(locked, tmp_path / "twice.pdf", "another one 99!")
-    with pytest.raises(ConversionError, match="already has a password"):
+    with pytest.raises(ConversionError, match="has a password. Remove that password first"):
         pdf_tools.add_password(_restricted(tmp_path / "r.pdf"), tmp_path / "x.pdf", PASSWORD)
     with pytest.raises(ConversionError, match="damaged"):
         pdf_tools.lock_state(SAMPLES.parent / "other" / "broken_not_really.pdf")
@@ -376,7 +376,7 @@ def test_cli_password_add_and_remove(photo_pdf, monkeypatch, capsys):
 
     answers = iter([PASSWORD, "typo"])
     assert cli(["pdf", "password", "add", str(photo_pdf)]) == 1
-    assert "don't match" in capsys.readouterr().err
+    assert "are not the same" in capsys.readouterr().err
 
     answers = iter([PASSWORD])
     assert cli(["pdf", "password", "remove", str(locked)]) == 0

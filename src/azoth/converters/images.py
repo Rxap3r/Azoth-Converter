@@ -102,15 +102,17 @@ class ImageConverter(Converter):
     def quality_note(self, src: str, dst: str) -> str | None:
         if src == dst and dst in ("jpg", "webp", "heic", "avif"):
             return (
-                f"{dst.upper()} is a lossy format: the resized picture is saved again with "
-                "the chosen quality."
+                f"{dst.upper()} is a lossy format: Azoth Converter saves the picture again "
+                "with the selected quality."
             )
         if dst == "gif":
-            return "GIF supports only 256 colours, so photos may look grainy."
+            return "GIF has only 256 colours. Thus, photos can look grainy."
         if dst == "ico":
-            return "Icons are limited to 256×256 pixels; larger images are scaled down."
+            return (
+                "Icons are 256×256 pixels or smaller. Azoth Converter makes larger images smaller."
+            )
         if dst == "jpg" and src in ("png", "gif", "webp", "ico", "tiff"):
-            return "JPEG has no transparency; transparent areas become white."
+            return "JPEG has no transparency. Transparent areas become white."
         return None
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
@@ -118,7 +120,7 @@ class ImageConverter(Converter):
         dst_id = {"jpeg": "jpg", "tif": "tiff", "heif": "heic"}.get(dst_id, dst_id)
         pil_format = PIL_SAVE_FORMATS.get(dst_id)
         if pil_format is None:
-            raise ConversionError(f"Cannot write {dst_id.upper()} images")
+            raise ConversionError(f"Azoth Converter cannot write {dst_id.upper()} images.")
 
         quality = int(ctx.option("quality", DEFAULT_QUALITY))
         src_id = {"jpeg": "jpg", "tif": "tiff", "heif": "heic"}.get(
@@ -179,7 +181,7 @@ class ImageConverter(Converter):
         except resize.ResizeError as exc:
             raise ConversionError(str(exc)) from exc
         except Exception as exc:  # Pillow raises many exception types for bad files
-            raise ConversionError(f"Could not read image: {exc}") from exc
+            raise ConversionError(f"Cannot read the image ({exc}).") from exc
 
         ctx.warnings.extend(kept)
         ctx.notes.extend(changed)
@@ -229,5 +231,5 @@ class ImageConverter(Converter):
         try:
             first.save(dst, format=pil_format, **save_args)
         except Exception as exc:
-            raise ConversionError(f"Could not save {dst_id.upper()}: {exc}") from exc
+            raise ConversionError(f"Cannot save the {dst_id.upper()} file ({exc}).") from exc
         return [dst]

@@ -160,3 +160,93 @@ def _set():
     event = threading.Event()
     event.set()
     return event
+
+
+# --- "Tables only" and "All pages on one sheet" ----------------------------------------
+
+
+def make_statement_pdf(path, pages=3):
+    """Like a bank statement: a heading on each page and a table that goes on over the
+    pages, its header row repeated on each one."""
+    doc = pymupdf.open()
+    css = "th, td {border: 1px solid black; padding: 4px;} body {font-family: sans-serif;}"
+    for n in range(1, pages + 1):
+        rows = "".join(
+            f"<tr><td>{n:02d}.0{d}.2026</td><td>Shop {n}{d}</td><td>-{n}{d}.50</td></tr>"
+            for d in range(1, 4)
+        )
+        html = (
+            f"<p>Statement, page {n}</p><table><tr><th>Date</th><th>Text</th>"
+            f"<th>Amount</th></tr>{rows}</table>"
+        )
+        doc.new_page(width=595, height=842).insert_htmlbox(
+            pymupdf.Rect(50, 50, 545, 800), html, css=css
+        )
+    doc.save(path)
+    doc.close()
+    return path
+
+
+def _convert(src, tmp_path, **options):
+    [out] = Engine().convert(src, "xlsx", tmp_path / "out", options=options).outputs
+    return load_workbook(out)
+
+
+def test_tables_only_leaves_out_the_other_text(tmp_path):
+    wb = _convert(make_statement_pdf(tmp_path / "s.pdf"), tmp_path, tables_only=True)
+    assert wb.sheetnames == ["Page 1", "Page 2", "Page 3"]
+    rows = values(wb["Page 2"])
+    assert rows[0] == ["Date", "Text", "Amount"]  # the table starts at the top
+    assert not any("Statement" in str(v) for r in rows for v in r)
+
+
+def test_all_pages_on_one_sheet_keeps_everything_in_order(tmp_path):
+    wb = _convert(make_statement_pdf(tmp_path / "s.pdf"), tmp_path, one_sheet=True)
+    assert wb.sheetnames == ["All pages"]
+    rows = [r for r in values(wb.active) if r]
+    assert [r[0] for r in rows if str(r[0]).startswith("Statement")] == [
+        "Statement, page 1", "Statement, page 2", "Statement, page 3"
+    ]  # fmt: skip
+    assert sum(r == ["Date", "Text", "Amount"] for r in rows) == 3  # the text sits between
+
+
+def test_both_make_one_continuous_table(tmp_path):
+    """Tables only + one sheet: the table that goes on over the pages becomes one table
+    (header once, no empty rows), ready to sort and filter."""
+    src = make_statement_pdf(tmp_path / "s.pdf")
+    wb = _convert(src, tmp_path, tables_only=True, one_sheet=True)
+    rows = values(wb.active)
+    assert rows[0] == ["Date", "Text", "Amount"]
+    assert len(rows) == 1 + 9 and all(rows)  # header + 3 pages × 3 rows, no gaps
+    assert [r[1] for r in rows[1:4]] == ["Shop 11", "Shop 12", "Shop 13"]
+    assert rows[-1] == ["03.03.2026", "Shop 33", -33.5]
+
+
+def test_different_tables_stay_apart_on_one_sheet():
+    from azoth.converters.pdf_excel import Cell, Table, _continues
+
+    def table(*header):
+        cells = [Cell(0, j, 1, 1, text=t) for j, t in enumerate(header)]
+        cells += [Cell(1, j, 1, 1, text="x") for j in range(len(header))]
+        return Table(top=0, rows=2, cols=len(header), widths=[50] * len(header), cells=cells)
+
+    assert _continues(table("Date", "Amount"), table("Date", "Amount"))
+    assert not _continues(table("Date", "Amount"), table("Item", "Price"))
+    assert not _continues(table("Date", "Amount"), table("Date", "Amount", "Total"))
+    assert not _continues(None, table("Date", "Amount"))
+    assert not _continues(table("", ""), table("", ""))  # empty headers say nothing
+
+
+def test_tables_only_without_tables_explains(sample_pdf, tmp_path):
+    with pytest.raises(ConversionError, match="Tables only"):
+        Engine().convert(sample_pdf, "xlsx", tmp_path, options={"tables_only": True})
+
+
+def test_cli_excel_options(tmp_path, capsys):
+    from azoth.cli import main
+
+    src = make_statement_pdf(tmp_path / "s.pdf")
+    assert main(["convert", str(src), "--to", "xlsx", "--tables-only", "--one-sheet", "-q"]) == 0
+    assert len(values(load_workbook(tmp_path / "s.xlsx").active)) == 10
+    assert main(["convert", str(src), "--to", "docx", "--one-sheet"]) == 2
+    assert "use --to xlsx" in capsys.readouterr().err

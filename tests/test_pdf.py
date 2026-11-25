@@ -76,7 +76,7 @@ def test_pdf_to_word_can_be_cancelled_between_pages(tmp_path, private_tmp):
 
 def test_scan_without_any_text_gives_clear_error(tmp_path, sample_png, ocr_ready):
     pdf = make_scanned_pdf(tmp_path / "scan.pdf", sample_png)  # a logo: nothing to read
-    with pytest.raises(ConversionError, match="No text was found"):
+    with pytest.raises(ConversionError, match="found no text"):
         Engine().convert(pdf, "docx", tmp_path / "o")
 
 

@@ -152,6 +152,15 @@ class Preferences:
         """Images → PDF: also recognise the text (off by default: it takes longer)."""
         return self._get("ocr_searchable", False, bool)
 
+    def excel_option(self, name: str) -> bool:
+        """PDF → Excel choices ("tables_only", "one_sheet"); off until the user turns
+        them on, then remembered."""
+        return self._get(f"excel_{name}", False, bool)
+
+    def save_excel_option(self, name: str, on: bool) -> None:
+        self.store.setValue(f"excel_{name}", on)
+        self.store.sync()
+
     def save_ocr(self, *, language: str | None = None, searchable: bool | None = None) -> None:
         if language is not None:
             self.store.setValue("ocr_language", language)

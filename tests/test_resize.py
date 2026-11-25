@@ -74,7 +74,7 @@ def test_parse_rejects_bad_sizes(text):
 
 def test_too_many_pixels_is_refused():
     img = Image.new("L", (100, 100))
-    with pytest.raises(ResizeError, match="too big"):
+    with pytest.raises(ResizeError, match="too large"):
         resize.apply(img, Resize(FIT, width=60000, height=60000, enlarge=True))
 
 
@@ -118,14 +118,14 @@ def test_resize_in_the_same_format_makes_a_copy(engine, tmp_path):
     assert src.read_bytes() == before  # the original is never touched
     with Image.open(out.outputs[0]) as im:
         assert im.size == (200, 150)
-    assert any("saved again" in n for n in out.notes)  # JPG is lossy: say so
+    assert any("saves the picture again" in n for n in out.notes)  # JPG is lossy: say so
     again = engine.convert(src, "jpg", options={"resize": parse("50%")})
     assert again.outputs == [tmp_path / "p (resized) (1).jpg"]  # never overwritten
 
 
 def test_same_format_without_a_size_is_refused(engine, tmp_path):
     src = _photo(tmp_path / "p.png")
-    with pytest.raises(ConversionError, match="already"):
+    with pytest.raises(ConversionError, match="The format of p.png is"):
         engine.convert(src, "png")
 
 
@@ -236,6 +236,8 @@ def test_picture_size_as_shown(tmp_path):
     exif = Image.Exif()
     exif[0x0112] = 6  # stored sideways: shown 300 × 400
     assert resize.picture_size(_photo(tmp_path / "t.jpg", (400, 300), exif=exif)) == (300, 400)
+    # PNG: EXIF is found without decoding the picture (fast for big screenshots)
+    assert resize.picture_size(_photo(tmp_path / "t.png", (400, 300), exif=exif)) == (300, 400)
     broken = tmp_path / "broken.jpg"
     broken.write_bytes(b"not a picture")
     assert resize.picture_size(broken) is None

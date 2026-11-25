@@ -13,14 +13,29 @@ from ..engine import Engine
 
 CLEAN_TARGET = "clean"  # not a format: same format, metadata removed (see metadata.py)
 CLEAN_NOTE = (
-    "Saves a copy without hidden personal data. Removed: GPS location, camera, date, "
-    "author, comments and preview pictures. The content itself stays exactly the same. "
-    "Next to the original, the copy is called “name (clean)”."
+    "Saves a copy with no hidden personal data. Azoth Converter removes the GPS "
+    "location, camera, date, author, comments and preview pictures. The content stays "
+    "the same. Next to the initial file, the copy has the name “name (clean)”."
 )
 CLEAN_TILE = ("Remove metadata only", "Same format, no hidden personal data")
 RESIZE_TARGET = "resize"  # not a format: same format, new picture size (see resize.py)
 RESIZE_TILE = ("Change size only", "Same format, new width and height")
-RESIZE_NOTE = "Saves a copy in the new size. Next to the original, it is called “name (resized)”."
+RESIZE_NOTE = (
+    "Saves a copy in the new size. Next to the initial file, the copy has the name "
+    "“name (resized)”."
+)
+SHRINK_TARGET = "shrink"  # not a format: any video → a smaller MP4 (option "shrink")
+SHRINK_TILE = ("Make smaller", "MP4 for e-mail and messengers")
+SHRINK_NOTE = (
+    "Saves a much smaller MP4 copy for e-mail and messengers, with the name "
+    "“name (smaller)”. The picture becomes less sharp. Videos with more than 30 "
+    "frames for each second get 30. Azoth Converter does not make small videos larger."
+)
+SHRINK_SIZES = (
+    ("1080", "Full HD (1080p)", "Sharp on a TV or a large screen."),
+    ("720", "HD (720p)", "Good for e-mail and messengers. Sharp on phones and laptops."),
+    ("480", "Small (480p)", "The smallest files. Good on a phone."),
+)
 
 # Short tile text: what each target is good for, in a word or two.
 _PURPOSE = {
@@ -60,9 +75,11 @@ class Choices:
     """True if "Same format, remove metadata" works for every file."""
     can_resize: bool = False
     """True if "Same format, new size" works for every file."""
+    can_shrink: bool = False
+    """True if every file is a video that can be made smaller."""
 
     def __bool__(self) -> bool:
-        return bool(self.formats) or self.can_clean or self.can_resize
+        return bool(self.formats) or self.can_clean or self.can_resize or self.can_shrink
 
 
 def source_formats(file_formats: FileFormats) -> list[str]:
@@ -99,6 +116,7 @@ def choices(engine: Engine, file_formats: FileFormats) -> Choices:
         formats=ranking.rank(common, categories),
         can_clean=all(s in metadata.CLEANABLE for s in sources),
         can_resize=all(engine.can_resize(s, s) for s in sources),
+        can_shrink=all(engine.can_shrink(s) for s in sources),
     )
 
 
@@ -106,7 +124,7 @@ def can_resize(engine: Engine, file_formats: FileFormats, target: str | None) ->
     """Whether the "Picture size" choices apply: every file is a picture that stays a
     picture (``target`` an image format, or "Change size only")."""
     sources = source_formats(file_formats)
-    if not sources or target is None or target == CLEAN_TARGET:
+    if not sources or target in (None, CLEAN_TARGET, SHRINK_TARGET):
         return False
     return all(engine.can_resize(s, s if target == RESIZE_TARGET else target) for s in sources)
 
@@ -116,6 +134,8 @@ def jobs(file_formats: FileFormats, target: str | None, resizing: bool) -> list[
     format are skipped, unless they get a new size (then a resized copy is saved)."""
     if target is None:
         return []
+    if target == SHRINK_TARGET:  # every video gets a smaller copy, MP4 ones too
+        return [i for i, fmt in enumerate(file_formats) if fmt is not None]
     return [
         i
         for i, fmt in enumerate(file_formats)
@@ -125,7 +145,14 @@ def jobs(file_formats: FileFormats, target: str | None, resizing: bool) -> list[
 
 def job_target(target: str, source: formats.Format) -> str:
     """The format a file is converted to ("Change size only": its own)."""
+    if target == SHRINK_TARGET:
+        return "mp4"
     return source.id if target == RESIZE_TARGET else target
+
+
+def uses_excel_options(file_formats: FileFormats, target: str | None) -> bool:
+    """Whether the PDF → Excel choices apply: a PDF in the list becomes Excel."""
+    return target == "xlsx" and "pdf" in source_formats(file_formats)
 
 
 def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
@@ -138,9 +165,6 @@ def ocr_mode(file_formats: FileFormats, target: str | None) -> str | None:
     if target == "pdf" and images:
         return "optional"
     return None
-
-
-MEDIA = (formats.VIDEO, formats.AUDIO)
 
 
 LOSSY_IMAGES = ("jpg", "webp", "heic", "avif")  # their quality setting matters
@@ -175,6 +199,8 @@ def notes(engine: Engine, file_formats: FileFormats, target: str | None) -> list
     """Quality notes for converting the files to ``target`` (e.g. "GIF has 256 colours")."""
     if target == CLEAN_TARGET:
         return [CLEAN_NOTE]
+    if target == SHRINK_TARGET:
+        return [SHRINK_NOTE]
     result: list[str] = [RESIZE_NOTE] if target == RESIZE_TARGET else []
     if target:
         for src in source_formats(file_formats):

@@ -68,10 +68,6 @@ def strip_png(data: bytes, *, orientation: int = 1) -> bytes:
     return b"".join(out)
 
 
-def png_metadata_chunks(data: bytes) -> list[str]:
-    return [kind.decode("latin-1") for kind, _ in _png_chunks(data) if kind not in PNG_KEEP]
-
-
 # --- WebP ----------------------------------------------------------------------
 
 WEBP_KEEP = {b"VP8X", b"VP8 ", b"VP8L", b"ALPH", b"ANIM", b"ANMF", b"ICCP"}
@@ -107,10 +103,6 @@ def strip_webp(data: bytes, *, orientation: int = 1) -> bytes:
         chunks[0] = (b"VP8X", bytes(header))
     body = b"WEBP" + b"".join(c for _, c in chunks)
     return b"RIFF" + struct.pack("<I", len(body)) + body
-
-
-def webp_metadata_chunks(data: bytes) -> list[str]:
-    return [k.decode("latin-1").strip() for k, _ in _webp_chunks(data) if k not in WEBP_KEEP]
 
 
 # --- GIF -----------------------------------------------------------------------
@@ -313,8 +305,7 @@ def strip_tiff(data: bytes, *, orientation: int = 1) -> bytes:
         compression = im.info.get("compression", "raw")
         if compression not in _TIFF_LOSSLESS:
             raise ValueError(
-                f"this TIFF uses {compression.upper()} compression and can't be cleaned "
-                "without changing the picture"
+                f"this TIFF uses {compression.upper()} compression. Cleaning it changes the picture"
             )
         pages = []
         for frame in ImageSequence.Iterator(im):

@@ -86,7 +86,7 @@ class ImageToPdfConverter(Converter):
         except ConversionError:
             raise
         except Exception as exc:
-            raise ConversionError(f"Could not convert the image to PDF: {exc}") from exc
+            raise ConversionError(f"Cannot convert the image to PDF ({exc}).") from exc
         finally:
             doc.close()
         return [dst]

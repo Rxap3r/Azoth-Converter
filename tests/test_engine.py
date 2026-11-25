@@ -73,9 +73,9 @@ def test_cancel(sample_pdf, tmp_path, private_tmp):
 def test_unknown_and_same_format(tmp_path, sample_png):
     junk = tmp_path / "junk.xyz"
     junk.write_bytes(b"\x00\x01")
-    with pytest.raises(ConversionError, match="Unknown file type"):
+    with pytest.raises(ConversionError, match="does not know the file type"):
         Engine().convert(junk, "pdf")
-    with pytest.raises(ConversionError, match="already"):
+    with pytest.raises(ConversionError, match="The format of logo.png is"):
         Engine().convert(sample_png, "png")
 
 

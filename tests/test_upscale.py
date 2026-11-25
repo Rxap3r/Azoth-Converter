@@ -54,6 +54,44 @@ def _reference(rgb: np.ndarray, layers) -> np.ndarray:
     return x + rgb.repeat(4, 0).repeat(4, 1)
 
 
+def _conv(x: np.ndarray, w: np.ndarray, b: np.ndarray) -> np.ndarray:
+    h, wd, _ = x.shape
+    padded = np.pad(x, ((1, 1), (1, 1), (0, 0)))
+    out = np.tile(b, (h, wd, 1)).astype(np.float64)
+    for ky in range(3):
+        for kx in range(3):
+            out += padded[ky : ky + h, kx : kx + wd] @ w[:, :, ky, kx].T
+    return out
+
+
+def _best_reference(rgb: np.ndarray, a: dict) -> np.ndarray:
+    """The big model in plain numpy, as Real-ESRGAN's RRDBNet defines it."""
+
+    def conv(x, name, lrelu=False):
+        out = _conv(x, a[f"{name}.weight"], a[f"{name}.bias"])
+        return np.where(out >= 0, out, out * 0.2) if lrelu else out
+
+    def rdb(x, name):
+        parts = [x]
+        for i in range(1, 5):
+            parts.append(conv(np.concatenate(parts, axis=2), f"{name}.conv{i}", lrelu=True))
+        return conv(np.concatenate(parts, axis=2), f"{name}.conv5") * 0.2 + x
+
+    feat = conv(rgb, "conv_first")
+    body = feat
+    i = 0
+    while f"body.{i}.rdb1.conv1.weight" in a:
+        body = (
+            rdb(rdb(rdb(body, f"body.{i}.rdb1"), f"body.{i}.rdb2"), f"body.{i}.rdb3") * (0.2) + body
+        )
+        i += 1
+    assert i == 23
+    feat = feat + conv(body, "conv_body")
+    feat = conv(feat.repeat(2, 0).repeat(2, 1), "conv_up1", lrelu=True)
+    feat = conv(feat.repeat(2, 0).repeat(2, 1), "conv_up2", lrelu=True)
+    return conv(conv(feat, "conv_hr", lrelu=True), "conv_last")
+
+
 def _u8(a: np.ndarray) -> np.ndarray:
     return np.clip(a * 255 + 0.5, 0, 255).astype(np.uint8)
 
@@ -75,6 +113,27 @@ def test_network_matches_the_reference():
     got = upscale.upscale4(net, rgb)
     assert got.shape == (68, 92, 3)
     assert np.abs(got - _reference(rgb.astype(np.float64), layers)).max() < 1e-3
+
+
+def test_best_model_matches_the_reference():
+    rgb = np.asarray(_scene((14, 10)).resize((7, 5)), np.float32) / 255
+    got = upscale.upscale4(upscale._net(0, best=True), rgb, best=True)
+    assert got.shape == (20, 28, 3)
+    arrays = {k: v.astype(np.float64) for k, v in upscale.load_best_weights().items()}
+    assert np.abs(got - _best_reference(rgb.astype(np.float64), arrays)).max() < 2e-3
+
+
+def test_best_quality_tiles_fit_together(monkeypatch):
+    img = _scene((40, 30))
+    net = upscale._net(0, best=True)
+    whole = _u8(upscale.upscale4(net, np.asarray(img, np.float32) / 255, best=True))
+    monkeypatch.setattr(upscale, "BEST_TILE", 16)  # many small tiles
+    tiled = np.asarray(upscale.enhance(img, (160, 120), best=True)).astype(int)
+    diff = np.abs(tiled - whole)
+    assert diff.mean() < 0.5 and diff.max() <= 16  # the big model sees further: tiny seams
+    # Same size: a cleaner picture of the same thing.
+    same = upscale.enhance(img, img.size, "high", best=True)  # noise level doesn't apply
+    assert np.abs(np.asarray(same, float) - np.asarray(img, float)).mean() < 12
 
 
 def test_noise_removal_levels_differ():
@@ -178,7 +237,7 @@ def test_progress_and_cancel(monkeypatch):
 
 def test_missing_model_gives_a_readable_message(monkeypatch, tmp_path):
     monkeypatch.setattr(upscale, "MODEL_FILE", tmp_path / "missing.npz")
-    with pytest.raises(ResizeError, match="reinstall"):
+    with pytest.raises(ResizeError, match="Install Azoth Converter again"):
         resize.apply(_scene((8, 8)), Resize(PERCENT, percent=200, ai=True))
 
 
@@ -228,6 +287,14 @@ def test_cli_ai(tmp_path, capsys):
         assert im.size == (30, 20)
     assert main(["convert", str(src), "--to", "png", "--denoise", "low"]) == 2
     assert "--denoise needs --ai" in capsys.readouterr().err
+    args = ["convert", str(src), "--to", "webp", "--resize", "150%", "--ai", "--ai-best", "-q"]
+    assert main(args) == 0
+    with Image.open(tmp_path / "p.webp") as im:
+        assert im.size == (45, 30)
+    assert main(["convert", str(src), "--to", "png", "--ai-best"]) == 2
+    assert "--ai-best needs --ai" in capsys.readouterr().err
+    assert main(["convert", str(src), "--to", "png", "--ai", "--ai-best", "--denoise", "low"]) == 2
+    assert "--denoise does not apply" in capsys.readouterr().err
 
 
 # --- the build script that makes the model file ----------------------------------------
@@ -271,6 +338,14 @@ def test_model_reader_reads_plain_weights(tmp_path):
         z.writestr("archive/data/0", data.tobytes())
     weights = _fetch_script().read_pth(path)
     assert np.array_equal(weights["w"], data.reshape(2, 3))
+    # Training snapshots: the averaged weights under "params_ema" are the ones to use.
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr(
+            "archive/data.pkl",
+            pkl.replace(b"X\x06\x00\x00\x00params", b"X\x0a\x00\x00\x00params_ema"),
+        )
+        z.writestr("archive/data/0", data.tobytes())
+    assert np.array_equal(_fetch_script().read_pth(path)["w"], data.reshape(2, 3))
 
 
 def test_model_file_holds_only_numbers():
@@ -279,6 +354,19 @@ def test_model_file_holds_only_numbers():
         assert all(data[n].dtype.kind in "fU" for n in names)
     assert {n.split("/")[0] for n in names} == {"strong", "grain", "sources"}
     assert upscale.MODEL_FILE.stat().st_size < 6_000_000  # keeps the download small
+    with np.load(upscale.BEST_MODEL_FILE, allow_pickle=False) as data:
+        assert all(data[n].dtype.kind in "fU" for n in data.files)
+        assert data["conv_first.weight"].dtype == np.float16  # half the size, same result
+    assert upscale.BEST_MODEL_FILE.stat().st_size < 35_000_000
+
+
+def test_describe_names_best_quality():
+    assert Resize(PERCENT, percent=100, ai=True, best=True).describe() == (
+        "improved with AI (best quality)"
+    )
+    assert Resize(PERCENT, percent=200, ai=True, best=True).describe() == (
+        "200 % with AI (best quality)"
+    )
 
 
 def test_onnx_file_is_valid_protobuf_shape():

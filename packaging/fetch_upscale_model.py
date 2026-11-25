@@ -1,8 +1,9 @@
 """Download the AI enlarging model and store its weights in src/azoth/resources/upscale.
 
 The model is Real-ESRGAN "general x4v3" (BSD-3-Clause, https://github.com/xinntao/Real-ESRGAN),
-in two variants that the app mixes for its "Noise removal" levels. Both files are pinned to
-one release and checked against their SHA-256. They are PyTorch files; this script reads
+in two variants that the app mixes for its "Noise removal" levels, and the bigger
+"RealESRGAN_x4plus" for "Best quality (slow)". All files are pinned to one release and
+checked against their SHA-256. They are PyTorch files; this script reads
 them without PyTorch and without running any code from them (only plain number arrays are
 accepted) and saves the weights as a numpy ``.npz`` file, which the app reads with
 ``allow_pickle=False``. The app itself never downloads anything: this runs only on a
@@ -41,6 +42,9 @@ TARGET = (
     Path(__file__).resolve().parent.parent
     / "src" / "azoth" / "resources" / "upscale" / "realesr-general-x4v3.npz"
 )  # fmt: skip
+BEST_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
+BEST_SHA = "4fa0d38905f75ac06eb49a7951b426670021be3018265fd191d2125df9d682f1"
+BEST_TARGET = TARGET.with_name("realesrgan-x4plus.npz")
 SOURCES = "sources"
 """Array in the .npz with the hashes of the files it was made from (a new pin rebuilds it)."""
 
@@ -83,20 +87,58 @@ def read_pth(path: Path) -> dict[str, np.ndarray]:
             state = SafeUnpickler(fh).load()
     finally:
         archive.close()
-    params = state.get("params", state)
+    # Training snapshots hold the averaged ("EMA") weights, which the authors use for
+    # their results, under "params_ema"; the other files only "params".
+    params = state.get("params_ema", state.get("params", state))
     return {k: np.ascontiguousarray(v) for k, v in params.items()}
 
 
-def main() -> int:
-    hashes = [sha for _name, sha in FILES.values()]
-    if TARGET.is_file():
+def _up_to_date(target: Path, hashes: list[str]) -> bool:
+    if target.is_file():
         try:
-            with np.load(TARGET, allow_pickle=False) as data:
+            with np.load(target, allow_pickle=False) as data:
                 if list(data[SOURCES]) == hashes:
-                    print(f"{TARGET.name}: already there")
-                    return 0
+                    print(f"{target.name}: already there")
+                    return True
         except (OSError, KeyError, ValueError):
             pass  # damaged or old: make it again
+    return False
+
+
+def _save(target: Path, arrays: dict[str, np.ndarray], hashes: list[str]) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temp = target.with_suffix(".part.npz")
+    np.savez_compressed(temp, **arrays, **{SOURCES: np.array(hashes)})
+    temp.replace(target)
+    print(f"{target.name}: saved ({target.stat().st_size // 1024} KB)")
+
+
+def main() -> int:
+    return fetch_general() or fetch_best()
+
+
+def fetch_best() -> int:
+    """The big model for "Best quality (slow)"."""
+    if _up_to_date(BEST_TARGET, [BEST_SHA]):
+        return 0
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "RealESRGAN_x4plus.pth"
+        print(f"{path.name}: downloading")
+        _download(BEST_URL, path)
+        actual = _sha256(path)
+        if actual != BEST_SHA:
+            print(f"{path.name}: wrong checksum {actual}", file=sys.stderr)
+            return 1
+        arrays = {k: v.astype(np.float16) for k, v in read_pth(path).items()}
+    _save(BEST_TARGET, arrays, [BEST_SHA])
+    return 0
+
+
+def fetch_general() -> int:
+    """The small model's two weight sets."""
+    hashes = [sha for _name, sha in FILES.values()]
+    if _up_to_date(TARGET, hashes):
+        return 0
     arrays: dict[str, np.ndarray] = {}
     with tempfile.TemporaryDirectory() as tmp:
         for prefix, (name, expected) in FILES.items():
@@ -114,11 +156,7 @@ def main() -> int:
     ):
         print("The two model files don't match", file=sys.stderr)
         return 1
-    TARGET.parent.mkdir(parents=True, exist_ok=True)
-    temp = TARGET.with_suffix(".part.npz")
-    np.savez_compressed(temp, **arrays, **{SOURCES: np.array(hashes)})
-    temp.replace(TARGET)
-    print(f"{TARGET.name}: saved ({TARGET.stat().st_size // 1024} KB)")
+    _save(TARGET, arrays, hashes)
     return 0
 
 

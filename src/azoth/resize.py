@@ -56,29 +56,29 @@ class Resize:
     Not used for pictures that get smaller."""
     denoise: str = "medium"
     """With ``ai``: how strongly noise and JPEG blocks are removed (low, medium, high)."""
+    best: bool = False
+    """With ``ai``: use the big, slow model ("Best quality"); ``denoise`` doesn't apply."""
 
     def __post_init__(self) -> None:
         if self.mode not in MODES:
-            raise ResizeError(f"Unknown size choice: {self.mode}")
+            raise ResizeError(f"“{self.mode}” is not a known size selection.")
         if self.denoise not in DENOISE_LEVELS:
-            raise ResizeError(f"Unknown noise removal level: {self.denoise}")
+            raise ResizeError(f"“{self.denoise}” is not a known noise removal level.")
         if self.mode == PERCENT:
             if not MIN_PERCENT <= self.percent <= MAX_PERCENT:
-                raise ResizeError(
-                    f"Please choose a percentage from {MIN_PERCENT} to {MAX_PERCENT}."
-                )
+                raise ResizeError(f"Select a percentage from {MIN_PERCENT} to {MAX_PERCENT}.")
             return
         needed = {LONGEST: ("width",), WIDTH: ("width",), HEIGHT: ("height",)}
         for name in needed.get(self.mode, ("width", "height")):
             if not 1 <= getattr(self, name) <= MAX_SIDE:
-                raise ResizeError(f"Please choose a size from 1 to {MAX_SIDE:,} pixels.")
+                raise ResizeError(f"Select a size from 1 to {MAX_SIDE:,} pixels.")
 
     def describe(self) -> str:
         """Short text for messages, e.g. "longest side 2000 px"."""
-        ai = " with AI" if self.ai else ""
+        ai = (" with AI (best quality)" if self.best else " with AI") if self.ai else ""
         if self.mode == PERCENT:
             if self.percent == 100 and self.ai:
-                return "improved with AI"
+                return "improved with AI" + (" (best quality)" if self.best else "")
             return f"{self.percent:g} %{ai}"
         text = {
             LONGEST: f"longest side {self.width} px",
@@ -131,8 +131,8 @@ def parse(text: str, enlarge: bool = True) -> Resize:
     match = _SPEC.match(text or "")
     if not match or (match.group(3) == "" and match.group(4) == ""):
         raise ResizeError(
-            f'"{text}" is not a size. Examples: 50%, 2000 (longest side), '
-            "1920x1080 (fit inside), 1920x (width), x1080 (height)."
+            f'"{text}" is not a size. Use one of these formats: 50%, 2000 (longest side), '
+            "1920x1080 (the picture goes in this area), 1920x (width), x1080 (height)."
         )
     percent, longest, width, height = match.groups()
     if percent is not None:
@@ -154,10 +154,34 @@ def picture_size(path) -> tuple[int, int] | None:
     try:
         with Image.open(path) as im:
             width, height = im.size
-            orientation = im.getexif().get(0x0112, 1)
+            if im.format == "PNG":  # Pillow would decode the whole picture to find EXIF
+                exif = Image.Exif()
+                exif.load(_png_exif(path))
+            else:
+                exif = im.getexif()
+            orientation = exif.get(0x0112, 1)
     except Exception:  # noqa: BLE001 - damaged or unknown files simply show no size
         return None
     return (height, width) if orientation in (5, 6, 7, 8) else (width, height)
+
+
+def _png_exif(path) -> bytes:
+    """The EXIF block of a PNG (its "eXIf" chunk), found by skipping from chunk to chunk
+    without reading the picture data. Empty if there is none."""
+    import struct
+
+    with open(path, "rb") as fh:
+        fh.seek(8)  # the PNG signature
+        while header := fh.read(8):
+            if len(header) < 8:
+                break
+            length, kind = struct.unpack(">I4s", header)
+            if kind == b"eXIf":
+                return fh.read(length)
+            if kind == b"IEND":
+                break
+            fh.seek(length + 4, 1)  # the data and its checksum
+    return b""
 
 
 # Pillow modes that resize directly; others are converted first. Transparent pictures
@@ -193,8 +217,7 @@ def apply(
         return img
     if size[0] * size[1] > MAX_PIXELS:
         raise ResizeError(
-            f"The new size ({size[0]:,} × {size[1]:,} pixels) is too big. "
-            "Please choose a smaller size."
+            f"The new size ({size[0]:,} × {size[1]:,} pixels) is too large. Select a smaller size."
         )
     # Lanczos: the sharpest clean result when making smaller. Bicubic for enlarging:
     # smooth, without the halos Lanczos can add around edges.
@@ -226,11 +249,11 @@ def _apply_ai(img, size, spec, info, progress, cancelled) -> Image.Image:
 
     if img.mode in ("I", "I;16", "F"):
         raise ResizeError(
-            "AI enhancing works with normal pictures (8 bits per colour), and this one has "
-            "more. Please choose the size without AI."
+            "You can use AI enhancement only with usual pictures (8 bits for each colour). "
+            "This picture has more. Select the size without AI."
         )
     try:
-        result = upscale.enhance(img, size, spec.denoise, progress, cancelled)
+        result = upscale.enhance(img, size, spec.denoise, progress, cancelled, spec.best)
     except upscale.UpscaleError as exc:
         raise ResizeError(str(exc)) from exc
     result.info = info

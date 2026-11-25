@@ -226,7 +226,7 @@ def inspect_bytes(fmt: str, data: bytes) -> list[Finding]:
                 for page in ImageSequence.Iterator(im):
                     found += [f for f in _from_pillow(page) if f not in found]
     except Exception as exc:
-        raise ConversionError(f"Could not read the image: {exc}") from exc
+        raise ConversionError(f"Cannot read the image ({exc}).") from exc
     try:
         if fmt == "jpg" and jpeg_tools.has_data_after_image(data):
             found.append(
@@ -249,7 +249,7 @@ def inspect(path: Path | str) -> list[Finding]:
 
 def _cleanable_format(path: Path) -> str:
     if not path.is_file():
-        raise ConversionError(f"File not found: {path}")
+        raise ConversionError(f"Cannot find the file {path}.")
     fmt = formats.detect(path)
     if fmt is None or fmt.id not in CLEANABLE:
         kind = fmt.name if fmt else "this kind of file"
@@ -258,8 +258,9 @@ def _cleanable_format(path: Path) -> str:
         if fmt is not None and fmt.id in ("doc", "xls", "ppt"):
             hint = f" Convert it to {fmt.id.upper()}X first, then remove the metadata."
         raise ConversionError(
-            f"Removing metadata works for photos and images ({names}), PDF, Word (DOCX), "
-            f"Excel (XLSX), PowerPoint (PPTX), videos and music, not for {kind}.{hint}"
+            f"You can remove metadata from photos and images ({names}), PDF, Word (DOCX), "
+            f"Excel (XLSX), PowerPoint (PPTX), videos and music. You cannot do it for "
+            f"{kind}.{hint}"
         )
     return fmt.id
 
@@ -268,7 +269,7 @@ def _strip(fmt: str, data: bytes, orientation: int) -> bytes:
     try:
         return _STRIPPERS[fmt](data, orientation=orientation)
     except (ValueError, IndexError, OSError) as exc:  # damaged or unusual files
-        raise ConversionError(f"Could not remove the metadata: {exc}") from exc
+        raise ConversionError(f"Cannot remove the metadata ({exc}).") from exc
 
 
 def _frames(im: Image.Image):
@@ -295,16 +296,16 @@ def clean_bytes(fmt: str, data: bytes) -> bytes:
         left = doc_metadata.inspect_bytes(fmt, cleaned)
         if left:
             raise ConversionError(
-                "Some metadata could not be removed ("
+                "Azoth Converter cannot remove some metadata ("
                 + ", ".join(f.label for f in left)
-                + "). Nothing was saved."
+                + "). It did not save a file."
             )
         return cleaned
     try:
         with _open(data) as im:
             orientation = im.getexif().get(0x0112, 1)
     except Exception as exc:
-        raise ConversionError(f"Could not read the image: {exc}") from exc
+        raise ConversionError(f"Cannot read the image ({exc}).") from exc
     if fmt in ("heic", "avif"):
         orientation = 1  # kept in the file's own image properties
     if fmt == "tiff":
@@ -316,15 +317,15 @@ def clean_bytes(fmt: str, data: bytes) -> bytes:
         same = False
     if not same:
         raise ConversionError(
-            "The metadata can't be removed from this file without changing the picture. "
-            "Nothing was saved."
+            "Azoth Converter cannot remove the metadata from this file without a change "
+            "to the picture. It did not save a file."
         )
     left = inspect_bytes(fmt, cleaned)
     if left:
         raise ConversionError(
-            "Some metadata could not be removed ("
+            "Azoth Converter cannot remove some metadata ("
             + ", ".join(f.label for f in left)
-            + "). Nothing was saved."
+            + "). It did not save a file."
         )
     return cleaned
 
@@ -372,7 +373,7 @@ def clean_file(
     try:
         target.write_bytes(cleaned)
     except OSError as exc:
-        raise ConversionError(f"Could not save {target.name}: {exc.strerror or exc}") from exc
+        raise ConversionError(f"Cannot save {target.name} ({exc.strerror or exc}).") from exc
     return CleanResult(source=source, output=target, removed=removed)
 
 
@@ -388,7 +389,7 @@ def _clean_media(
     try:
         removed = media_metadata.clean(source, target, fmt)
     except OSError as exc:
-        raise ConversionError(f"Could not save {target.name}: {exc.strerror or exc}") from exc
+        raise ConversionError(f"Cannot save {target.name} ({exc.strerror or exc}).") from exc
     return CleanResult(
         source=source, output=target, removed=[Finding(label, d) for label, d in removed]
     )

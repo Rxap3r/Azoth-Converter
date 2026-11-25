@@ -199,7 +199,7 @@ def test_gif_both_ways(tmp_path):
 def test_damaged_file_is_refused_clearly(tmp_path):
     src = tmp_path / "broken.mp4"
     src.write_bytes(b"\x00\x00\x00\x18ftypisom" + bytes(range(256)) * 20)
-    with pytest.raises(ConversionError, match="couldn't be"):
+    with pytest.raises(ConversionError, match="Cannot read this file"):
         Engine().convert(src, "mkv", tmp_path / "out")
 
 
@@ -288,7 +288,7 @@ def test_missing_ffmpeg_says_reinstall_and_offers_no_download(monkeypatch):
     monkeypatch.setattr(media, "find_ffmpeg", lambda: None)
     engine = Engine(all_converters())
     [conv] = [c for c in engine.unavailable() if c.id == "ffmpeg"]
-    assert "Reinstall" in conv.unavailable_reason()
+    assert "Install Azoth Converter again" in conv.unavailable_reason()
     assert not conv.download_url  # FFmpeg comes with the app: nothing to download
     with pytest.raises(ConversionError):
         conv.convert(Path("a.mp4"), Path("a.mkv"), None)
@@ -332,7 +332,7 @@ def test_nothing_is_saved_if_a_track_would_change(phone_video, tmp_path, monkeyp
 
     hashes = iter([["a"], ["b"]])
     monkeypatch.setattr(media_metadata, "_stream_hashes", lambda ffmpeg, path: next(hashes))
-    with pytest.raises(ConversionError, match="nothing was saved"):
+    with pytest.raises(ConversionError, match="did not save a file"):
         metadata.clean_file(phone_video, tmp_path / "out")
     assert not list((tmp_path / "out").glob("*"))
 
@@ -344,3 +344,150 @@ def test_videos_and_music_offer_remove_metadata():
     for fmt in ("mp4", "mov", "mkv", "mp3", "m4a", "flac"):
         assert fmt in metadata.CLEANABLE
         assert targets.choices(Engine(), [formats.FORMATS[fmt]]).can_clean
+
+
+# --- "Make smaller" ----------------------------------------------------------------------
+
+
+def probe_video(path) -> dict[str, str]:
+    """Codec, picture size, frame rate and colours of the first video track, read from
+    what FFmpeg says about the file (no ffprobe: the app doesn't bundle it)."""
+    import re
+
+    text = subprocess.run(
+        [str(FFMPEG), "-hide_banner", "-i", str(path)], capture_output=True, text=True
+    ).stderr
+    line = next(x for x in text.splitlines() if "Video:" in x)
+    size = re.search(r", (\d+)x(\d+)", line)
+    info = {
+        "codec_name": line.split("Video: ")[1].split()[0],
+        "width": size[1],
+        "height": size[2],
+        "fps": re.search(r"([\d.]+) fps", line)[1],
+        "color_transfer": "bt709" if re.search(r"bt709[,)/]", line) else "",
+        "line": line.strip(),
+    }
+    if "rotation of" in text:
+        info["rotation"] = "yes"
+    return info
+
+
+def big_phone_video(path, size="1920x1080", rate=60, *extra):
+    return make(
+        path,
+        "-f", "lavfi", "-i", f"testsrc2=size={size}:rate={rate}:duration=1", *SOUND,
+        "-c:v", "libx264", "-crf", "10", "-preset", "ultrafast", "-c:a", "aac", "-shortest",
+        "-metadata", "location=+47.3769+008.5417/", "-movflags", "use_metadata_tags", *extra,
+    )  # fmt: skip
+
+
+@needs_ffmpeg
+def test_make_smaller_phone_video(tmp_path):
+    src = big_phone_video(tmp_path / "party.mov")
+    before = src.read_bytes()
+    result = Engine().convert(src, "mp4", tmp_path / "out", options={"shrink": "720"})
+    [out] = result.outputs
+    assert out.name == "party (smaller).mp4"
+    info = probe_video(out)
+    assert info["codec_name"] == "h264" and (info["width"], info["height"]) == ("1280", "720")
+    assert info["fps"] == "30"  # 60 fps phone video: half the frames
+    assert packets(out, "0:a") == packets(src, "0:a")  # AAC sound copied unchanged
+    assert out.stat().st_size < src.stat().st_size
+    assert "47.3769" not in tags(out)  # still no location
+    assert src.read_bytes() == before  # the original is never touched
+
+
+@needs_ffmpeg
+def test_make_smaller_keeps_upright_phone_videos_upright(tmp_path):
+    # Phones store upright videos lying on their side, with a "turn by 90°" flag.
+    lying = big_phone_video(tmp_path / "lying.mp4", "1280x720", 30)
+    upright = make(tmp_path / "upright.mov", "-display_rotation", "90", "-i", str(lying),
+                   "-c", "copy")  # fmt: skip
+    [out] = Engine().convert(upright, "mp4", tmp_path / "o", options={"shrink": "480"}).outputs
+    info = probe_video(out)
+    assert (info["width"], info["height"]) == ("480", "854")  # turned, the short side 480
+    assert "rotation" not in info  # really turned, not just flagged
+
+
+@needs_ffmpeg
+def test_make_smaller_never_enlarges_and_refuses_when_nothing_is_saved(tmp_path):
+    # Tiny and already strongly compressed: a "smaller" copy would be bigger.
+    src = make(tmp_path / "tiny.mp4", *VIDEO, "-c:v", "libx264", "-crf", "51")
+    with pytest.raises(ConversionError, match="This video is small"):
+        Engine().convert(src, "mp4", tmp_path / "o", options={"shrink": "1080"})
+    assert not any((tmp_path / "o").glob("*"))  # nothing left behind
+
+
+@needs_ffmpeg
+def test_make_smaller_turns_hdr_into_normal_colours(tmp_path):
+    from azoth.converters.media import has_filter
+
+    if not has_filter(FFMPEG, "zscale"):
+        pytest.skip("this FFmpeg has no zscale filter")
+    # Like an iPhone HDR video (HLG). The labels go on the frames too: FFmpeg 7 and later
+    # take them from there, not only from the options.
+    src = big_phone_video(
+        tmp_path / "hdr.mov", "1280x720", 30,
+        "-vf", "setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc",
+        "-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc",
+    )  # fmt: skip
+    assert "arib-std-b67" in probe_video(src)["line"]  # the test video really is HDR
+    [out] = Engine().convert(src, "mp4", tmp_path / "o", options={"shrink": "480"}).outputs
+    info = probe_video(out)
+    assert info["color_transfer"] == "bt709", info["line"]  # FFmpeg's description of it
+    assert "arib-std-b67" not in info["line"] and "bt2020" not in info["line"]
+
+
+def test_shrink_plan():
+    from azoth.converters.media import plan_shrink
+
+    text = (
+        "  Stream #0:0[0x1](und): Video: hevc (Main 10), yuv420p10le(tv, bt2020nc/bt2020/"
+        "arib-std-b67), 3840x2160, 59.94 fps\n"
+        "  Stream #0:1[0x2](und): Audio: pcm_s16le, 48000 Hz, stereo, s16, 1536 kb/s\n"
+    )
+    info = parse_info(text)
+    assert info.of("video")[0].hdr
+    args = plan_shrink("720", info)
+    vf = args[args.index("-vf") + 1]
+    assert vf.startswith("fps=30,scale=") and "min(ih,720)" in vf and "tonemap" in vf
+    assert args[args.index("-c:a:0") + 1] == "aac" and "192k" in args  # PCM: re-encoded
+    assert "tonemap" not in plan_shrink("720", info, tonemap=False)[args.index("-vf") + 1]
+    with pytest.raises(ConversionError):
+        plan_shrink("4k", info)
+
+
+def test_only_videos_can_be_made_smaller(tmp_path):
+    from azoth.gui import targets
+
+    engine = Engine()
+    if FFMPEG is not None:
+        assert targets.choices(engine, [formats.FORMATS["mov"]]).can_shrink
+        assert targets.choices(engine, [formats.FORMATS["mp4"]]).can_shrink
+    for fmt in ("mp3", "jpg", "pdf"):
+        assert not targets.choices(engine, [formats.FORMATS[fmt]]).can_shrink
+    assert targets.job_target(targets.SHRINK_TARGET, formats.FORMATS["mov"]) == "mp4"
+    song = tmp_path / "a.mp3"
+    song.write_bytes(b"ID3" + bytes(200))
+    with pytest.raises(ConversionError, match="only with videos"):
+        engine.convert(song, "mp4", tmp_path, options={"shrink": "720"})
+
+
+def test_cli_shrink_checks_its_options(tmp_path, capsys):
+    from azoth.cli import main
+
+    clip = tmp_path / "a.mov"
+    clip.write_bytes(bytes(100))
+    assert main(["convert", str(clip), "--to", "webm", "--shrink", "720"]) == 2
+    assert "--shrink saves MP4" in capsys.readouterr().err
+    assert main(["convert", str(clip), "--to", "mp4", "--shrink", "720", "--ai"]) == 2
+    assert "for videos" in capsys.readouterr().err
+
+
+@needs_ffmpeg
+def test_cli_shrink(tmp_path):
+    from azoth.cli import main
+
+    src = big_phone_video(tmp_path / "trip.mov", "1280x720", 30)
+    assert main(["convert", str(src), "--to", "mp4", "--shrink", "480", "-q"]) == 0
+    assert probe_video(tmp_path / "trip (smaller).mp4")["height"] == "480"

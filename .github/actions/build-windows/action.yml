@@ -57,6 +57,16 @@ runs:
           Write-Error "AI smoke test failed"
           exit 1
         }
+        # "Best quality (slow)" works with the big bundled model; on a tiny copy of the logo
+        # (48 px wide) it takes seconds instead of a minute
+        $tiny = "$env:RUNNER_TEMP\ai-tiny"
+        & $exe convert samples/images/logo_transparent.png --to png --resize 48x -o $tiny --quiet
+        if ($LASTEXITCODE -ne 0) { Write-Error "AI best quality smoke test: shrinking failed"; exit 1 }
+        & $exe convert "$tiny\logo_transparent (resized).png" --to webp --resize 200% --ai --ai-best -o $ai --quiet
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$ai\logo_transparent (resized).webp")) {
+          Write-Error "AI best quality smoke test failed"
+          exit 1
+        }
         # Video and sound work with the bundled FFmpeg (PATH limited to Windows itself,
         # so an FFmpeg installed on the build machine can't stand in for it)
         $ffmpeg = "packaging/dist/AzothConverter/_internal/azoth/resources/ffmpeg/ffmpeg.exe"

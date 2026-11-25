@@ -40,20 +40,23 @@ def done_message(
     cleaning: bool = False,
     resizing: bool = False,
     enhancing: bool = False,
+    shrinking: bool = False,
 ) -> str:
     """One short sentence about the finished run."""
     if cancelled:
         return f"Cancelled after {_files(converted)}." if converted else "Cancelled."
     if failed:
         if not converted:
-            return f"Nothing was saved: {_files(failed)} failed. The reason is shown on each file."
-        return f"{converted} done, {failed} failed. The reason is shown on each file."
+            return f"Nothing saved: {_files(failed)} failed. Each file shows the reason."
+        return f"{converted} done, {failed} failed. Each file shows the reason."
     if cleaning:
         return f"Done! Metadata removed from {_files(converted)}."
     if enhancing:
         return f"Done! {_files(converted)} enhanced."
     if resizing:
         return f"Done! {_files(converted)} resized."
+    if shrinking:
+        return f"Done! {_files(converted)} made smaller."
     return f"Done! {_files(converted)} converted."
 
 

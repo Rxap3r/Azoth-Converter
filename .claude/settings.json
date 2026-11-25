@@ -1,13 +1,15 @@
 {
-  "extraKnownMarketplaces": {
-    "rxap3r-tools": {
-      "source": {
-        "source": "github",
-        "repo": "Rxap3r/Claude-Tools"
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/sync-dev.sh\"",
+            "timeout": 60
+          }
+        ]
       }
-    }
-  },
-  "enabledPlugins": {
-    "cost-saver@rxap3r-tools": true
+    ]
   }
 }

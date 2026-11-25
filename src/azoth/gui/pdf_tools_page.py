@@ -9,6 +9,7 @@ choices, runs the job in a background thread and shows the result.
 from __future__ import annotations
 
 import threading
+import time
 import traceback
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -103,7 +104,7 @@ class Task(QObject):
             try:
                 result = job()
             except ConversionCancelled:
-                self.nothing.emit("Cancelled. Nothing was saved.")
+                self.nothing.emit("Cancelled. Azoth Converter did not save a file.")
             except pdf_tools.NotSmaller as exc:
                 self.nothing.emit(str(exc))
             except ConversionError as exc:
@@ -243,7 +244,7 @@ class MergeTool(QWidget):
         self.list.model().rowsMoved.connect(lambda *_: self.changed.emit())
         self.remover = RemovableDelegate(self.list, self.remove_row)
         self.list.setItemDelegate(self.remover)
-        self.list.setToolTip("Drag to change the order. Click the bin to remove a PDF.")
+        self.list.setToolTip("Drag to change the sequence. To remove a PDF, click the bin.")
         self.list.installEventFilter(self)  # Delete key removes the selected PDFs
         self.add_btn = QPushButton("Add PDFs…")
         self.add_btn.clicked.connect(lambda: self.add_files(choose_pdfs(self, many=True)))
@@ -429,8 +430,8 @@ class EditTool(QWidget):
         # Pages are shown left to right, so the buttons point the way the page moves.
         self.earlier_btn = QPushButton("◀ Move")
         self.later_btn = QPushButton("Move ▶")
-        self.earlier_btn.setToolTip("Move the selected pages one place towards the start")
-        self.later_btn.setToolTip("Move the selected pages one place towards the end")
+        self.earlier_btn.setToolTip("Move the selected pages one position to the start")
+        self.later_btn.setToolTip("Move the selected pages one position to the end")
         self.earlier_btn.setAccessibleName("Move pages towards the start")
         self.later_btn.setAccessibleName("Move pages towards the end")
         self.delete_btn = QPushButton("Delete")
@@ -497,14 +498,17 @@ class EditTool(QWidget):
         loader = self._loader
         if loader is None:
             return
+        deadline = time.monotonic() + 0.03  # short slices: the window stays responsive
         try:
-            for _ in range(8):
+            while True:
                 index, png = next(loader)
                 item = self._item_for_page(index)
                 if item is not None:
                     image = QImage.fromData(png, "PNG")
                     item.setData(Qt.ItemDataRole.UserRole + 3, image)
                     self._show_thumbnail(item)
+                if time.monotonic() > deadline:
+                    break
         except (StopIteration, ConversionError):
             self._loader = None
             return
@@ -623,7 +627,7 @@ class _SinglePdfTool(QWidget):
             self.size = pdf.stat().st_size
         except (ConversionError, OSError) as exc:
             if isinstance(exc, OSError):
-                exc = ConversionError(f"Could not read {pdf.name}: {exc.strerror or exc}")
+                exc = ConversionError(f"Cannot read {pdf.name} ({exc.strerror or exc}).")
             self.file_label.setText(str(exc))
             self.file_label.setProperty("role", "muted")
             self.signed.setVisible(False)
@@ -661,7 +665,7 @@ class CompressTool(_SinglePdfTool):
 
     def check(self, pdf: Path) -> str | None:
         if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
-            return "This PDF is password-protected. Remove the password first (Password page)."
+            return "This PDF has a password. Remove the password first on the Password page."
         return None
 
     def level(self) -> str:
@@ -801,7 +805,7 @@ class PasswordTool(_SinglePdfTool):
             return problem
         warning = pdf_tools.password_warning(password) or ""
         if self.repeat.text() and self.repeat.text() != password:
-            return ("The passwords don't match. " + warning).strip()
+            return ("The two passwords are not the same. " + warning).strip()
         return warning
 
     def action(self) -> str | None:
@@ -862,7 +866,7 @@ class SearchableTool(_SinglePdfTool):
 
     def check(self, pdf: Path) -> str | None:
         if pdf_tools.lock_state(pdf) == pdf_tools.NEEDS_PASSWORD:
-            return "This PDF is password-protected. Remove the password first (Password page)."
+            return "This PDF has a password. Remove the password first on the Password page."
         if not ocr.needs_ocr(pdf):
             return f"{pdf.name} already has selectable text, so there is nothing to recognise."
         return None

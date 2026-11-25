@@ -27,7 +27,6 @@ from .converters import ConversionError
 from .converters.pdf import open_pdf, page_file_name
 from .engine import TEMP_PREFIX, unique_path
 
-ROTATIONS = (0, 90, 180, 270)
 _ALL_PERMISSIONS = (
     pymupdf.PDF_PERM_PRINT
     | pymupdf.PDF_PERM_MODIFY
@@ -117,15 +116,17 @@ def _save(
             # are not touched.
             doc.save(temp, **options)
         except Exception as exc:
-            raise ConversionError(f"Could not save the PDF: {exc}") from exc
+            raise ConversionError(f"Cannot save the PDF ({exc}).") from exc
         if smaller_than is not None and temp.stat().st_size >= smaller_than:
-            raise NotSmaller("This PDF can't be made any smaller. Nothing was saved.")
+            raise NotSmaller(
+                "Azoth Converter cannot make this PDF smaller. It did not save a file."
+            )
         if check is not None:
             check(temp)
         try:
             shutil.move(str(temp), dst)
         except OSError as exc:
-            raise ConversionError(f"Could not save {dst.name}: {exc.strerror or exc}") from exc
+            raise ConversionError(f"Cannot save {dst.name} ({exc.strerror or exc}).") from exc
     return dst
 
 
@@ -150,7 +151,9 @@ def _same_pages(expected: int) -> Callable[[Path], None]:
         except Exception:
             ok = False
         if not ok:
-            raise ConversionError("Something went wrong while saving. Nothing was saved.")
+            raise ConversionError(
+                "An error occurred during the save. Azoth Converter did not save a file."
+            )
 
     return check
 
@@ -165,7 +168,7 @@ def merge(
     If any of them is restricted, the result allows only what every one of them allows."""
     sources = [Path(s) for s in sources]
     if len(sources) < 2:
-        raise ConversionError("Choose at least two PDFs to merge.")
+        raise ConversionError("Select two or more PDFs to merge.")
     report = progress or (lambda f, m: None)
     out = pymupdf.open()
     toc: list[list] = []
@@ -181,7 +184,7 @@ def merge(
                 try:
                     out.insert_pdf(doc)
                 except Exception as exc:
-                    raise ConversionError(f"Could not add {src.name}: {exc}") from exc
+                    raise ConversionError(f"Cannot add {src.name} ({exc}).") from exc
                 for level, title, page, *_ in doc.get_toc(simple=False):
                     toc.append([level, title, page + offset if page > 0 else page])
         if toc:
@@ -213,7 +216,7 @@ def parse_ranges(text: str, total: int) -> list[list[int]]:
     for part in parts:
         match = _RANGE.match(part)
         if not match or not (match.group(1) or match.group(3)):
-            raise ConversionError(f"“{part.strip()}” isn't a page range. Use for example 1-3, 5.")
+            raise ConversionError(f"“{part.strip()}” is not a page range. Use this format: 1-3, 5.")
         start = int(match.group(1)) if match.group(1) else 1
         if match.group(2):
             end = int(match.group(3)) if match.group(3) else total
@@ -221,7 +224,7 @@ def parse_ranges(text: str, total: int) -> list[list[int]]:
             end = start
         if start < 1 or end > total or start > end:
             raise ConversionError(
-                f"“{part.strip()}” doesn't fit: the PDF has {total} page"
+                f"“{part.strip()}” is not in the PDF. The PDF has {total} page"
                 f"{'s' if total != 1 else ''}."
             )
         groups.append(list(range(start - 1, end)))
@@ -263,7 +266,7 @@ def split(
         restricted = _restrictions(doc) is not None
         for n, (group, name) in enumerate(zip(groups, names, strict=True)):
             if not group or min(group) < 0 or max(group) >= total:
-                raise ConversionError("Those pages aren't in this PDF.")
+                raise ConversionError("These pages are not in this PDF.")
             report(n / len(groups), f"Saving {name}")
             target = _target(out_dir / name, overwrite, [src])
             if restricted:
@@ -286,7 +289,7 @@ def _split_restricted(src: Path, group: list[int], target: Path) -> Path:
         try:
             doc.select(group)
         except Exception as exc:
-            raise ConversionError(f"Could not copy the pages: {exc}") from exc
+            raise ConversionError(f"Cannot copy the pages ({exc}).") from exc
         return _save(doc, target, encryption=pymupdf.PDF_ENCRYPT_KEEP)
 
 
@@ -308,23 +311,23 @@ def edit_pages(
     deleted from the copy. The original stays as it is."""
     src = Path(src)
     if not pages:
-        raise ConversionError("Keep at least one page.")
+        raise ConversionError("Keep one or more pages.")
     with open_pdf(src) as doc:
         total = doc.page_count
         order = [p.index for p in pages]
         if min(order) < 0 or max(order) >= total:
-            raise ConversionError("Those pages aren't in this PDF.")
+            raise ConversionError("These pages are not in this PDF.")
         if len(set(order)) != len(order):
-            raise ConversionError("A page can only appear once.")
+            raise ConversionError("Use each page only one time.")
         if any(p.rotation % 90 for p in pages):
-            raise ConversionError("Pages can only be turned in steps of 90 degrees.")
+            raise ConversionError("Turn pages only in steps of 90 degrees.")
         try:
             doc.select(order)  # keeps the page objects themselves: nothing is re-drawn
             for page, edit in zip(doc, pages, strict=True):
                 if edit.rotation % 360:
                     page.set_rotation((page.rotation + edit.rotation) % 360)
         except Exception as exc:
-            raise ConversionError(f"Could not change the pages: {exc}") from exc
+            raise ConversionError(f"Cannot change the pages ({exc}).") from exc
         # keeps an owner's restrictions (and their own password still lifts them)
         return _save(doc, _target(Path(dst), overwrite, [src]), encryption=pymupdf.PDF_ENCRYPT_KEEP)
 
@@ -409,7 +412,7 @@ def compress(
     src = Path(src)
     chosen = quality.COMPRESS_BY_ID.get(level)
     if chosen is None:
-        raise ConversionError(f"Unknown compression level “{level}”.")
+        raise ConversionError(f"“{level}” is not a known compression level.")
     size = src.stat().st_size
     with open_pdf(src) as doc:
         if chosen.dpi:
@@ -420,7 +423,9 @@ def compress(
             except ConversionError:
                 raise
             except Exception as exc:
-                raise ConversionError(f"Could not shrink the pictures in this PDF: {exc}") from exc
+                raise ConversionError(
+                    f"Cannot make the pictures in this PDF smaller ({exc})."
+                ) from exc
         try:
             return _save(
                 doc,
@@ -433,8 +438,8 @@ def compress(
         except NotSmaller:
             stronger = chosen is not quality.COMPRESS_LEVELS[-1]
             raise NotSmaller(
-                "This PDF can't be made smaller at this level. Nothing was saved."
-                + (" Try a stronger level." if stronger else "")
+                "Azoth Converter cannot make this PDF smaller at this level. It did not "
+                "save a file." + (" Try a stronger level." if stronger else "")
             ) from None
 
 
@@ -452,7 +457,7 @@ def lock_state(path: Path | str) -> str:
         doc = pymupdf.open(Path(path), filetype="pdf")
     except Exception as exc:
         raise ConversionError(
-            "Could not open the PDF. The file is damaged or isn't a real PDF."
+            "Cannot open the PDF. The file is damaged, or it is not a correct PDF."
         ) from exc
     with doc:
         if doc.needs_pass:
@@ -469,7 +474,7 @@ def password_problem(password: str) -> str | None:
     if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
         return "That password is too long for a PDF (at most about 120 characters)."
     if password != password.strip():
-        return "The password can't start or end with a space."
+        return "The password cannot start or end with a space."
     return None
 
 
@@ -506,7 +511,7 @@ def add_password(src: Path, dst: Path, password: str, *, overwrite: bool = False
     if problem:
         raise ConversionError(problem)
     if lock_state(src) != UNLOCKED:
-        raise ConversionError("This PDF already has a password. Remove it first.")
+        raise ConversionError("This PDF has a password. Remove that password first.")
     with open_pdf(src) as doc:
         pages = doc.page_count
 
@@ -515,7 +520,9 @@ def add_password(src: Path, dst: Path, password: str, *, overwrite: bool = False
             with pymupdf.open(path, filetype="pdf") as locked:
                 ok = locked.needs_pass and locked.authenticate(password) and not locked.is_encrypted
             if not ok:
-                raise ConversionError("Something went wrong while saving. Nothing was saved.")
+                raise ConversionError(
+                    "An error occurred during the save. Azoth Converter did not save a file."
+                )
 
         return _save(
             doc,
@@ -536,24 +543,29 @@ def remove_password(src: Path, dst: Path, password: str, *, overwrite: bool = Fa
     if state == UNLOCKED:
         raise ConversionError("This PDF has no password.")
     if not password:
-        raise ConversionError("Enter the PDF's password.")
+        raise ConversionError("Enter the password of the PDF.")
     doc = pymupdf.open(src, filetype="pdf")
     try:
         result = doc.authenticate(password)
         full_access = result & 4 or doc.permissions & _ALL_PERMISSIONS == _ALL_PERMISSIONS
         if not result or (state == RESTRICTED and not result & 4):
-            raise ConversionError("That password isn't right. Nothing was saved.")
+            raise ConversionError(
+                "The password is not correct. Azoth Converter did not save a file."
+            )
         if not full_access:
             raise ConversionError(
-                "This password opens the PDF, but a second (owner) password limits printing "
-                "or copying. Enter the owner password to remove both."
+                "This password opens the PDF. But a second password (the owner password) "
+                "limits printing or copying. Enter the owner password to remove the two "
+                "passwords."
             )
         pages = doc.page_count
 
         def check(path: Path) -> None:
             _same_pages(pages)(path)
             if lock_state(path) != UNLOCKED:  # pragma: no cover - MuPDF always decrypts
-                raise ConversionError("Something went wrong while saving. Nothing was saved.")
+                raise ConversionError(
+                    "An error occurred during the save. Azoth Converter did not save a file."
+                )
 
         return _save(
             doc,

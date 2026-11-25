@@ -7,9 +7,48 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-24
+
+### Added
+
+- **"Best quality (slow)" for Enhance with AI:** a bigger AI model (Real-ESRGAN x4plus)
+  gives more natural hair, fur and grass when small pictures are made much bigger. About 15
+  times slower than the normal AI (a few minutes per picture), so it's off unless you tick
+  it. Command line: `--ai --ai-best`. The download grows by about 30 MB.
+- **PDF → Excel: "Tables only" and "All pages on one sheet"** (under "More options",
+  remembered): leave out the text around the tables, and put all pages on one sheet. With
+  both, a table that goes on over several pages, like a bank statement, becomes one table
+  with its header once, ready to sort and filter. Command line: `--tables-only`,
+  `--one-sheet`.
+- **Make videos smaller:** a new "Make smaller" tile for videos saves a much smaller MP4
+  copy ("name (smaller).mp4") for e-mail and messengers: Full HD, HD (the usual choice) or
+  Small, at most 30 frames per second. iPhone HDR videos get normal colours, upright videos
+  stay upright, nothing is enlarged, and if the copy wouldn't be smaller, nothing is saved.
+  Command line: `--to mp4 --shrink 720`. Also in Explorer's right-click menu for videos
+  ("Make smaller", with the size last chosen in the app).
+
+### Changed
+
+- Error messages, tooltips, notes and the command-line help are rewritten in Simplified
+  Technical English (ASD-STE100): short sentences, clear instructions ("Enter …",
+  "Remove …"), no shortened words, words from the STE dictionary, and they say plainly
+  when no file was saved.
+
+### Fixed
+
+- Adding many PNG pictures no longer makes the window hang: their pixel size is read from
+  the file's header instead of decoding the whole picture (100 large PNGs: from about
+  20 seconds to well under one).
+- Adding files to a long list is faster (icons are drawn once, not for every card again),
+  and page previews in the PDF tools are drawn in short slices so the window stays smooth.
+
 ### Development
 
-- Claude Code sessions in this repository load the owner's cost-saver plugin (`.claude/settings.json`).
+- Removed unused leftovers found in a code review (old helper functions and constants).
+- The automatic Windows build also tries "Best quality (slow)" once in the finished program
+  (on a tiny picture, so it adds only seconds).
+- Claude Code sessions use the owner's cost-saver plugin, now installed in the owner's claude.ai account instead of `.claude/settings.json`.
+- Every new Claude Code chat first updates the local `dev` to GitHub's latest version (`.claude/hooks/sync-dev.sh`); with uncommitted changes or unpushed commits it changes nothing and warns instead.
 
 ## [0.6.0] - 2026-11-24
 
@@ -488,7 +527,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.3.1...v0.4.0

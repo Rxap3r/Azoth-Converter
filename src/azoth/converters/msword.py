@@ -69,7 +69,6 @@ POWERPOINT = OfficeApp(
 )  # fmt: skip
 APPS = (WORD, EXCEL, POWERPOINT)
 
-WORD_SOURCES = list(WORD.sources)
 DEFAULT_TIMEOUT = 180  # seconds per document
 
 # Paths arrive in environment variables, never inside the script text, so file
@@ -301,7 +300,7 @@ class MsOfficeConverter(Converter):
         return self._installed
 
     def unavailable_reason(self) -> str:
-        return f"{self.app.label} isn't installed (optional: used for exact results)."
+        return f"{self.app.label} is not installed. It is optional: it gives accurate results."
 
     def capabilities(self) -> Iterable[tuple[str, str]]:
         for src in self.app.sources:
@@ -325,7 +324,9 @@ class MsOfficeConverter(Converter):
             try:
                 produced = self.fallback.convert(src, dst, ctx)
             except ConversionError as fallback_exc:
-                raise ConversionError(f"{exc} LibreOffice also failed: {fallback_exc}") from exc
+                raise ConversionError(
+                    f"{exc} LibreOffice also cannot convert the file. {fallback_exc}"
+                ) from exc
             ctx.warnings.append(
                 f"{short} failed, LibreOffice was used (the layout may differ slightly). {exc}"
             )
@@ -365,8 +366,8 @@ class MsOfficeConverter(Converter):
     def _convert_one(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
         if password_protected(src):
             error = ConversionError(
-                "This file is protected with a password. Please remove the password in "
-                f"{self.app.short} first (File → Info → Protect), then convert it."
+                "This file has a password. Remove the password first in "
+                f"{self.app.short} (File → Info → Protect). Then convert the file."
             )
             error.final = True  # LibreOffice can't open it either
             raise error
@@ -381,7 +382,7 @@ class MsOfficeConverter(Converter):
                 if not detail and returncode:
                     detail = f"PowerShell stopped with exit code {returncode}"
             detail = f": {detail}" if detail else ""
-            raise ConversionError(f"{self.app.label} could not convert the file{detail}")
+            raise ConversionError(f"{self.app.label} cannot convert the file{detail}")
         shutil.move(local, dst)
         return [dst]
 
@@ -393,7 +394,9 @@ class MsOfficeConverter(Converter):
         ``work_dir/office-out<n>.<ext>``."""
         powershell = find_powershell()
         if powershell is None:
-            raise ConversionError(f"PowerShell is missing, so {self.app.short} can't be used.")
+            raise ConversionError(
+                f"PowerShell is missing. Azoth Converter cannot use {self.app.short} without it."
+            )
 
         # Office gets private copies with plain names; the originals are never opened.
         # Paths only travel in environment variables, never inside the script text.
@@ -441,7 +444,7 @@ class MsOfficeConverter(Converter):
                     proc.kill()
                     if len(jobs) == 1:
                         raise ConversionError(
-                            f"{self.app.short} didn't finish within {int(timeout)} s."
+                            f"{self.app.short} did not finish in {int(timeout)} seconds."
                         )
                     break
                 part = len(done) + min(0.9, (now - started) / 30 if len(jobs) == 1 else 0.5)

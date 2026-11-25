@@ -14,7 +14,7 @@ import pymupdf
 from .base import ConversionContext, ConversionError, Converter
 from .images import READABLE
 
-TEXT_ONLY = "Only the text is kept; pictures and layout are dropped."
+TEXT_ONLY = "Azoth Converter keeps only the text. It does not keep the pictures and layout."
 
 
 def language(ctx: ConversionContext) -> str:
@@ -51,14 +51,14 @@ def write_docx(pages: list[list[str]], dst: Path) -> None:
     try:
         document.save(str(dst))
     except OSError as exc:
-        raise ConversionError(f"Could not save {dst.name}: {exc.strerror or exc}") from exc
+        raise ConversionError(f"Cannot save {dst.name} ({exc.strerror or exc}).") from exc
 
 
 def check_found(pages: list[list[str]]) -> None:
     if not any(pages):
         raise ConversionError(
-            "No text was found. If the picture is sideways or upside down, turn it "
-            "the right way up first; very blurry or tiny print can't be read."
+            "Azoth Converter found no text. If the picture is on its side or upside down, "
+            "turn it first. Azoth Converter cannot read very blurry or very small text."
         )
 
 
@@ -76,8 +76,8 @@ class OcrConverter(Converter):
 
     def unavailable_reason(self) -> str:
         return (
-            "Text recognition (OCR) is missing its language files, so scans and photos "
-            "can't be turned into text. Reinstall Azoth Converter to fix this."
+            "Text recognition (OCR) does not have its language files, so Azoth Converter "
+            "cannot change scans and photos into text. Install Azoth Converter again."
         )
 
     def capabilities(self) -> Iterable[tuple[str, str]]:

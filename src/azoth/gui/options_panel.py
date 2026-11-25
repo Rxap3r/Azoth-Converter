@@ -51,8 +51,8 @@ class QualitySelector(QWidget):
             row.addWidget(button, 1)
         caption = label("Quality", "caption")
         caption.setToolTip(
-            "Only for photos and PDF pages saved as pictures. Documents → PDF always keep "
-            "full quality."
+            "Only for photos, and for PDF pages that Azoth Converter saves as pictures. "
+            "Documents → PDF always keep full quality."
         )
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -100,6 +100,46 @@ class LanguageBox(QComboBox):
             self.setCurrentIndex(index)
 
 
+class ExcelOptions(QWidget):
+    """PDF → Excel choices on the Convert page (under "More options")."""
+
+    CHOICES = (
+        ("tables_only", "Tables only",
+         "Does not keep the text that is not in the tables, for example headings and page "
+         "footers."),
+        ("one_sheet", "All pages on one sheet",
+         "Not one sheet for each page. With “Tables only”, a table that continues on more "
+         "than one page (for example a bank statement) becomes one table. You can sort "
+         "and filter it."),
+    )  # fmt: skip
+
+    def __init__(self, prefs: Preferences | None = None) -> None:
+        super().__init__()
+        self.prefs = prefs or Preferences()
+        self.boxes: dict[str, QCheckBox] = {}
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.addWidget(label("Excel", "caption"))
+        for name, text, tip in self.CHOICES:
+            box = QCheckBox(text)
+            box.setToolTip(tip)
+            box.setChecked(self.prefs.excel_option(name))
+            box.toggled.connect(lambda on, n=name: self.prefs.save_excel_option(n, on))
+            layout.addWidget(box)
+            self.boxes[name] = box
+
+    def options(self) -> dict[str, bool]:
+        return {name: box.isChecked() for name, box in self.boxes.items()}
+
+    def summary(self) -> str:
+        return " · ".join(box.text() for box in self.boxes.values() if box.isChecked())
+
+    def set_busy(self, busy: bool) -> None:
+        for box in self.boxes.values():
+            box.setEnabled(not busy)
+
+
 class OcrOptions(QWidget):
     """ "Text recognition" on the Convert page: shown when a scan or photo becomes text,
     Word or (optional) a searchable PDF."""
@@ -110,8 +150,9 @@ class OcrOptions(QWidget):
         self.prefs = prefs
         self.searchable = QCheckBox("Make the text searchable (OCR)")
         self.searchable.setToolTip(
-            "Reads the text in the pictures and adds it invisibly, so you can search and "
-            "copy it. The pictures stay exactly the same. Takes a few seconds per page."
+            "Azoth Converter reads the text in the pictures and adds it to the PDF. You cannot "
+            "see this text, but you can search and copy it. The pictures stay the same. This "
+            "is slow: some seconds for each page."
         )
         self.searchable.setChecked(prefs.ocr_searchable)
         self.searchable.toggled.connect(self._toggled)
@@ -190,25 +231,32 @@ class ResizeOptions(QWidget):
         boxes.addStretch(1)
         self.only_shrink = QCheckBox("Don't enlarge smaller pictures")
         self.only_shrink.setToolTip(
-            "Pictures that are already smaller than the chosen size stay as they are. "
-            "Useful to make big photos smaller (e.g. for e-mail) without blowing up small ones."
+            "Pictures that are smaller than the selected size do not change. Use this to make "
+            "large photos smaller (for example for e-mail) and to keep small photos as they are."
         )
         self.ai = QCheckBox("Enhance with AI")
         self.ai.setToolTip(
-            "Bigger pictures get new, sharp detail that the AI invents; pictures that keep "
-            "their size get sharper, with less noise and fewer JPEG blocks. Runs only on "
-            "this computer, and takes a while."
+            "When the AI makes a picture larger, it adds new, sharp shapes. When the picture "
+            "keeps its size, it becomes sharper, with less noise and fewer JPEG blocks. The AI "
+            "operates only on this computer, and it is slow."
         )
         if not upscale.available():
             self.ai.hide()
+        self.best = QCheckBox("Best quality (slow)")
+        self.best.setToolTip(
+            "Uses a larger AI. Hair, fur and grass look better when small pictures become "
+            "much larger. It is approximately 15× slower: some minutes for each picture."
+        )
+        if not upscale.available(best=True):
+            self.best.hide()
         self.denoise = QComboBox()
         self.denoise.setAccessibleName("Noise removal")
         for level, text in upscale.DENOISE_LABELS.items():
             self.denoise.addItem(f"Noise removal: {text}", level)
         self.denoise.setCurrentIndex(self.denoise.findData(upscale.MEDIUM))
         self.denoise.setToolTip(
-            "How strongly noise and JPEG blocks are smoothed away. Low keeps fine grain and "
-            "texture; High gives the cleanest, smoothest look."
+            "How much noise and how many JPEG blocks the AI removes. Low keeps the small grain "
+            "and texture. High gives the cleanest and smoothest result."
         )
         self.hint = label("", "small", wrap=True)
         layout = QVBoxLayout(self)
@@ -220,12 +268,14 @@ class ResizeOptions(QWidget):
         layout.addLayout(boxes)
         layout.addWidget(self.only_shrink)
         layout.addWidget(self.ai)
+        layout.addWidget(self.best)
         layout.addWidget(self.denoise)
         layout.addWidget(self.hint)
         self.mode.currentIndexChanged.connect(self._mode_changed)
         self.preset.currentIndexChanged.connect(self._preset_changed)
         self.only_shrink.toggled.connect(self._update)
         self.ai.toggled.connect(self._update)
+        self.best.toggled.connect(self._update)
         self.denoise.currentIndexChanged.connect(self._update)
         for box in (self.width_box, self.height_box, self.percent_box):
             box.valueChanged.connect(self._update)
@@ -248,11 +298,16 @@ class ResizeOptions(QWidget):
     def uses_ai(self) -> bool:
         return self.ai.isChecked() and not self.ai.isHidden()
 
+    def uses_best(self) -> bool:
+        return self.uses_ai() and self.best.isChecked() and upscale.available(best=True)
+
     def spec(self) -> resize.Resize | None:
         """The chosen size, or None for "Keep original size" (without AI). With AI and
         the original size: 100 %, so pictures keep their size and get better."""
         mode = self.mode.currentData()
-        ai = {"ai": True, "denoise": self.denoise.currentData()} if self.uses_ai() else {}
+        ai = {}
+        if self.uses_ai():
+            ai = {"ai": True, "denoise": self.denoise.currentData(), "best": self.uses_best()}
         if mode is None:
             return resize.Resize(resize.PERCENT, percent=100, **ai) if ai else None
         if mode == resize.PERCENT:
@@ -282,7 +337,7 @@ class ResizeOptions(QWidget):
     def set_busy(self, busy: bool) -> None:
         for widget in (
             self.mode, self.preset, self.width_box, self.height_box, self.percent_box,
-            self.only_shrink, self.ai, self.denoise,
+            self.only_shrink, self.ai, self.best, self.denoise,
         ):  # fmt: skip
             widget.setEnabled(not busy)
 
@@ -320,7 +375,8 @@ class ResizeOptions(QWidget):
         self.percent_box.setVisible(custom and mode == resize.PERCENT)
         self.only_shrink.setVisible(mode not in (None, resize.PERCENT))
         ai = self.uses_ai()
-        self.denoise.setVisible(ai)
+        self.best.setVisible(ai and upscale.available(best=True))
+        self.denoise.setVisible(ai and not self.uses_best())  # the big model has one setting
         if mode is None and ai:
             hint = "Pictures keep their size and get sharper, with less noise."
         elif mode is None:

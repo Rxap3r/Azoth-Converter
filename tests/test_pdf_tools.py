@@ -79,7 +79,7 @@ def test_merge_never_overwrites(tmp_path):
 
 def test_merge_needs_two_readable_pdfs(tmp_path):
     a = make_pdf(tmp_path / "a.pdf", ["A"])
-    with pytest.raises(ConversionError, match="at least two"):
+    with pytest.raises(ConversionError, match="two or more"):
         pdf_tools.merge([a], tmp_path / "m.pdf")
     locked = tmp_path / "locked.pdf"
     doc = pymupdf.open()
@@ -99,7 +99,7 @@ def test_failed_save_leaves_nothing_behind(tmp_path, private_tmp, monkeypatch):
         raise RuntimeError("disk full")
 
     monkeypatch.setattr(pymupdf.Document, "save", broken_save)
-    with pytest.raises(ConversionError, match="Could not save"):
+    with pytest.raises(ConversionError, match="Cannot save"):
         pdf_tools.merge([a, b], tmp_path / "Merged.pdf")
     assert not (tmp_path / "Merged.pdf").exists()
     assert list(private_tmp.iterdir()) == []  # temporary folder removed
@@ -113,11 +113,11 @@ def test_parse_ranges():
     assert pdf_tools.parse_ranges("-2; 4–5", 6) == [[0, 1], [3, 4]]  # en dash and ;
     for bad, message in [
         ("", "Enter the pages"),
-        ("abc", "isn't a page range"),
-        ("0", "doesn't fit"),
-        ("12", "doesn't fit"),
-        ("5-3", "doesn't fit"),
-        ("-", "isn't a page range"),
+        ("abc", "is not a page range"),
+        ("0", "is not in the PDF"),
+        ("12", "is not in the PDF"),
+        ("5-3", "is not in the PDF"),
+        ("-", "is not a page range"),
     ]:
         with pytest.raises(ConversionError, match=message):
             pdf_tools.parse_ranges(bad, 10)
@@ -182,9 +182,9 @@ def test_edit_keeps_bookmarks_of_kept_pages(tmp_path):
 @pytest.mark.parametrize(
     ("pages", "message"),
     [
-        ([], "at least one page"),
-        ([PageEdit(5)], "aren't in this PDF"),
-        ([PageEdit(0), PageEdit(0)], "only appear once"),
+        ([], "one or more pages"),
+        ([PageEdit(5)], "are not in this PDF"),
+        ([PageEdit(0), PageEdit(0)], "only one time"),
         ([PageEdit(0, 45)], "steps of 90"),
     ],
 )
@@ -221,6 +221,6 @@ def test_cli_split_ranges_and_edit(tmp_path, capsys):
 
     capsys.readouterr()
     assert cli(["pdf", "edit", str(src), "--rotate", "1=45"]) == 1
-    assert "should look like" in capsys.readouterr().err
+    assert "Use this format: page=degrees" in capsys.readouterr().err
     assert cli(["pdf", "split", str(src), "--ranges", "9"]) == 1
-    assert "doesn't fit" in capsys.readouterr().err
+    assert "is not in the PDF" in capsys.readouterr().err

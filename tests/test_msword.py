@@ -117,7 +117,7 @@ def test_falls_back_to_libreoffice_when_word_fails(fake_word, sample_docx, tmp_p
 def test_clear_error_when_word_fails_without_fallback(fake_word, sample_docx, tmp_path):
     fake_word.succeed = False
     conv = msword.WordConverter(enabled=True, fallback=None)
-    with pytest.raises(ConversionError, match="Microsoft Word could not convert"):
+    with pytest.raises(ConversionError, match="Microsoft Word cannot convert"):
         Engine([conv]).convert(sample_docx, "pdf", tmp_path / "out")
     assert not (tmp_path / "out").exists() or list((tmp_path / "out").iterdir()) == []
 
@@ -146,7 +146,7 @@ def test_real_powershell_reports_missing_word(monkeypatch, sample_docx, tmp_path
     """On a Windows PC without Word the script must fail cleanly, not hang."""
     monkeypatch.setattr(msword, "app_installed", lambda app: True)
     conv = msword.WordConverter(enabled=True, fallback=None)
-    with pytest.raises(ConversionError, match="Microsoft Word could not convert"):
+    with pytest.raises(ConversionError, match="Microsoft Word cannot convert"):
         Engine([conv]).convert(sample_docx, "pdf", tmp_path, options={"timeout": 120})
 
 
@@ -154,7 +154,7 @@ def test_clear_error_when_one_document_fails(fake_word, tmp_path):
     bad = tmp_path / "bad.docx"
     bad.write_bytes(b"bad")
     conv = msword.WordConverter(enabled=True, fallback=None)
-    with pytest.raises(ConversionError, match="could not convert the file: The file appears"):
+    with pytest.raises(ConversionError, match="cannot convert the file: The file appears"):
         Engine([conv]).convert(bad, "pdf", tmp_path / "out")
 
 
@@ -171,7 +171,7 @@ def test_word_converts_a_batch_in_one_start(fake_word, tmp_path):
     assert [c[1]["AZOTH_COUNT"] for c in fake_word.calls] == ["5", "1"]
     for i, src in enumerate(files):
         if src is bad:
-            assert "could not convert the file: The file appears" in str(results[i])
+            assert "cannot convert the file: The file appears" in str(results[i])
         else:
             assert results[i].outputs[0].name == f"{src.stem}.pdf"
             assert results[i].outputs[0].read_bytes().startswith(b"%PDF")
@@ -237,7 +237,7 @@ def test_password_protected_files_are_refused_before_office_opens_them(fake_word
         b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 100 + "EncryptionInfo".encode("utf-16-le")
     )
     assert msword.password_protected(protected)
-    with pytest.raises(ConversionError, match="protected with a password"):
+    with pytest.raises(ConversionError, match="has a password"):
         Engine(all_converters(use_word=True)).convert(protected, "pdf", tmp_path / "o")
     assert fake_word.calls == []  # Excel never saw it (it would ask for the password)
     plain = tmp_path / "plain.xlsx"
@@ -277,11 +277,13 @@ def test_libreoffice_message_names_only_what_is_missing(monkeypatch, with_ffmpeg
     assert conv.id == "libreoffice"
     assert ("docx", "pdf") not in missing and ("xlsx", "pdf") in missing
     text = conv.unavailable_reason(missing)
-    assert text.startswith("Excel files and PowerPoint files need LibreOffice")
+    assert text.startswith(
+        "LibreOffice (free) or Microsoft Office is necessary for Excel files and PowerPoint files"
+    )
     # Without any Office program: the general message.
     monkeypatch.setattr(msword, "app_installed", lambda app: False)
     [(conv, missing)] = Engine(all_converters()).needed_engines()
-    assert conv.unavailable_reason(missing).startswith("Office conversions need LibreOffice")
+    assert conv.unavailable_reason(missing).startswith("LibreOffice (free) is necessary for Office")
 
 
 def test_formats_panel_counts_office_as_installed(qtbot, monkeypatch):

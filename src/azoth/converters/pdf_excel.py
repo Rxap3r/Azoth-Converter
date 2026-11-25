@@ -5,6 +5,10 @@ The text of each cell is read from its box (PyMuPDF's own table text mixes up
 spaces and decimal points). Each page becomes one sheet; text outside the tables is
 kept too, one PDF line per row, so nothing on the page is lost.
 
+Options: ``tables_only`` leaves out the text outside the tables; ``one_sheet`` puts all
+pages on one sheet, where a table that goes on over several pages (with its header row
+repeated on each page, as in bank statements) becomes one continuous table.
+
 Numbers become real numbers (so Excel can calculate with them) only where their
 meaning is clear: "12'400", "CHF 240.00", "8.1 %". "1.234" or "1,234" alone could be
 one thousand or one point something, so such numbers stay text unless the rest of
@@ -317,63 +321,125 @@ def _set_text(cell, text: str) -> None:
     cell.data_type = "s"  # "=SUM(…)" in a PDF stays text, never becomes a formula
 
 
-def write_workbook(pages: list[list[Table | TextRow]], dst: Path) -> None:
+class _SheetWriter:
+    """Writes tables and text rows one below the other on one sheet."""
+
+    def __init__(self, ws, hint: str | None, join_tables: bool = False) -> None:
+        from openpyxl.styles import Border, Side
+
+        self.ws = ws
+        self.hint = hint
+        self.join_tables = join_tables  # a table going on over pages becomes one
+        self.row = 1  # the next free row
+        self.widths: dict[int, float] = {}  # column → width in Excel units
+        self.last_table: Table | None = None  # the table just written, if nothing followed
+        thin = Side(style="thin", color="808080")
+        self.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    def add(self, item: Table | TextRow) -> None:
+        if isinstance(item, TextRow):
+            self._gap_after_table()
+            for col, text in enumerate(item.texts, start=1):
+                _set_text(self.ws.cell(self.row, col), text)
+            self.row += 1
+        elif self.join_tables and _continues(self.last_table, item):
+            # The same table goes on (a long list over several pages): its repeated
+            # header row is left out, so the sheet holds one table that can be sorted.
+            self._table(item, skip_header=True)
+        else:
+            self._gap_after_table()
+            self._table(item)
+
+    def finish(self) -> None:
+        from openpyxl.utils import get_column_letter
+
+        for j, w in self.widths.items():
+            self.ws.column_dimensions[get_column_letter(j)].width = round(min(max(w, 4), 100), 1)
+
+    def _gap_after_table(self) -> None:
+        if self.last_table is not None:
+            self.row += 1  # one empty row after each table
+            self.last_table = None
+
+    def _table(self, table: Table, skip_header: bool = False) -> None:
+        for j, w in enumerate(table.widths, start=1):
+            self.widths[j] = max(self.widths.get(j, 0), w / POINTS_PER_CHAR)
+        first = 1 if skip_header else 0
+        for c in table.cells:
+            if c.row >= first:
+                self._cell(c, self.row + c.row - first)
+        self.row += table.rows - first
+        self.last_table = table
+
+    def _cell(self, c: Cell, r: int) -> None:
+        from openpyxl.styles import Alignment, Font, PatternFill
+
+        col = 1 + c.col
+        if c.rowspan > 1 or c.colspan > 1:
+            self.ws.merge_cells(
+                start_row=r, start_column=col,
+                end_row=r + c.rowspan - 1, end_column=col + c.colspan - 1,
+            )  # fmt: skip
+            for rr in range(r, r + c.rowspan):
+                for cc in range(col, col + c.colspan):
+                    self.ws.cell(rr, cc).border = self.border
+        cell = self.ws.cell(r, col)
+        parsed = parse_number(c.text, self.hint) if c.text else None
+        if parsed:
+            cell.value, cell.number_format = parsed
+        elif c.text:
+            _set_text(cell, c.text)
+        cell.border = self.border
+        cell.font = Font(
+            name="Calibri",
+            size=11,
+            bold=c.bold,
+            italic=c.italic,
+            color=f"{c.color:06X}" if c.color else None,
+        )
+        if c.fill:
+            cell.fill = PatternFill("solid", fgColor=_hex(c.fill))
+        cell.alignment = Alignment(horizontal=c.align, vertical="top", wrap_text=len(c.text) > 30)
+
+
+def _header(table: Table) -> tuple[str, ...] | None:
+    """The texts of the table's first row, if it is a plain row (no merged cells)."""
+    first = [c for c in table.cells if c.row == 0]
+    if table.rows < 2 or any(c.rowspan > 1 or c.colspan > 1 for c in first):
+        return None
+    return tuple(c.text for c in sorted(first, key=lambda c: c.col))
+
+
+def _continues(previous: Table | None, table: Table) -> bool:
+    """True if ``table`` carries on ``previous``: same columns, same header row."""
+    if previous is None or previous.cols != table.cols:
+        return False
+    header = _header(table)
+    return header is not None and any(header) and header == _header(previous)
+
+
+def write_workbook(
+    pages: list[list[Table | TextRow]], dst: Path, *, one_sheet: bool = False
+) -> None:
+    """One sheet per page, or with ``one_sheet`` all pages on one sheet, where a table
+    that goes on over several pages becomes one table."""
     from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-    from openpyxl.utils import get_column_letter
 
     hint = decimal_hint(
         [c.text for p in pages for it in p if isinstance(it, Table) for c in it.cells]
     )
-    thin = Side(style="thin", color="808080")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
     wb = Workbook()
     wb.remove(wb.active)
     wb.properties.creator = None  # not "openpyxl"; nothing about the user either
-    for number, items in enumerate(pages, start=1):
-        ws = wb.create_sheet(f"Page {number}")
-        widths: dict[int, float] = {}
-        row = 1
+    if one_sheet:
+        sheets = [("All pages", [it for items in pages for it in items])]
+    else:
+        sheets = [(f"Page {n}", items) for n, items in enumerate(pages, start=1)]
+    for name, items in sheets:
+        writer = _SheetWriter(wb.create_sheet(name), hint, join_tables=one_sheet)
         for item in items:
-            if isinstance(item, TextRow):
-                for col, text in enumerate(item.texts, start=1):
-                    _set_text(ws.cell(row, col), text)
-                row += 1
-                continue
-            for j, w in enumerate(item.widths, start=1):
-                widths[j] = max(widths.get(j, 0), w / POINTS_PER_CHAR)
-            for c in item.cells:
-                r, col = row + c.row, 1 + c.col
-                if c.rowspan > 1 or c.colspan > 1:
-                    ws.merge_cells(
-                        start_row=r, start_column=col,
-                        end_row=r + c.rowspan - 1, end_column=col + c.colspan - 1,
-                    )  # fmt: skip
-                    for rr in range(r, r + c.rowspan):
-                        for cc in range(col, col + c.colspan):
-                            ws.cell(rr, cc).border = border
-                cell = ws.cell(r, col)
-                parsed = parse_number(c.text, hint) if c.text else None
-                if parsed:
-                    cell.value, cell.number_format = parsed
-                elif c.text:
-                    _set_text(cell, c.text)
-                cell.border = border
-                cell.font = Font(
-                    name="Calibri",
-                    size=11,
-                    bold=c.bold,
-                    italic=c.italic,
-                    color=f"{c.color:06X}" if c.color else None,
-                )
-                if c.fill:
-                    cell.fill = PatternFill("solid", fgColor=_hex(c.fill))
-                cell.alignment = Alignment(
-                    horizontal=c.align, vertical="top", wrap_text=len(c.text) > 30
-                )
-            row += item.rows + 1  # one empty row after each table
-        for j, w in widths.items():
-            ws.column_dimensions[get_column_letter(j)].width = round(min(max(w, 4), 100), 1)
+            writer.add(item)
+        writer.finish()
     wb.save(dst)
 
 
@@ -393,27 +459,36 @@ class PdfToExcelConverter(Converter):
 
     def quality_note(self, src: str, dst: str) -> str | None:
         return (
-            "Tables with visible lines become Excel cells, one sheet per page; other text "
-            "is kept line by line. Numbers become real numbers only where their meaning "
-            "is clear. Check important figures."
+            "Tables with lines that you can see become Excel cells, one sheet for each page. "
+            "Azoth Converter keeps the other text line by line. Numbers become Excel numbers only "
+            "if their meaning is clear. Examine important numbers."
         )
 
     def convert(self, src: Path, dst: Path, ctx: ConversionContext) -> list[Path]:
         if is_probably_scanned(src):
             raise ConversionError(
-                "This PDF looks like a scan (pictures of pages, no selectable text). "
-                "Reading tables from scans isn't possible yet. Convert it to Word "
-                "instead, which uses text recognition."
+                "This PDF looks like a scan: pictures of pages, with no text that you can "
+                "select. Azoth Converter cannot read tables from scans. Convert the PDF to "
+                "Word: this conversion uses text recognition."
             )
+        tables_only = bool(ctx.option("tables_only", False))
         pages: list[list[Table | TextRow]] = []
         with open_pdf(src) as doc:
             total = doc.page_count
             for i, page in enumerate(doc):
                 ctx.check_cancelled()
                 ctx.progress(i / max(total, 1), f"Page {i + 1}/{total}")
-                pages.append(read_page(page))
+                items = read_page(page)
+                if tables_only:
+                    items = [it for it in items if isinstance(it, Table)]
+                pages.append(items)
         if not any(pages):
-            raise ConversionError("This PDF has no text that could go into Excel.")
+            if tables_only:
+                raise ConversionError(
+                    "Azoth Converter found no tables with lines that you can see in this PDF. "
+                    "To get the text line by line, do not select “Tables only”."
+                )
+            raise ConversionError("This PDF has no text for Excel.")
         ctx.check_cancelled()
-        write_workbook(pages, dst)
+        write_workbook(pages, dst, one_sheet=bool(ctx.option("one_sheet", False)))
         return [dst]

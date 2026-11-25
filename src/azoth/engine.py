@@ -161,6 +161,16 @@ class Engine:
                 return [Step(fmt, fmt, conv)]
         return None
 
+    def shrink_route(self, fmt: str) -> list[Step] | None:
+        """Saving a ``fmt`` video as a smaller MP4 (option ``shrink``), in one step."""
+        for conv in sorted(self.converters, key=lambda c: -c.priority):
+            if conv.is_available() and conv.supports_shrink(fmt):
+                return [Step(fmt, "mp4", conv)]
+        return None
+
+    def can_shrink(self, fmt: str) -> bool:
+        return self.shrink_route(fmt) is not None
+
     def can_resize(self, src: str, dst: str) -> bool:
         """True if ``src`` files can get a new picture size when converted to ``dst``
         (or saved again in a new size, when ``src == dst``)."""
@@ -374,19 +384,27 @@ class Engine:
         options: dict[str, Any],
     ) -> _Job:
         if not source.is_file():
-            raise ConversionError(f"File not found: {source}")
+            raise ConversionError(f"Cannot find the file {source}.")
         src_fmt = formats.detect(source)
         if src_fmt is None:
-            raise ConversionError(f"Unknown file type: {source.name}")
+            raise ConversionError(f"Azoth Converter does not know the file type of {source.name}.")
         try:
             dst_fmt = formats.get(target)
         except KeyError as exc:
             raise ConversionError(str(exc)) from exc
         resizing = options.get("resize") is not None
-        if src_fmt.id == dst_fmt.id:
+        shrinking = bool(options.get("shrink"))
+        if shrinking:
+            route = self.shrink_route(src_fmt.id) if dst_fmt.id == "mp4" else None
+            if route is None and (src_fmt.category != formats.VIDEO or dst_fmt.id != "mp4"):
+                raise ConversionError(
+                    f"Azoth Converter cannot make {source.name} smaller. You can do this "
+                    "only with videos, as MP4."
+                )
+        elif src_fmt.id == dst_fmt.id:
             route = self.resize_route(src_fmt.id) if resizing else None
             if route is None:
-                raise ConversionError(f"{source.name} is already {dst_fmt.name}")
+                raise ConversionError(f"The format of {source.name} is {dst_fmt.name}.")
         else:
             route = self.find_route(src_fmt.id, dst_fmt.id)
         if route is None:
@@ -399,11 +417,14 @@ class Engine:
         last = route[-1]
         if resizing and not last.converter.supports_resize(last.src, last.dst):
             raise ConversionError(
-                f"The picture size can't be changed when converting {src_fmt.name} to "
-                f"{dst_fmt.name}. Only pictures saved as pictures can get a new size."
+                f"Azoth Converter cannot change the picture size when it converts "
+                f"{src_fmt.name} to {dst_fmt.name}. Only pictures saved as pictures can get "
+                "a new size."
             )
         if name is not None:
             stem = check_file_name(name, dst_fmt.extension)
+        elif shrinking:
+            stem = f"{source.stem} (smaller)"  # never the original's name
         elif src_fmt.id == dst_fmt.id:
             ai = getattr(options.get("resize"), "ai", False)
             stem = f"{source.stem} ({'enhanced' if ai else 'resized'})"  # never the original's name
@@ -508,7 +529,7 @@ class Engine:
                     result.warnings.extend(ctx.warnings)
                     result.notes.extend(ctx.notes)
                 if not produced or not all(p.exists() for p in produced):
-                    raise ConversionError("The converter did not produce any output")
+                    raise ConversionError("The converter did not make a file.")
                 current = produced[0]
             with _OUTPUT_LOCK:  # two files converted at once may want the same name
                 for p in produced:
@@ -524,10 +545,6 @@ class Engine:
 def _without_resize(options: dict[str, Any]) -> dict[str, Any]:
     """Options for steps before the last: the size is changed once, at the end."""
     return {k: v for k, v in options.items() if k != "resize"}
-
-
-def _no_progress(fraction: float, message: str) -> None:
-    pass
 
 
 @dataclass
@@ -584,14 +601,14 @@ def check_file_name(name: str, extension: str = "") -> str:
         name = name[: -len(extension) - 1]
     name = name.rstrip(". ")
     if not name:
-        raise ConversionError("Please enter a file name.")
+        raise ConversionError("Enter a file name.")
     bad = sorted({c for c in name if c in BAD_NAME_CHARS or ord(c) < 32})
     if bad:
         shown = " ".join(c if ord(c) >= 32 else "?" for c in bad)
-        raise ConversionError(f"A file name can't contain these characters: {shown}")
+        raise ConversionError(f"A file name cannot contain these characters: {shown}")
     if name.split(".")[0].upper() in RESERVED_NAMES:
         raise ConversionError(
-            f'Windows doesn\'t allow the file name "{name}". Please choose another.'
+            f'Windows does not accept the file name "{name}". Enter a different name.'
         )
     return name
 
