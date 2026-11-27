@@ -296,9 +296,13 @@ same change, and never add an installer language the app doesn't have.
 Details are in `CHANGELOG.md` (what each version contains) and `docs/PROJECT_PLAN.md`
 (open ideas). Keep only what a new session needs here; move finished details out.
 
-- **Released:** **0.6.0** (24 Nov 2026, pull request #12) on GitHub Releases (installer +
-  portable ZIP). Earlier: 0.5.0 (23 Nov), 0.4.0, 0.3.1, 0.3.0 (22 Nov), 0.2.1 (21 Nov),
-  0.2.0 (19 Nov), 0.1.0 (18 Nov). New work goes under `CHANGELOG.md` → Unreleased.
+- **Released:** **0.7.0** (25 Nov 2026, pull request #15) on GitHub Releases (installer +
+  portable ZIP). Earlier: 0.6.0 (24 Nov), 0.5.0 (23 Nov), 0.4.0, 0.3.1, 0.3.0 (22 Nov),
+  0.2.1 (21 Nov), 0.2.0 (19 Nov), 0.1.0 (18 Nov). New work goes under `CHANGELOG.md` → Unreleased.
+- **0.7.1 prepared (27 Nov 2026)** on `dev`: version, changelog, `docs/releases/v0.7.1.md`.
+  Only fix: ICO output (square icons with all sizes, largest first). Next: owner says "pull it"
+  → pull request `dev` → `main`; owner merges and starts Actions → Release. Then move 0.7.1 to
+  "Released" here.
 - **Repository:** public at `Rxap3r/Azoth-Converter` (renamed from `File-Converter`; the old
   URL redirects, but connect new sessions to the new name). A ruleset protects **only
   `main`** (pull request required, checks Tests (Linux), Tests (Windows) and Windows app
@@ -310,15 +314,6 @@ Details are in `CHANGELOG.md` (what each version contains) and `docs/PROJECT_PLA
   SignPath). The **design refresh is low priority** (the owner finds the current design
   good): icon rework, "Done" notification, accessibility checks. Later: version check
   inside the app (only on click, after code signing), OCR speed on long PDFs. All in `docs/PROJECT_PLAN.md`.
-- **0.7.0 prepared (24 Nov 2026)**: version, changelog and `docs/releases/v0.7.0.md` on
-  `dev`, pull request #15 into `main` merged (25 Nov 2026). Next: the owner starts
-  Actions → Release on `main`. After that, move 0.7.0 to
-  "Released" here. Contents: "Best quality (slow)" AI (`--ai-best`, bigger model, +30 MB
-  download); the Windows build smoke-tests both AI models in the finished program.
-  "Make smaller" for videos (`--shrink`, option `shrink`, tile `SHRINK_TARGET`), also in
-  the right-click menu. PDF → Excel "Tables only" / "All pages on one sheet" (options
-  `tables_only`, `one_sheet`; `gui/options_panel.ExcelOptions`). Code review fixes. STE
-  wording for messages, tooltips and help.
 - **Still to try on a real Windows PC** (owner's company PC has Office, no LibreOffice): AI
   on real photos; Excel/PowerPoint → PDF, XLS → XLSX, PPT → PPTX; Office passwords both
   ways; the right-click menu; the double-clicked `azoth-terminal.exe` Command Prompt; videos
