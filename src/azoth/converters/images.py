@@ -84,6 +84,33 @@ def _prepare_frame(img: Image.Image, dst: str) -> Image.Image:
     return img
 
 
+ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)  # the sizes Windows uses
+ICO_MAX = 256
+
+
+def _square(img: Image.Image) -> Image.Image:
+    """Put the picture in the centre of a transparent square. Icons are square: without
+    this, a wide picture gets only small, distorted icon sizes. Nothing is cut off."""
+    if img.width == img.height:
+        return img
+    side = max(img.size)
+    rgba = img.convert("RGBA")
+    canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    canvas.paste(rgba, ((side - img.width) // 2, (side - img.height) // 2))
+    return canvas
+
+
+def _largest_first(path: Path) -> None:
+    """Put the largest picture first in the icon's list. Windows selects the correct size
+    itself, but many viewers show only the first one (Pillow writes 16 × 16 first)."""
+    data = bytearray(path.read_bytes())
+    count = int.from_bytes(data[4:6], "little")
+    entries = [bytes(data[6 + 16 * i : 22 + 16 * i]) for i in range(count)]
+    entries.sort(key=lambda e: e[0] or 256, reverse=True)  # width 0 means 256
+    data[6 : 6 + 16 * count] = b"".join(entries)
+    path.write_bytes(bytes(data))
+
+
 class ImageConverter(Converter):
     id = "images"
     label = "Pillow"
@@ -109,7 +136,9 @@ class ImageConverter(Converter):
             return "GIF has only 256 colours. Thus, photos can look grainy."
         if dst == "ico":
             return (
-                "Icons are 256×256 pixels or smaller. Azoth Converter makes larger images smaller."
+                "Icons are square and 256 × 256 pixels or smaller. Azoth Converter makes "
+                "larger pictures smaller and adds a transparent border to pictures that "
+                "are not square."
             )
         if dst == "jpg" and src in ("png", "gif", "webp", "ico", "tiff"):
             return "JPEG has no transparency. Transparent areas become white."
@@ -217,8 +246,14 @@ class ImageConverter(Converter):
         if dst_id == "tiff":
             save_args["compression"] = "tiff_lzw"
         if dst_id == "ico":
-            largest = min(256, max(first.size))
-            save_args["sizes"] = [(s, s) for s in (16, 24, 32, 48, 64, 128, 256) if s <= largest]
+            first = _square(first)
+            side = min(ICO_MAX, first.width)
+            save_args["sizes"] = sorted({(s, s) for s in ICO_SIZES if s <= side} | {(side, side)})
+            if side < ICO_MAX:
+                ctx.notes.append(
+                    f"The icon is {side} × {side} px. To make a larger icon, "
+                    "select a larger “Picture size”."
+                )
         if len(frames) > 1:
             save_args["save_all"] = True
             save_args["append_images"] = frames[1:]
@@ -230,6 +265,8 @@ class ImageConverter(Converter):
         ctx.progress(0.9, "Saving")
         try:
             first.save(dst, format=pil_format, **save_args)
+            if dst_id == "ico":
+                _largest_first(dst)
         except Exception as exc:
             raise ConversionError(f"Cannot save the {dst_id.upper()} file ({exc}).") from exc
         return [dst]

@@ -7,6 +7,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-27
+
+### Fixed
+
+- Icons (ICO) from pictures that are not square now have all sizes up to 256 × 256 px.
+  Before, a wide picture gave only small, squashed icons (for example 16 × 1 px). The
+  picture now goes in the centre of a transparent square, and nothing is cut off.
+- Icons now store the largest size first, so viewers that show only one size show the
+  large one instead of 16 × 16 px.
+- Pictures smaller than 16 px no longer give an empty icon file.
+- When an icon is smaller than 256 × 256 px, a note says that "Picture size" makes it larger.
+
 ## [0.7.0] - 2026-11-24
 
 ### Added
@@ -527,7 +539,8 @@ First release.
 - Originals are never changed; existing files are never overwritten.
 - Clean uninstall: program folder, settings, temporary files and registry entries are removed.
 
-[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Rxap3r/Azoth-Converter/compare/v0.4.0...v0.5.0
