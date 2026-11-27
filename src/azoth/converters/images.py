@@ -6,6 +6,7 @@ Privacy: EXIF, GPS and XMP metadata are removed by default. Pass the option
 
 from __future__ import annotations
 
+import io
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -100,15 +101,60 @@ def _square(img: Image.Image) -> Image.Image:
     return canvas
 
 
-def _largest_first(path: Path) -> None:
-    """Put the largest picture first in the icon's list. Windows selects the correct size
-    itself, but many viewers show only the first one (Pillow writes 16 × 16 first)."""
-    data = bytearray(path.read_bytes())
-    count = int.from_bytes(data[4:6], "little")
-    entries = [bytes(data[6 + 16 * i : 22 + 16 * i]) for i in range(count)]
-    entries.sort(key=lambda e: e[0] or 256, reverse=True)  # width 0 means 256
-    data[6 : 6 + 16 * count] = b"".join(entries)
-    path.write_bytes(bytes(data))
+def _ico_bitmap(img: Image.Image) -> bytes:
+    """One icon picture as a 32-bit bitmap with its transparency mask, the classic format
+    that each Windows program can read."""
+    w, h = img.size
+    rows = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)  # bitmaps start at the bottom row
+    colours = rows.tobytes("raw", "BGRA")
+    mask_row = (w + 31) // 32 * 4  # each mask row is padded to 4 bytes
+    mask = bytearray(mask_row * h)
+    alpha = rows.getchannel("A").tobytes()
+    for y in range(h):
+        for x in range(w):
+            if alpha[y * w + x] == 0:  # fully transparent
+                mask[y * mask_row + x // 8] |= 0x80 >> (x % 8)
+    header = (
+        (40).to_bytes(4, "little")
+        + w.to_bytes(4, "little", signed=True)
+        + (2 * h).to_bytes(4, "little", signed=True)  # colours + mask
+        + (1).to_bytes(2, "little")  # planes
+        + (32).to_bytes(2, "little")  # bits per pixel
+        + bytes(4)  # no compression
+        + (len(colours) + len(mask)).to_bytes(4, "little")
+        + bytes(16)
+    )
+    return header + colours + bytes(mask)
+
+
+def _write_ico(img: Image.Image, path: Path) -> list[int]:
+    """Save a square picture as a Windows icon, written like the icons of Windows itself:
+    the largest size first, classic bitmaps below 256 × 256 px and PNG for 256 × 256 px.
+    A size equal to the picture keeps its pixels unchanged. Returns the sizes."""
+    img = img.convert("RGBA")
+    side = min(ICO_MAX, img.width)
+    sizes = sorted({s for s in ICO_SIZES if s <= side} | {side}, reverse=True)
+    pictures = []
+    for s in sizes:
+        frame = img if img.width == s else img.resize((s, s), Image.Resampling.LANCZOS)
+        if s == ICO_MAX:
+            buffer = io.BytesIO()
+            frame.save(buffer, format="PNG", optimize=True)
+            pictures.append(buffer.getvalue())
+        else:
+            pictures.append(_ico_bitmap(frame))
+    out = bytearray((0).to_bytes(2, "little") + (1).to_bytes(2, "little"))
+    out += len(sizes).to_bytes(2, "little")
+    offset = 6 + 16 * len(sizes)
+    for s, data in zip(sizes, pictures, strict=True):
+        dim = s % 256  # 0 means 256
+        out += bytes((dim, dim, 0, 0)) + (1).to_bytes(2, "little") + (32).to_bytes(2, "little")
+        out += len(data).to_bytes(4, "little") + offset.to_bytes(4, "little")
+        offset += len(data)
+    for data in pictures:
+        out += data
+    path.write_bytes(bytes(out))
+    return sizes
 
 
 class ImageConverter(Converter):
@@ -248,7 +294,6 @@ class ImageConverter(Converter):
         if dst_id == "ico":
             first = _square(first)
             side = min(ICO_MAX, first.width)
-            save_args["sizes"] = sorted({(s, s) for s in ICO_SIZES if s <= side} | {(side, side)})
             if side < ICO_MAX:
                 ctx.notes.append(
                     f"The icon is {side} × {side} px. To make a larger icon, "
@@ -264,9 +309,10 @@ class ImageConverter(Converter):
 
         ctx.progress(0.9, "Saving")
         try:
-            first.save(dst, format=pil_format, **save_args)
             if dst_id == "ico":
-                _largest_first(dst)
+                _write_ico(first, dst)
+            else:
+                first.save(dst, format=pil_format, **save_args)
         except Exception as exc:
             raise ConversionError(f"Cannot save the {dst_id.upper()} file ({exc}).") from exc
         return [dst]
