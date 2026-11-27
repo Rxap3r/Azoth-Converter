@@ -7,6 +7,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Fixed
+
+- Icons (ICO) now show at their largest size in the Windows Photos app. Azoth Converter
+  writes icons like Windows does: the largest size first, classic bitmaps for the small
+  sizes and PNG only for 256 × 256 px.
+
 ## [0.7.1] - 2026-11-27
 
 ### Fixed

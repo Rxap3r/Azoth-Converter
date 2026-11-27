@@ -120,3 +120,28 @@ def test_ico_can_be_made_larger(tmp_path):
     out_dir = tmp_path / "out"
     result = Engine().convert(src, "ico", out_dir, options={"resize": resize.parse("256")})
     assert _ico_sizes(result.outputs[0]) == [256, 128, 64, 48, 32, 24, 16]
+
+
+def test_ico_is_written_like_windows_icons(tmp_path):
+    """Largest first (in the list and in the file), 1 plane, 32 bits, classic bitmaps
+    below 256 px and PNG for 256 px, so that each program (also the Photos app) can read it."""
+    src = tmp_path / "pic.png"
+    Image.new("RGBA", (300, 300), (200, 30, 30, 255)).save(src)
+    [out] = Engine().convert(src, "ico", tmp_path / "out").outputs
+    data = out.read_bytes()
+    offsets = []
+    for i, side in enumerate([256, 128, 64, 48, 32, 24, 16]):
+        entry = data[6 + 16 * i : 22 + 16 * i]
+        assert (entry[0] or 256) == side
+        assert int.from_bytes(entry[4:6], "little") == 1  # planes
+        assert int.from_bytes(entry[6:8], "little") == 32  # bits per pixel
+        offset = int.from_bytes(entry[12:16], "little")
+        offsets.append(offset)
+        start = data[offset : offset + 4]
+        assert start == (b"\x89PNG" if side == 256 else (40).to_bytes(4, "little"))
+    assert offsets == sorted(offsets)
+    with Image.open(out) as im:
+        for side in (16, 48, 256):
+            im.size = (side, side)
+            im.load()
+            assert im.convert("RGBA").getpixel((side // 2, side // 2)) == (200, 30, 30, 255)
