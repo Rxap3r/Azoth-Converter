@@ -81,3 +81,42 @@ def test_heic_to_jpg(sample_png, tmp_path):
     with Image.open(jpg) as im:
         assert im.format == "JPEG"
         assert im.size == (120, 80)
+
+
+def _ico_sizes(path):
+    """The sizes in the icon's list, in the order they are stored."""
+    data = path.read_bytes()
+    count = int.from_bytes(data[4:6], "little")
+    return [data[6 + 16 * i] or 256 for i in range(count)]
+
+
+@pytest.mark.parametrize("size", [(300, 200), (1000, 20), (20, 1000)])
+def test_ico_from_non_square_picture_is_square_with_all_sizes(tmp_path, size):
+    src = tmp_path / "logo.png"
+    Image.new("RGB", size, "red").save(src)
+    [out] = Engine().convert(src, "ico", tmp_path / "out").outputs
+    assert _ico_sizes(out) == [256, 128, 64, 48, 32, 24, 16]  # largest first
+    with Image.open(out) as im:
+        assert im.size == (256, 256)
+        rgba = im.convert("RGBA")
+        assert rgba.getpixel((0, 0))[3] == 0  # transparent border, nothing distorted
+        assert rgba.getpixel((128, 128))[:3] == (255, 0, 0)  # the picture in the centre
+
+
+def test_ico_from_small_picture_keeps_its_size(tmp_path):
+    for side, expected in ((100, [100, 64, 48, 32, 24, 16]), (10, [10])):
+        src = tmp_path / f"small{side}.png"
+        Image.new("RGB", (side, side), "red").save(src)
+        result = Engine().convert(src, "ico", tmp_path / "out")
+        assert _ico_sizes(result.outputs[0]) == expected
+        assert any("Picture size" in n for n in result.notes)
+
+
+def test_ico_can_be_made_larger(tmp_path):
+    from azoth import resize
+
+    src = tmp_path / "small.ico"
+    Image.new("RGBA", (16, 16), "red").save(src)
+    out_dir = tmp_path / "out"
+    result = Engine().convert(src, "ico", out_dir, options={"resize": resize.parse("256")})
+    assert _ico_sizes(result.outputs[0]) == [256, 128, 64, 48, 32, 24, 16]

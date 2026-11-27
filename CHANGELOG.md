@@ -7,6 +7,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follo
 
 ## [Unreleased]
 
+### Fixed
+
+- Icons (ICO) from pictures that are not square now have all sizes up to 256 × 256 px.
+  Before, a wide picture gave only small, squashed icons (for example 16 × 1 px). The
+  picture now goes in the centre of a transparent square, and nothing is cut off.
+- Icons now store the largest size first, so viewers that show only one size show the
+  large one instead of 16 × 16 px.
+- Pictures smaller than 16 px no longer give an empty icon file.
+- When an icon is smaller than 256 × 256 px, a note says that "Picture size" makes it larger.
+
 ## [0.7.0] - 2026-11-24
 
 ### Added

@@ -531,3 +531,14 @@ def test_removing_video_metadata_copies_every_bit(tmp_path):
 
     out = metadata.clean_file(src).output
     assert data(out) == data(src)
+
+
+def test_ico_keeps_the_initial_pixels(tmp_path):
+    """A square picture of an icon size goes into the icon unchanged."""
+    src = tmp_path / "pic.png"
+    img = Image.effect_noise((48, 48), 80).convert("RGBA")
+    img.save(src)
+    [out] = Engine().convert(src, "ico", tmp_path / "out").outputs
+    with Image.open(out) as im:
+        im.size = (48, 48)
+        assert ImageChops.difference(im.convert("RGBA"), img).getbbox() is None
